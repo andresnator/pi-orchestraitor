@@ -1,0 +1,9 @@
+.ai/
+node_modules/
+*.tgz
+.ai/orchestration/
+.ai/verification/
+.env
+.env.*
+!.env.example
+.DS_Store

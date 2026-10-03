@@ -1,0 +1,1627 @@
+{
+  "upstream": "agents-orchestrator",
+  "revision": "e90b11a4d5fb77bfebcf5f5c96da9471014c17ab",
+  "skills": [
+    {
+      "name": "absorb",
+      "upstreamPaths": [
+        "domains/meta/skills/absorb/SKILL.md"
+      ],
+      "upstreamVersion": "1.2.4",
+      "license": "MIT",
+      "upstreamSha256": "3814653e598a6cf201acfcf0268a11313723d20b468a32a9bce731b0681b9770",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "9b31d89e760b02df5c7c81d5022679ee3c9b758fa216f00e6dd5e14d59172288"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "adr",
+      "upstreamPaths": [
+        "domains/architecture/skills/adr/SKILL.md",
+        "domains/docs/skills/adr/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.0",
+      "license": "MIT",
+      "upstreamSha256": "22d7cdd2b8f524c8ea10952c3fe8fbca8210ede305b2b4294e7e3363c3e0d3e1",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "8bb8f44fc1d14fa3a5fb8d47a8f065d72180678428ad4834f4b3056b79743bb1"
+        },
+        {
+          "path": "assets/template-markdown.md",
+          "sha256": "71939e23c636d570faeb168d75a440032f9a8ec95f03fe47f70392ccfb210934"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "architecture-ideation",
+      "upstreamPaths": [
+        "domains/architecture/skills/architecture-ideation/SKILL.md"
+      ],
+      "upstreamVersion": "4.0.0",
+      "license": "MIT",
+      "upstreamSha256": "9a1061285feb9b7537fd4918dcdea1fd5ad92acf30fb7af93d9c7388082ec1ae",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "8f6afd31cedc12953402451d117c36c7f97968cef1b82059bf96f2d120cf93e9"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "architecture-impact-review",
+      "upstreamPaths": [
+        "domains/plan/skills/architecture-impact-review/SKILL.md"
+      ],
+      "upstreamVersion": "1.1.3",
+      "license": "Apache-2.0",
+      "upstreamSha256": "10e2ff3667d1f541f8e567aeb49274f6742e7f0383b1acc9e68454718f2072a0",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "f789092044c344adddda3665909c2ac50e8d9b82a51c334b2de2d7957979d511"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "architecture-map",
+      "upstreamPaths": [
+        "domains/architecture/skills/architecture-map/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.1",
+      "license": "MIT",
+      "upstreamSha256": "aa8f2d966c6ee80c2fd9aa34476d160e1ddeafea09345f0008a98c41e1c90e99",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "0afd5b89cf9f071ec8dc777e34a40ca828faad93cffe6fbd7a83af069605c19d"
+        },
+        {
+          "path": "assets/architecture-doc-set.md",
+          "sha256": "90f1c9a0e3d15351b621d692a60c62d2f9c9c96cc09820f20070d022fa3901f9"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "architecture-state",
+      "upstreamPaths": [
+        "domains/architecture/skills/architecture-state/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.1",
+      "license": "MIT",
+      "upstreamSha256": "da8aa27917f2d4b71dda2c84e4d8863f2b73afcc983604e4eae9dbd605450301",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "40a422d6ee53bfac781b5b944be6284da1ca675b3964f022ed3b1bbf3c3aedec"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "behavior-characterization",
+      "upstreamPaths": [
+        "domains/orchestration/skills/behavior-characterization/SKILL.md",
+        "domains/plan/skills/behavior-characterization/SKILL.md"
+      ],
+      "upstreamVersion": "1.1.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "8c884e1d3f0e7786e032be7ccc46d53283805426a9450732daa28886b97a792f",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "3e6ee255d24771866d7271c4e379b87e069eb19671fdc2670ca38cfbe44e4588"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "buildable-issue",
+      "upstreamPaths": [
+        "domains/docs/skills/buildable-issue/SKILL.md"
+      ],
+      "upstreamVersion": "2.1.3",
+      "license": "MIT",
+      "upstreamSha256": "f2cb84ecbafbcacee4e1400aa8f4bcc84b7c861d4a74e159b7c1e22c16c97550",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "0b36e7071c43c3e8b72a3b514d9a62c4a9f99d2514e0dd61013d63f53b271716"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "characterization-test-scoping",
+      "upstreamPaths": [
+        "domains/plan/skills/characterization-test-scoping/SKILL.md"
+      ],
+      "upstreamVersion": "2.2.1",
+      "license": "Apache-2.0",
+      "upstreamSha256": "a3d04035d842c21149ea771daec9cdcab05b2a85cecd11b19068662ab223cec3",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "a8a31bbec7aa2f35e07ef2fda0a1759360095b7285800e2c146b5bbb37bf1c02"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "code-conventions",
+      "upstreamPaths": [
+        "domains/architecture/skills/code-conventions/SKILL.md",
+        "domains/common/skills/code-conventions/SKILL.md",
+        "domains/orchestration/skills/code-conventions/SKILL.md",
+        "domains/plan/skills/code-conventions/SKILL.md",
+        "domains/review/skills/code-conventions/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.1",
+      "license": "MIT",
+      "upstreamSha256": "69c9cc41ed5d741c0d84d0775f99dfba91aa4c3e9c5667e95834ff0c2463d0cf",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "13c4b3985a782840c85cba8f253930c90c45d7b76c14ced572bf17e17dd08e4b"
+        },
+        {
+          "path": "assets/examples/OrderServiceTest.java",
+          "sha256": "24dbdb25e03fef04a18790f8896fa2e525f1e0880ade3679cb2288ce696b8ee0"
+        },
+        {
+          "path": "assets/examples/order-service.test.ts",
+          "sha256": "2bde9b35c79dba9a4d0127e19275e0c97f438f8c0a611d5b657a4957bb55929a"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "cognitive-doc-design",
+      "upstreamPaths": [
+        "domains/docs/skills/cognitive-doc-design/SKILL.md",
+        "domains/orchestration/skills/cognitive-doc-design/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.2",
+      "license": "Apache-2.0",
+      "upstreamSha256": "db528e182d09d3696d9a6185eb329c9a71946969351dd3b455aa6f609e03be73",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "3914040dc9952207f2cd04ac9bfcc089bc85cb179f0b289e9c126e41b8d7a198"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "cognitive-output-refiner",
+      "upstreamPaths": [
+        "domains/common/skills/cognitive-output-refiner/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.0",
+      "license": "MIT",
+      "upstreamSha256": "9a89a17f47cd3b469a7136a71ac5de866689dd8af663da59f12164cf513e0c9a",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "3327d6fd62663a7dab7005fef0be47dc228be63d4a0b7d3845c88f2572a87f61"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "cohesion-coupling",
+      "upstreamPaths": [
+        "domains/common/skills/cohesion-coupling/SKILL.md",
+        "domains/plan/skills/cohesion-coupling/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "82cc03d775b5be0a4f65022bcc4af546bb485e582aa096e3baceccdf3280c56f",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "1086dc7e35164b898e075cd4996a98cbb2c5aa6798b27d209a0620a26b43fb1a"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "complexity-big-o",
+      "upstreamPaths": [
+        "domains/common/skills/complexity-big-o/SKILL.md",
+        "domains/plan/skills/complexity-big-o/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "a0bc5d2f0812e8b81871cb47674c9b0e2ccd9c5b9fadaf96eca15ac57d8f90e3",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "a62965e8ff7629b7b098fd4182edae6d14fb8b9dd5085657ff84341ae259ba20"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "dependency-inversion",
+      "upstreamPaths": [
+        "domains/common/skills/dependency-inversion/SKILL.md",
+        "domains/plan/skills/dependency-inversion/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "4a1147fe49c379b3a6e934fc9cfa710f7766960a013f3036fa7660a996e5a967",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "f566f5e35266d0a4341c0f6c28d3fff0d9c9c48f0d29223e931cee6247715b2f"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "dependency-seam-detection",
+      "upstreamPaths": [
+        "domains/plan/skills/dependency-seam-detection/SKILL.md"
+      ],
+      "upstreamVersion": "1.1.1",
+      "license": "Apache-2.0",
+      "upstreamSha256": "8758abd1400c54b467fd21f8cacc918c6abe41538300c6b909fb70747e59e62d",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "a3ec43b699112ee7278458dfd7d0c5fdba42d9a1a6a94c416fdbaf09f91240a6"
+        },
+        {
+          "path": "references/dependency-breaking-catalog.md",
+          "sha256": "be42120eb566402ef9ccc76ce05eb1bb3352c0826c3e805f399de23057c7f674"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "dependency-security-audit",
+      "upstreamPaths": [
+        "domains/architecture/skills/dependency-security-audit/SKILL.md"
+      ],
+      "upstreamVersion": "2.1.2",
+      "license": "MIT",
+      "upstreamSha256": "35e3549d68430802a9875761184c9969c10e7ff4f5f1e9adf0678245cc402794",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "2ff62812ad7ef56b951c67893aff8d5ffb52a16e070ac8c3411b9e2effffcd4c"
+        },
+        {
+          "path": "references/ecosystem-commands.md",
+          "sha256": "e67a70c2f67da71e6dea9ee23a8877882a60a0c1f2011b7db3233f0409b0165d"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "design-patterns-pragmatic",
+      "upstreamPaths": [
+        "domains/architecture/skills/design-patterns-pragmatic/SKILL.md",
+        "domains/common/skills/design-patterns-pragmatic/SKILL.md",
+        "domains/plan/skills/design-patterns-pragmatic/SKILL.md"
+      ],
+      "upstreamVersion": "1.1.0",
+      "license": "MIT",
+      "upstreamSha256": "b40836f6eb43caa2a2377572b8e1e2123357265f1b26c14b0a1fc2ab9c019b22",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "fad64d19dcd898832bec6660d98d2572ecd2e3130dd8a94f7c5899e574b15f60"
+        },
+        {
+          "path": "references/pattern-forces.md",
+          "sha256": "562cc1ffac60e2257a56a0c7937c809315ad9de2ec42ce291121018836a5408f"
+        },
+        {
+          "path": "references/pattern-selection.md",
+          "sha256": "005adb3d4c2770045160b99efaa25e5240efb44cdd82e70cb2b0d7f6613d811a"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "domain-modeling",
+      "upstreamPaths": [
+        "domains/common/skills/domain-modeling/SKILL.md",
+        "domains/plan/skills/domain-modeling/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.4",
+      "license": "MIT",
+      "upstreamSha256": "59ecb5eac5cf88de4241474afc8beb6f65d5eac47b9f1f54a1c4e8ae2af16cb0",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "a7898179711f37e9d6151c10be33c8df20170d4524bbcaa6c5d1b82f399533c2"
+        },
+        {
+          "path": "assets/ADR-FORMAT.md",
+          "sha256": "f1f36cd3f8d3b6474ddd5855da4e233bfc4ae1a1c5024909ccf11871819a41b2"
+        },
+        {
+          "path": "assets/CONTEXT-FORMAT.md",
+          "sha256": "b8cc318f2a4285b530e908b6bc43901c3c5cd11100362636bbc4216639bef597"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "dry-business-knowledge",
+      "upstreamPaths": [
+        "domains/common/skills/dry-business-knowledge/SKILL.md",
+        "domains/plan/skills/dry-business-knowledge/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "53534dadffd9a077e33cdb1ef94365277f5c455fa5f4669afba0d0f0fecb8a24",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "38eccb1fcfcaf4f9da533d7725aaf233770c7f57b00ceef2df8639246b9cd2ca"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "evidence-first-planning",
+      "upstreamPaths": [
+        "domains/plan/skills/evidence-first-planning/SKILL.md"
+      ],
+      "upstreamVersion": "5.0.0",
+      "license": "MIT",
+      "upstreamSha256": "de2271b084c0bc8aac01d48b1f97b423c08e35b8674b17926bed2329b19cf2ab",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "ee048339c8798bfa1cdb28d03fe8801adee54004307fb8091aa4acbd48f26ffd"
+        },
+        {
+          "path": "assets/discovery-template.md",
+          "sha256": "11c3e7035307f737334b11964a47e016e097fc66032bdfa8088b7926183aeb80"
+        },
+        {
+          "path": "references/edge-validation.md",
+          "sha256": "005201505613fb327bcffd17b348cd3207904facc415b803bfcd7458893e05f8"
+        },
+        {
+          "path": "references/question-economy.md",
+          "sha256": "3aaf8d729e022a7c231f50ae045575e91bf6f7fbd95926c442d62d074aa08194"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md",
+        "references/question-economy.md"
+      ]
+    },
+    {
+      "name": "execution-plan",
+      "upstreamPaths": [
+        "domains/architecture/skills/execution-plan/SKILL.md",
+        "domains/common/skills/execution-plan/SKILL.md",
+        "domains/plan/skills/execution-plan/SKILL.md"
+      ],
+      "upstreamVersion": "1.1.1",
+      "license": "MIT",
+      "upstreamSha256": "15354e32be3ef86a9a1e7d1827f6f4883bc88e5d88b2938b29bfcd3e0887eab6",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "6c11b6deb611fedeb68368a18f926ece38f465b5eb947ab743525caed4b49cb7"
+        },
+        {
+          "path": "assets/plan-template.md",
+          "sha256": "0347dcb2cea5660538c9e68e95bc168537d55a0a8d879848e06cabb445c9bf76"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md",
+        "assets/plan-template.md"
+      ]
+    },
+    {
+      "name": "general-naming-readability",
+      "upstreamPaths": [
+        "domains/common/skills/general-naming-readability/SKILL.md",
+        "domains/plan/skills/general-naming-readability/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "69388dbce565e5535f98de014cb460e81e450e2251978ebd4af202033ddd87a0",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "9bea614b0908d16e0efa0a1f558eeed1fd3d32cada619fe271e0ecffcb090e5b"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "god-object-detection",
+      "upstreamPaths": [
+        "domains/common/skills/god-object-detection/SKILL.md",
+        "domains/plan/skills/god-object-detection/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "9f3a826a80ddfd2913201e6d68dfb939e7bc895b559183c0c7d55a70e167351a",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "1b1833a3b92df3d8c3f919e75f9eb6ae2c77822ae98b3165bff74379cc8a514a"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "grilling",
+      "upstreamPaths": [
+        "domains/common/skills/grilling/SKILL.md",
+        "domains/plan/skills/grilling/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.0",
+      "license": "MIT",
+      "upstreamSha256": "4e334f292673da288123775ea4d97ec625cef5070508037d112f63be24d97c13",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "5af962975eb47f1022135a5f4e6d5e5e9453a0b642087e61a7a83b5bfa45aa72"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "implementation-skill-routing",
+      "upstreamPaths": [
+        "domains/architecture/skills/implementation-skill-routing/SKILL.md",
+        "domains/common/skills/implementation-skill-routing/SKILL.md",
+        "domains/orchestration/skills/implementation-skill-routing/SKILL.md",
+        "domains/plan/skills/implementation-skill-routing/SKILL.md"
+      ],
+      "upstreamVersion": "3.0.0",
+      "license": "MIT",
+      "upstreamSha256": "4c4d1871fd26d667e71d12bd039a62721d2824499a3b0fa8b80d77cf47ac35a4",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "0c77f884dcb9ceac30a07433a9d22ca08767bc5233f908c22f47a58ab186f7c4"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "input-validation-preconditions",
+      "upstreamPaths": [
+        "domains/common/skills/input-validation-preconditions/SKILL.md",
+        "domains/plan/skills/input-validation-preconditions/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "c064cbc0b0eb56069f179f71871bc74501a285ba19f4e87b71fed71970556fa8",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "59f6bd05ec8e6877de0e1e87f72366088a346a71f32cab9506f9c7093d6f5333"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "java-api-design",
+      "upstreamPaths": [
+        "domains/plan/skills/java-api-design/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.4",
+      "license": "MIT",
+      "upstreamSha256": "c220cd03e713f30da95090354f3414bbe7723bd4a7af984364ab4ce5ff602841",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "016745f9f809835021ddb6c3552482514dc0573736c5fdddbde767dca533bb74"
+        },
+        {
+          "path": "references/java-api-boundaries.md",
+          "sha256": "8a41414100ac7c3165675f1d06507dd7d2b0c3257dbed237daf2872620cceb36"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "java-exception-robustness",
+      "upstreamPaths": [
+        "domains/plan/skills/java-exception-robustness/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.4",
+      "license": "MIT",
+      "upstreamSha256": "bdf53102b1f5dfa6dd763c133debb7f7daa35207d4bd27038aefbed8897cbb3b",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "c4dce149853ac51ce6e72fd9a48847b79c33f8de125f5ec2636c4d1a784ffbb1"
+        },
+        {
+          "path": "references/java-exception-guidance.md",
+          "sha256": "2fa84699588895ff99c5ed772a841e78dfa158985b8243e41982474c2089d7de"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "java-immutability-modeling",
+      "upstreamPaths": [
+        "domains/plan/skills/java-immutability-modeling/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.4",
+      "license": "MIT",
+      "upstreamSha256": "e06e382dd881ce0b1bfffbb7d19e896a54fcc5d51127342daa5227b1ccfb10a4",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "67a0d0abb96921010d17cd5b5e1c858457d398d81ed1b274350b46e2e534fee0"
+        },
+        {
+          "path": "references/java-immutability.md",
+          "sha256": "c06f1d68e6d895cf2c568cbe23c35e84bbe491b65f72dbb08e4d5f3bf5eb4ab7"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "java-naming-readability",
+      "upstreamPaths": [
+        "domains/plan/skills/java-naming-readability/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.1",
+      "license": "Apache-2.0",
+      "upstreamSha256": "6d4409f3d94a75305206a0fb3581015263d2fa81f52af19c57c4f83cea724514",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "b2be0ba11a4a8de85a573d1973aaa37428330b28a3ee83cc79c13f6544697fc5"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "java-secure-coding",
+      "upstreamPaths": [
+        "domains/plan/skills/java-secure-coding/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.4",
+      "license": "MIT",
+      "upstreamSha256": "29f274f1edada2cc211d976f0ecd93db9fec34e54b43651613d6509ad102af03",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "983b6cd127ab349fd2739a3070965825908c70156f21e3ab404e40de2d943029"
+        },
+        {
+          "path": "references/java-secure-coding-guidance.md",
+          "sha256": "1825baab6672bb174d5725e5d5999615a7b0fcb23ac8e81ff797667064aafa3e"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "java-testing",
+      "upstreamPaths": [
+        "domains/architecture/skills/java-testing/SKILL.md",
+        "domains/orchestration/skills/java-testing/SKILL.md",
+        "domains/plan/skills/java-testing/SKILL.md"
+      ],
+      "upstreamVersion": "3.2.1",
+      "license": "MIT",
+      "upstreamSha256": "129014d4df94698213937f17ec130b1320f91703cc5c8d248ac6359776efaa7a",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "d5d9d1e5cb30ba2e8cbc599ef6a67dc2f01b86c0fdb0608ddb576fe20fd5ea61"
+        },
+        {
+          "path": "assets/examples/ExampleCacheTest.java",
+          "sha256": "379326b1303778a641664729629c7ab7b65a59374b22326832d5a3800e64400c"
+        },
+        {
+          "path": "assets/examples/ExampleConfigTest.java",
+          "sha256": "5db1c51b1365c515606e27776c54e6af9c02e5bd710f79a404d35bb92c6d769b"
+        },
+        {
+          "path": "assets/examples/ExampleHandlerTest.java",
+          "sha256": "33b5eb541e8c609246bfdfed6a792aa45f61ca4b2ab74f9456b9b23530342f5c"
+        },
+        {
+          "path": "assets/examples/ExampleListenerTest.java",
+          "sha256": "53f9d6d77f05aa5a3b1e44d454b3ef463eb82049f424d1b21e61d172c55a375f"
+        },
+        {
+          "path": "assets/examples/ExampleServiceTest.java",
+          "sha256": "0033f392f6e545b284a082a97b7de0afdab6f5a963c1048225c3fa7500ceebfc"
+        },
+        {
+          "path": "references/advanced-patterns.md",
+          "sha256": "1aebf9bb7920480fa1ca05a46e21003ee0012ae43e2bd42a9ac796c9ad06cb60"
+        },
+        {
+          "path": "references/approvaltests-setup.md",
+          "sha256": "15fdf9753c7e990d4938f3e1417f4d1ca2f7da1c9d10ba812e587ec033a8f7ce"
+        },
+        {
+          "path": "references/characterization-tests.md",
+          "sha256": "516fc25741a24bb60d6cb3cf6789095edccfe348e6717e307b00e200ac5cf180"
+        },
+        {
+          "path": "references/dependency-breaking.md",
+          "sha256": "0db40051aa140c77813e5bc66c710abb4e772f417c01fd635ec8a2f3714f0d93"
+        },
+        {
+          "path": "references/dependency-setup.md",
+          "sha256": "b55ea0075f69be15ffbd3fe92bbbbaad2a560e26d7f903f09ff357bbc291b485"
+        },
+        {
+          "path": "references/method-object-skin-wrap.md",
+          "sha256": "1bdb1959b406e6f828cc6ebe65e36bc6c2c07291d07a062d5ef7f1a3d5440e38"
+        },
+        {
+          "path": "references/mockito-patterns.md",
+          "sha256": "528d60fc9f16cc4c1be8943daddf309abbafc07170e0b3ba5b53034e9e9a0327"
+        },
+        {
+          "path": "references/pass-null-subclass-override.md",
+          "sha256": "9b47dccf981b09a45d66a5eb7c918b1c1208ed1d9b6eec3ba1de88e00d6ee76d"
+        },
+        {
+          "path": "references/quick-decision-flow.md",
+          "sha256": "a76d0f0c040ea65eb470e835335c30edb65abe43fed9892e157515f270f7e175"
+        },
+        {
+          "path": "references/seam-model.md",
+          "sha256": "d47c89ca908f1c58e670ac1078fce9bd7a729436770a41b79d3f3d2c307cfb15"
+        },
+        {
+          "path": "references/sensing-separation.md",
+          "sha256": "b2b9641b560b0edab43d41c733f3fff4545e246cf18399f5c1c430129c676081"
+        },
+        {
+          "path": "references/sprout-wrap-techniques.md",
+          "sha256": "60157b8197e919e78636f6dca11a6ff333b2e25be1a32010782905ed6aa1b033"
+        },
+        {
+          "path": "references/tdd-legacy.md",
+          "sha256": "a81928149da61f5a9536d3f483efaea4be7fce312de703b36b9b0867f58c4097"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "jira-spike",
+      "upstreamPaths": [
+        "domains/docs/skills/jira-spike/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.0",
+      "license": "MIT",
+      "upstreamSha256": "cda23f059ac1543a086b04e90302e47dbefe991359b89b0346f547cc47747983",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "00df92740da682c9918c16afe43234b4c7c3e1e7ca2459eb0f194e11ff91e45f"
+        },
+        {
+          "path": "assets/quick-creation-template.md",
+          "sha256": "274498392170d7967b96d6539f22a7fc2939de8721db677916ba6140fb5f7986"
+        },
+        {
+          "path": "assets/refinement-template.md",
+          "sha256": "63c67357e42191222f5ee4a701f79502419afcac723f070bbf8921b2abf90cd9"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "jira-task",
+      "upstreamPaths": [
+        "domains/docs/skills/jira-task/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.0",
+      "license": "MIT",
+      "upstreamSha256": "b02adc5ac57707fafa08baa65e3ba718cc1c2660b4bd0a2c0a2c45f9993b1c45",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "0172ef130b9d1b89cac3c6765defc221589451e251b233f6816df403a52f97ab"
+        },
+        {
+          "path": "assets/quick-creation-template.md",
+          "sha256": "683abc432ccfaf923ef2f26a8f767319135e2caff15fb50a5cc898706bf05ea4"
+        },
+        {
+          "path": "assets/refinement-template.md",
+          "sha256": "26f508f55690c47036f3aa4f1a5fc0f37aad2477ecdf67572071d1f740ba577d"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "jira-user-story",
+      "upstreamPaths": [
+        "domains/docs/skills/jira-user-story/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.0",
+      "license": "MIT",
+      "upstreamSha256": "de47b4bf7fc53d4829efbba8b7a89b4e75348253d1cfa9ce974cad3567ec770a",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "5dc428426ac358b8467b31c3e274569cfbb27cb57877658a4025161f423314b5"
+        },
+        {
+          "path": "assets/quick-creation-template.md",
+          "sha256": "653c6155b37a362bb188bf73d365109ba3994a20059fb7292bd9aa417e4cc863"
+        },
+        {
+          "path": "assets/refinement-template.md",
+          "sha256": "0ad247a8624013ada32da655c21d4dd97dc7486fbfba956c97f330f5e03649a2"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "kiss-yagni",
+      "upstreamPaths": [
+        "domains/architecture/skills/kiss-yagni/SKILL.md",
+        "domains/common/skills/kiss-yagni/SKILL.md",
+        "domains/plan/skills/kiss-yagni/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.1",
+      "license": "Apache-2.0",
+      "upstreamSha256": "c8b3d8b2575e219a7b98c6713c3c95d59d895a9aafc59096d22e5b1333dfd8f2",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "30bdc4d28dca98ba625f619a2164720542532f216555c2db13ee4c5ca65aeccd"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "legacy-code-safety",
+      "upstreamPaths": [
+        "domains/orchestration/skills/legacy-code-safety/SKILL.md",
+        "domains/plan/skills/legacy-code-safety/SKILL.md"
+      ],
+      "upstreamVersion": "1.1.1",
+      "license": "Apache-2.0",
+      "upstreamSha256": "aaabc7a9ab4465bd71cf09b28aa609e8a91d8800d632f99b3c9e64d46123d95c",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "3bd813daa3276be7e64df8c0cc6d9db2013578a6d8908d9d1c3ef55e725808d8"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "logging-observability",
+      "upstreamPaths": [
+        "domains/common/skills/logging-observability/SKILL.md",
+        "domains/plan/skills/logging-observability/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "091d7b960274be8c151e30298bff81af140cc3b378796d16d9e15a4d7536e89d",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "6bd4c596b64bb473f36607ead85eb9322a94108bb69d632eabbf15bec6ad8c58"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "null-safety",
+      "upstreamPaths": [
+        "domains/plan/skills/null-safety/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.1",
+      "license": "Apache-2.0",
+      "upstreamSha256": "1eb9d679f26e3de12f39f29dfdb78ee1fd272eb7a6935bdca3f6fdfedf715025",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "f141b0944d56181c076077c28f4d0a332229252068c0f0f2d9a6b16acdb4319d"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "open-closed-principle",
+      "upstreamPaths": [
+        "domains/common/skills/open-closed-principle/SKILL.md",
+        "domains/plan/skills/open-closed-principle/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "a02427683557a40f3c9a9724451dfa150fdf286c30c2c2a75358061c42262b45",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "904b46e097e38cbdee28c1d3778740d4696ebd28e628178bd2bc6ca9ab982ce3"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "prd",
+      "upstreamPaths": [
+        "domains/docs/skills/prd/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.0",
+      "license": "MIT",
+      "upstreamSha256": "7dca5b112b212f968be59076bc0723212b87ca0cdd37528defd3f2df1a2dc3c9",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "503dd1de672210a5c5bc1f71277a80a04c7161921090652872eb2c25ad3b77f2"
+        },
+        {
+          "path": "assets/prd-template.md",
+          "sha256": "a4f4fc5d8dae53f092d81e03f196d31741f3698adbc0e8c06bab43a8415ab2b6"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "prd-light",
+      "upstreamPaths": [
+        "domains/docs/skills/prd-light/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.0",
+      "license": "MIT",
+      "upstreamSha256": "ff1bfaf96d41f270f98a31d6b1e1ac563cbd5dafafd06f462c8a6c3b6595a024",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "b8000a9bf853d1d5363a4612ee0076c415f2d57ae214a34c1760e6b4212a1057"
+        },
+        {
+          "path": "assets/prd-light-template.md",
+          "sha256": "8a9e72119c4cf803155c37ee2c7ed4f14a7f44d7e3c5f1a6ab0993750ae81002"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "programming-practices-core",
+      "upstreamPaths": [
+        "domains/common/skills/programming-practices-core/SKILL.md",
+        "domains/review/skills/programming-practices-core/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.4",
+      "license": "MIT",
+      "upstreamSha256": "ddab36bfdb0bbb42eb075e349790848e0c4e1901f364a863d941ab1a2ead89bc",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "8e7d07a59d0217d5b37f8ea6e3bd0d1a3bd043f8646f45e1f7ae4b96369665bd"
+        },
+        {
+          "path": "references/principles.md",
+          "sha256": "0964ed3a795736774e063a626844b5cbd0298da6220fc256ae21bc0f7810d539"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "prompt-structure-writer",
+      "upstreamPaths": [
+        "domains/meta/skills/prompt-structure-writer/SKILL.md"
+      ],
+      "upstreamVersion": "1.1.0",
+      "license": "MIT",
+      "upstreamSha256": "c3719173e0c62666390364ae07ffb0c3896fa6dc44323d0ca2c01f9c5e0406e2",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "d1fbbb4fe6629ca9746929c8ec48085df39af5be78336f6946ed5a9f98ac8cb4"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "refactor",
+      "upstreamPaths": [
+        "domains/plan/skills/refactor/SKILL.md"
+      ],
+      "upstreamVersion": "1.3.0",
+      "license": "MIT",
+      "upstreamSha256": "de22632283dc11f67a4ef8b19e8207f85c00fe6b330569f32a32a9ef620486d0",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "a4a54e875469444795fa0f131e03c4374680ec26c59e58423e86199d912f9f8b"
+        },
+        {
+          "path": "references/java-notes.md",
+          "sha256": "e364a0d3ed5399c00a88cb696d889a81f96d84133c2118eb8dfe910c332c19ab"
+        },
+        {
+          "path": "references/language-applicability.md",
+          "sha256": "18785c3455e7f68fae4bd17a1dc0ee10950fd8689bd1d95cca0d3425e4fa1789"
+        },
+        {
+          "path": "references/language-idioms.md",
+          "sha256": "e2738aa7bca42a6c5de8f5272ca1565a3a123dd66a3c3b0d1220ec7677cb214e"
+        },
+        {
+          "path": "references/selection-heuristics.md",
+          "sha256": "cdf05606e0b40d1b1dda2dc244e68029ca4326160460ba0133cf1ea00e1dddb5"
+        },
+        {
+          "path": "references/technique-to-pattern.md",
+          "sha256": "457a2c05bab52b42dadddea962a38ef2e96beb21536813c6ee6eca4d3cf565ef"
+        },
+        {
+          "path": "techniques/00-code-smells-diagnostic.md",
+          "sha256": "078d706e101d371e32e0fb0fb41d8259d13c3a5be542424d95f6338726e55e1d"
+        },
+        {
+          "path": "techniques/01-extract-method.md",
+          "sha256": "c44a5b1b3d294816cf5df34a29bbbb3fbfec42cde300f01315c82ffd3fd71978"
+        },
+        {
+          "path": "techniques/02-inline-method.md",
+          "sha256": "cc2cdc170832e15f148746e6e5da314a897215094c8776a382f3073d84858ae9"
+        },
+        {
+          "path": "techniques/03-extract-variable.md",
+          "sha256": "3fd5b82e718133ac1699797119c2e9569f9e017d93e13fc8fd40a393efa99ab1"
+        },
+        {
+          "path": "techniques/04-inline-variable.md",
+          "sha256": "fb42f86fcb3d8849c007889204a0583c8235116d05ccd27f5141cb21d2c2caaa"
+        },
+        {
+          "path": "techniques/05-replace-temp-with-query.md",
+          "sha256": "fadbf6cd90d3a5b1a2b8d4f168ae60ea0b79974e321bcb6f9efece2b0b5df0f3"
+        },
+        {
+          "path": "techniques/06-replace-method-with-method-object.md",
+          "sha256": "e7e80e8c0670f3cf3eb9f4fc0126e023f1ec621a14af4f7189cca3944db374d2"
+        },
+        {
+          "path": "techniques/07-substitute-algorithm.md",
+          "sha256": "c075dca28a8bc6472eed45de58d5bb1c4d1ba98ff7570723f7d20d8139df10da"
+        },
+        {
+          "path": "techniques/08-move-method.md",
+          "sha256": "005a8af029fabcaa3c301dda4a437f589f6808b32246d6406f277f718731ba6d"
+        },
+        {
+          "path": "techniques/09-move-field.md",
+          "sha256": "249bf53e8a8c55bf79b22164a8d88512f0b49769c0c450a7d3b6b10009e2eafd"
+        },
+        {
+          "path": "techniques/10-extract-class.md",
+          "sha256": "56c1798cfd7864bf7e7b8317c0d25057628374f1416d4ea2b1cfa2184e45338a"
+        },
+        {
+          "path": "techniques/11-inline-class.md",
+          "sha256": "2a06af82ac2cd5308a5bbfb1771abaf4940471a4561a7dd3c414fe003783567a"
+        },
+        {
+          "path": "techniques/12-hide-delegate.md",
+          "sha256": "142b462950c7e299494740bfcf384aee8f21706e7ce77b863b0845f60f09e8d0"
+        },
+        {
+          "path": "techniques/13-remove-middle-man.md",
+          "sha256": "413edcd8ed40342bd163f30e98dcab26d68379f58ad1f6d2f46db69b44f7b8e5"
+        },
+        {
+          "path": "techniques/14-move-statements.md",
+          "sha256": "f12d0c37eddf2334fd52aceddadfbd5fb21861ab5c446b97e969000deb547911"
+        },
+        {
+          "path": "techniques/15-split-loop.md",
+          "sha256": "11e3046968a8d2279d073756071a302c6d3f40239b5c4d8d4f7fce0ea31f2c6f"
+        },
+        {
+          "path": "techniques/16-replace-loop-with-pipeline.md",
+          "sha256": "1d38f8e934c662a65a072a57f97332b45bab5afb428ebfd6f2d507bbfd4c5d75"
+        },
+        {
+          "path": "techniques/17-remove-dead-code.md",
+          "sha256": "741a9b1d9bc38270078b753a8fac252ae5a4892e39a1164f965521bf401d166f"
+        },
+        {
+          "path": "techniques/18-encapsulate-variable.md",
+          "sha256": "dd082f10f482103d387ac3c011e51d2eb2d74ba86bd69f7c7b680ff2e619f56d"
+        },
+        {
+          "path": "techniques/19-encapsulate-record.md",
+          "sha256": "f3356ba846e2dfebfaadb78e350b7b3b8d3cf801b6ca130c7efec19ae00b2e06"
+        },
+        {
+          "path": "techniques/20-encapsulate-collection.md",
+          "sha256": "f14671140e39c34af00dc0ccba9d56f8c3cee3c60951f6fd990cc746a89c3bed"
+        },
+        {
+          "path": "techniques/21-replace-primitive-with-object.md",
+          "sha256": "26ff0097f8a3e20189d9682543ddb0976b2a8efd6c138d6afc0717870c9f8fcb"
+        },
+        {
+          "path": "techniques/22-split-variable.md",
+          "sha256": "8c220526cb73d7b5fc9ea9b4df749c186b8f0a1197dcdf83ebe25f10fbbd3ffb"
+        },
+        {
+          "path": "techniques/23-rename-field.md",
+          "sha256": "d3e6b7b816b7733c46c09b4a49ba924be84294547be5cc35d9d82dfc83db5062"
+        },
+        {
+          "path": "techniques/24-replace-derived-variable-with-query.md",
+          "sha256": "905bb4e7224a2f88a96057f7f72cac70184dbe432dbe31c13e679f5e5406f73d"
+        },
+        {
+          "path": "techniques/25-change-reference-to-value.md",
+          "sha256": "8964830f9690179b95076d6805223f642b7c1847249f919a4cf27a539d1ac03b"
+        },
+        {
+          "path": "techniques/26-change-value-to-reference.md",
+          "sha256": "9cb18e8900ba2b7215a407f9225f36174002ce2eac94e3ddee4479c9cefe4108"
+        },
+        {
+          "path": "techniques/27-replace-type-code-with-subclasses.md",
+          "sha256": "0cec863a254bd7a0a4609a1249c7a5797a6263e9690a4f54a46a2266573567e5"
+        },
+        {
+          "path": "techniques/28-decompose-conditional.md",
+          "sha256": "77512422c22f46f040a71bbd62415d6d5e8430d838e5c35f0f1d3602104f38e9"
+        },
+        {
+          "path": "techniques/29-consolidate-conditional.md",
+          "sha256": "a5d1e4e3519a75e3f676a025f4bf2ca88895a436de675131510815af73c6e5e1"
+        },
+        {
+          "path": "techniques/30-replace-nested-conditional-with-guard-clauses.md",
+          "sha256": "534d9cb0fb7bfe5790370ff637476c2246eb81c79347e4177221bd0be8360783"
+        },
+        {
+          "path": "techniques/31-replace-conditional-with-polymorphism.md",
+          "sha256": "15aab269446b465bc6d6865b50251ae63298f311b3bc7ff731629f255fc9588d"
+        },
+        {
+          "path": "techniques/32-introduce-special-case.md",
+          "sha256": "72be016ade87a75bd7052a85ee99468bb90ab74c0df21ff4bec9376b6a55d29b"
+        },
+        {
+          "path": "techniques/33-introduce-assertion.md",
+          "sha256": "21ff088523cb0dcbb41ab2ba26db93042baf51eb2b4d93d48d8b1d22e432ef8d"
+        },
+        {
+          "path": "techniques/34-replace-control-flag.md",
+          "sha256": "1b697dde4cbe5aba88ab39e54c11937e72fd0a117dcecf52565b236f44c5b9d8"
+        },
+        {
+          "path": "techniques/35-change-function-declaration.md",
+          "sha256": "47d064cb6f3c2ff37523f092f0cb874ea474728cf0f76363f606f6696278cb6e"
+        },
+        {
+          "path": "techniques/36-introduce-parameter-object.md",
+          "sha256": "8573b3eb785b8efd30ce4da6655df696c81b5a41dfad98d98747ad13f5b00097"
+        },
+        {
+          "path": "techniques/37-parameterize-function.md",
+          "sha256": "a409d4acdcd33673e2a185b4405ebfc69f842dff7bed02a5981e4cb1728a14c3"
+        },
+        {
+          "path": "techniques/38-remove-flag-argument.md",
+          "sha256": "2444c3a80fd64569838e546051c24786371552ee1a815f4b204124ceb6f7d6da"
+        },
+        {
+          "path": "techniques/39-preserve-whole-object.md",
+          "sha256": "4ac7e028c55bc4ba54f5adb71f159045f070a4633a9d6a1f386b7fd7b10837e3"
+        },
+        {
+          "path": "techniques/40-replace-parameter-with-query.md",
+          "sha256": "3f5bf149e90bde5a2e01c1727a4483aa21e9553dd4a574cc578bf8e16c86df22"
+        },
+        {
+          "path": "techniques/41-replace-query-with-parameter.md",
+          "sha256": "f34be6d5394c9ff93c937f513adb39d2ec826b2818b3a0ba290b34db65611daa"
+        },
+        {
+          "path": "techniques/42-remove-setting-method.md",
+          "sha256": "145e3f25f2d89422934f7c0a04a56afb9de746b746ad6bed29370545aff3ba35"
+        },
+        {
+          "path": "techniques/43-replace-constructor-with-factory.md",
+          "sha256": "91719e74e370ffd4f0be9ea698eff46d3e7d0494dedab35b142bde378132e116"
+        },
+        {
+          "path": "techniques/44-replace-function-with-command.md",
+          "sha256": "0beb87495cd2c0a771aca4c2b88aace0e58f670b9bf2bebcd8d59169dea8dfb8"
+        },
+        {
+          "path": "techniques/45-separate-query-from-modifier.md",
+          "sha256": "a502070ddf7f877a7b7146d086ee310c87420d0d8a4750c9473a306d2e2fa0a3"
+        },
+        {
+          "path": "techniques/46-pull-up-method.md",
+          "sha256": "1ab7bd271662c46a4847d0f31239ea2a76b3c900eedb741f7b504b573ed57cc3"
+        },
+        {
+          "path": "techniques/47-push-down-method.md",
+          "sha256": "8083d30149ae1278faeb374dfaf6df6a7cf100f1714a12c2d827321a60683b28"
+        },
+        {
+          "path": "techniques/48-pull-up-constructor-body.md",
+          "sha256": "d7d8936843cf13c062a9c1cc3d5b8c9c29cfb1d1c17083da5d2cc77deb7f867a"
+        },
+        {
+          "path": "techniques/49-extract-superclass.md",
+          "sha256": "5f36e64cee5222896dd97096dbc7279d2077b17418161a8e5de659a8ec6c3d31"
+        },
+        {
+          "path": "techniques/50-extract-interface.md",
+          "sha256": "8f6be65479b475e469630ee441daff1b46eb32c5bd9cf724556b76e3f0506013"
+        },
+        {
+          "path": "techniques/51-collapse-hierarchy.md",
+          "sha256": "a67ec8cb4770b6b6f221a1f1db618a44b17b57f3c47151ab2032b4200c5c40ec"
+        },
+        {
+          "path": "techniques/52-form-template-method.md",
+          "sha256": "55861562bd29e7778c322282e0bb165887b512f2753ce2d2dd3bb0a319b6f087"
+        },
+        {
+          "path": "techniques/53-replace-subclass-with-delegate.md",
+          "sha256": "9aaf378d971bdd39a843e688bb22a4c6d4d6d26fb0eb7ef18aea1e1f5ed2bcdc"
+        },
+        {
+          "path": "techniques/54-replace-superclass-with-delegate.md",
+          "sha256": "0ad7780c4c4557808630476c8221690336ffb9594666bd9be608375e7af8ad3e"
+        },
+        {
+          "path": "techniques/55-replace-inheritance-with-delegation.md",
+          "sha256": "c5e9780b31112aead56c3906dc474085645212e3f515f52703ab298f3714417e"
+        },
+        {
+          "path": "techniques/56-combine-functions-into-class.md",
+          "sha256": "abc1c852949b21bba509b6b13aea49b54dae3a861128e19832e760a0959e3c7b"
+        },
+        {
+          "path": "techniques/57-combine-functions-into-transform.md",
+          "sha256": "64c23b7cc3c1d65d0d96863167d9cc0828859595981dd2a748aa084d22c33457"
+        },
+        {
+          "path": "techniques/58-split-phase.md",
+          "sha256": "5feffebfd621c8735496af2fb9aa97d62f8109edf6e2c2d9fc5ec22b572d9fe5"
+        },
+        {
+          "path": "techniques/59-introduce-foreign-method.md",
+          "sha256": "71483a8a857ea41256bf3a27d9f911db2f3cdf747000b98ec1f4ab2dfbe321d2"
+        },
+        {
+          "path": "techniques/60-introduce-local-extension.md",
+          "sha256": "0edae50ccb7c8f68bd90977116d0d2f4327b59cbf4a3d6e5805c38c2c6235bf0"
+        },
+        {
+          "path": "techniques/61-replace-error-code-with-exception.md",
+          "sha256": "e505edb2dd32cc58fdb50d754bc099757fd74f307f5fa0e08da985a4fe5719e3"
+        },
+        {
+          "path": "techniques/62-replace-exception-with-test.md",
+          "sha256": "85967ef0dc1da8ea5c9ec7ca547e1d0473827cbd8a90b8ea9c95a67b1c9fc2fc"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "repo-issues",
+      "upstreamPaths": [
+        "domains/architecture/skills/repo-issues/SKILL.md"
+      ],
+      "upstreamVersion": "2.1.1",
+      "license": "MIT",
+      "upstreamSha256": "3e80989a1c4e9e51fd7ba60f8ce784774872f7273cb0364181c6f73b9756a673",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "5804a1ab895873a9917f9354c0108778d732a1352f96565a82d350ecc441270c"
+        },
+        {
+          "path": "references/fitness-functions.md",
+          "sha256": "95edbd5274d6c60517055e71d3df6f9cda96693ca38da790c8abc87b99040b4f"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "rfc",
+      "upstreamPaths": [
+        "domains/docs/skills/rfc/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.0",
+      "license": "MIT",
+      "upstreamSha256": "2ea79232ae0a9252a45666ecd8f5ffd64b25997c79ad5126822aace8ae50b311",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "7d8186a0859bd718ef93a98cb41e532072f1665340858b7063a7ac02001848ce"
+        },
+        {
+          "path": "assets/template.md",
+          "sha256": "ce7faad1c3e43c7379c5b6e61dc283ee998947c09237bd36095df1b2edd5c4cd"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "risk-assessment",
+      "upstreamPaths": [
+        "domains/common/skills/risk-assessment/SKILL.md",
+        "domains/plan/skills/risk-assessment/SKILL.md"
+      ],
+      "upstreamVersion": "1.1.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "0fc6da12e7b76b59a35043e5d59c8ae8809947039318c4d11c1a4ad5c1b649a5",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "b255866b8057597860c254d9ece4a3e3bf2a36930d82af1ca9427d9da62df085"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "scope-analysis",
+      "upstreamPaths": [
+        "domains/plan/skills/scope-analysis/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.2",
+      "license": "Apache-2.0",
+      "upstreamSha256": "7d61cb49c036df629b30d0e46438bb63f99d86788555bb9da47fee2100bba73d",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "73d4a771faf4d0a97f940b28a65d416fd6a45ecbeb393af4fdb2a926c578aee5"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "service-boundary-analysis",
+      "upstreamPaths": [
+        "domains/architecture/skills/service-boundary-analysis/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.0",
+      "license": "MIT",
+      "upstreamSha256": "702f49358c75fe00e1f2f89f58606ae4588cb4444a1d44a8f291273fa6bf53f7",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "d3b5e4a77362efa14f9af8c927d6bc950c075d2f22dedb6155363608e0ec632e"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "single-responsibility",
+      "upstreamPaths": [
+        "domains/common/skills/single-responsibility/SKILL.md",
+        "domains/plan/skills/single-responsibility/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "bdede28ae7c46dfd69143714f934b45dbeba8d067ce5b5c47c88de1b3d537a36",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "c5ce3d2cc58bc83779cbcba70e7ba5c9cd23c4fe1b7ae2ad7d3a1ac1c9823998"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "skill-creator",
+      "upstreamPaths": [
+        "domains/meta/skills/skill-creator/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.1",
+      "license": "Apache-2.0",
+      "upstreamSha256": "044c66334ce202f6f25f946d139d192c860719e2025f442fa05695074cf36280",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "6dbd1040df5dc028df6f643b2e91cc53b70c9ba1a1783f06c58c6f1ae040fd9c"
+        },
+        {
+          "path": "assets/skill-template.md",
+          "sha256": "d5ee46a9c483ed156ab510dcba4326eb18c197ff9857707485bc2460ee9818a0"
+        },
+        {
+          "path": "references/behavioral-evaluation.md",
+          "sha256": "4d92c80a58ae7f768d66aa6167e115d53b726c7373d7d825a64c342aebddee44"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md",
+        "assets/skill-template.md",
+        "references/behavioral-evaluation.md"
+      ]
+    },
+    {
+      "name": "small-functions",
+      "upstreamPaths": [
+        "domains/common/skills/small-functions/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "bdb0c43b735799605eb8df26a60ce1e5b11c8d9c2b1f25ceb5da6b6e34603a4e",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "7a7b5b63d19fbaaabcdc9fa206a850a8562a34ee87e858f64861a3dbdd802dd8"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "spaghetti-code-detection",
+      "upstreamPaths": [
+        "domains/common/skills/spaghetti-code-detection/SKILL.md",
+        "domains/plan/skills/spaghetti-code-detection/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "e4896f535c41382ca994fe146c70c759c7ea19167d746d9af79bc23a8b877842",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "de194492590f7a29f47e3f6eb7817bc6a508a73ab4423d357a6303feba4e1def"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "summarize",
+      "upstreamPaths": [
+        "domains/docs/skills/summarize/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.3",
+      "license": "MIT",
+      "upstreamSha256": "b12179a3126c43abfbf679fecce04b9f3e9dabbf5052ba55311e5dc1290e0bfd",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "377f4a2f4957f293d436442c464f2a7d77007b40ea52064639d0c92357b4f75b"
+        },
+        {
+          "path": "assets/chapter-summary-template.md",
+          "sha256": "afafd5aa8e9cf8a4993fdd636c72637e6ff9e770665149cff77d629b67f0e28b"
+        },
+        {
+          "path": "evals/evals.json",
+          "sha256": "90c70e9815137c572dfc6af05819260a05d2755a94dfe07cf42f2260d7b8ad96"
+        },
+        {
+          "path": "scripts/extract_pdf_pages.py",
+          "sha256": "6706f98f637ce5a298395d2c93f80b1a7585f68a5cc7850bab12575f88c9395e"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "systematic-debugging",
+      "upstreamPaths": [
+        "domains/common/skills/systematic-debugging/SKILL.md",
+        "domains/orchestration/skills/systematic-debugging/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "MIT",
+      "upstreamSha256": "e7e2bc3265cc4a12454cca8ec8e68c8919b7adb65bff0acb93671c54bc64e499",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "8ec83b934d9ca3f9ee938b4a3a56f3708565e71e3a2e73c7590b042ff1483bb7"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "tooling-audit",
+      "upstreamPaths": [
+        "domains/plan/skills/tooling-audit/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.3",
+      "license": "Apache-2.0",
+      "upstreamSha256": "ee33d68e4f87fb319b1085545bc95770418e53816cd2506a96da2659d0e575bd",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "0d4c559a6e665e363eaa4349511bfd99e505b7a1febf18b86b5c6e202c59b34c"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "tooling-compatibility-matrix",
+      "upstreamPaths": [
+        "domains/plan/skills/tooling-compatibility-matrix/SKILL.md"
+      ],
+      "upstreamVersion": "1.1.1",
+      "license": "Apache-2.0",
+      "upstreamSha256": "3a5053ebfb9628094a5c4faa7368e96437277d9922175ce7e1ecc9ed27c12fae",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "ec3fad854702e3e48f12c648a679b9b8155f60634b10f987b385e36575a4be2a"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "type-contracts",
+      "upstreamPaths": [
+        "domains/plan/skills/type-contracts/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.1",
+      "license": "Apache-2.0",
+      "upstreamSha256": "d30456408ccfc6b44f8c925da9a5a645c28b98560430700efae08e91142bd20a",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "67f80b828f8034b4281ee0b1df84be4ccdca1ba03ab3ac878a3a36a4b6d4a1ea"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "usm",
+      "upstreamPaths": [
+        "domains/docs/skills/usm/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.0",
+      "license": "MIT",
+      "upstreamSha256": "4f419433148b28fce2e7943e3fbc2c795433a4a9539053fff86cc2f242fae8bf",
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "280cd88160e2f58cd392c7fa0de9242c97925aa1f4d69ed4ec6bd77c040e7b4a"
+        },
+        {
+          "path": "assets/usm-template.md",
+          "sha256": "bcecbac5d02ec10d9101a220486884eddfd0ddd4f16e68fa6fdce6ef9835d932"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
+      ]
+    }
+  ]
+}

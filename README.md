@@ -1,0 +1,135 @@
+# pi-orchestraitor
+
+A personal Pi package with **61 development skills**, compact tool output, Context7, Engram, and Orchestraitor for scoped changes and sequential plan execution. It automatically loads the source harness's Colombian architect personality: direct answers, practical explanations, respectful disagreement, and occasional Colombian expressions when the conversation supports them.
+
+## Install
+
+Requires **Pi 1.0.0** and **Node 22.19+**. Engram **3.0.0** is required only for memory. Pi supplies the extension dependencies; no `npm install` is needed for a local package.
+
+From this repository:
+
+```bash
+npm run install:pi -- --dry-run
+npm run install:pi
+```
+
+The preview lists every matching standalone skill, including multiple discovery aliases for the same source, and any blocking conflicts. Installation moves matching entries into a recoverable backup, registers this directory through native `pi install`, and verifies that all 61 skills resolve to the bundled adaptations. Restart Pi or run `/reload` afterward.
+
+For a project installation:
+
+```bash
+npm run install:pi -- --local --cwd /path/to/project --dry-run
+npm run install:pi -- --local --cwd /path/to/project
+```
+
+Local installation uses Pi's native `--approve` flag for the selected project's package registration. The package remains at its current path, so keep that directory available.
+
+If you already have the original global `compact-tools` extension, disable that copy through `pi config` before loading this package. Keep it available for recovery.
+
+### Skill conflicts and recovery
+
+Conflicts are matched by the declared skill name, including user, project, ancestor `.agents/skills`, and configured paths. Matching standalone directories and files are moved out of discovery. For symbolic links, only the link is moved; its target stays in place. Unrelated skills are preserved.
+
+The shared `~/.agents/skills` directory is also used by other agents. Moving a skill from there removes it from their discovery until you restore the backup. The installer prints exact paths and a backup directory under Pi's agent directory, in `pi-orchestraitor-backups/`.
+
+Another package's skills and source repository files require configuration changes. The installer reports the package source, scope, and path; disable the conflicting skills through `pi config` or remove the explicit skill path, then rerun. It never moves managed package contents.
+
+Migration stays within each configured skill discovery root. It preserves configuration roots, checks the skill directory itself for repository ownership, and moves a configured symlink tree by its link. If the host cannot establish a discovery boundary, installation stops before moving files.
+
+A failed registration or effective-loading check rolls back the package declaration and the moved skills. Rollback recognizes Pi's local path forms, including `~/` sources, and restores the original registration and filters while preserving unrelated settings changes. If a new entry occupies an original path, rollback keeps it and reports the backup requiring attention. Repeated installation finds no further moves once conflicts are gone.
+
+To uninstall and recover:
+
+```bash
+pi remove /absolute/path/to/pi-orchestraitor
+# Add --local when removing a project installation.
+npm run install:pi -- --restore /absolute/path/to/backup --dry-run
+npm run install:pi -- --restore /absolute/path/to/backup
+```
+
+Restoration refuses to overwrite existing entries. Restore multiple backups in reverse installation order. Re-enable the original compact extension if needed, then restart Pi. A stale migration lock is reported with its exact path; inspect any interrupted migration before removing that lock.
+
+Native `pi install /path/to/package` also discovers bundled skills, but does not perform this migration. Use `install:pi` for conflict removal and effective-loading verification.
+
+## First use
+
+```text
+/orchestraitor fix the behavior of X within Y
+/plan prepare change Z
+/orchestraitor execute the plan .ai/deep-planner/plans/change.md
+/review src/module.ts
+/absorb /path/to/another/harness
+/skill:systematic-debugging investigate this failure
+```
+
+Pi advertises the bundled names and descriptions, and loads skill bodies when relevant. `/skill:<name>` explicitly loads one. The [skill catalog](docs/skills.md) lists every adaptation and external prerequisite.
+
+Orchestraitor is the execution contract in the main session. It supports direct changes and ordered work groups in a supplied plan. It checks the original plan's SHA-256, preserves the plan, and runs its assigned checks. Planning and review requests keep their own scope. Delivery defaults to unstaged working-tree changes; commits require an explicit current user instruction.
+
+The personality applies automatically through `extensions/instructions.ts`; no slash command is needed. Replies follow the user's language. Repository documentation, code, comments, and labels are in English. Professional and sensitive exchanges use a restrained tone. The architect's experience is a role, without an invented human biography.
+
+## Package resources
+
+| Resource | Purpose |
+| --- | --- |
+| `extensions/compact-tools.ts` | Compact read/bash/edit/write presentation with native execution and tool selection. Expand to inspect arguments and results. |
+| `extensions/instructions.ts` | Adds core, execution, and personality sections while preserving Pi and project instructions. |
+| `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. |
+| `skills/` | 61 unique skills and their supporting resources, with original public names. |
+| `prompts/` | `/orchestraitor`, `/plan`, `/review`, and `/absorb`, with explicit arguments. |
+| `scripts/install-pi.mjs` | Migration, native package registration, verification, and restoration. |
+
+The package preserves personal model, theme, editor, credentials, and MCP overrides. It does not implement subagents, independent verification, resumable SDD, dual review, TCR, or persistent Caveman. Its scope and personality instructions are behavioral rules; they are not a filesystem sandbox.
+
+## MCP and memory
+
+Context7 uses `https://mcp.context7.com/mcp`. Engram runs `engram mcp --tools=agent` with the session project's cwd. Both use `codemode` exposure. Pi owns connection errors and shutdown; the package never installs missing services.
+
+An entry with the same server name in personal or project `mcp.json` overrides the complete default. Fields are not merged. For an explicit project identity, use trusted project configuration:
+
+```json
+{
+  "mcpServers": {
+    "engram": {
+      "command": "engram",
+      "args": ["mcp", "--tools=agent", "--project", "project-name"],
+      "cwd": ".",
+      "exposure": "codemode"
+    }
+  }
+}
+```
+
+Do not set one fixed project globally across repositories. An inherited `ENGRAM_PROJECT` overrides cwd detection. Matching folder names alone do not ensure distinct memory identities.
+
+Run `/mcp` inside the session to inspect extension registrations. `pi mcp list` does not load extensions. To persistently disable a server, provide its complete configuration with `enabled: false`, or exclude the package's MCP extension through `pi config` to disable both defaults.
+
+Memory instructions restrict saves to useful, verified project decisions and exclude secrets, personal information, raw transcripts, and sensitive code. They do not implement automatic capture or a data filter. Engram inherits its environment; review autosync configuration before connecting your usual database. The package does not enable cloud sync.
+
+## Try without registration
+
+```bash
+HARNESS="$PWD"
+cd /path/to/project
+pi --no-extensions -e builtin:mcp -e builtin:codemode -e "$HARNESS"
+```
+
+This changes only that invocation. Personal and project MCP settings still apply. Existing skill sources may collide until migrated. Engram may open its usual database; use the temporary integration test below for isolated memory checks.
+
+## Verify
+
+```bash
+npm test
+npm run test:mcp
+npm run test:personality
+npm pack --dry-run --ignore-scripts
+```
+
+- `npm test` checks native tool regressions, prompt and personality injection, packaged skill loading and resources, migration and recovery, and native installation in temporary configuration. It does not call models or live MCP services.
+- `test:mcp` calls Context7 and Engram through native `codemode`, with synthetic memories and a temporary database. It checks project separation and avoids personal memories.
+- `test:personality` makes bounded calls to the configured Pi model in isolated sessions. It writes synthetic transcripts for manual scoring; it uses the configured account and consumes model quota.
+- Packing includes extensions, instructions, skills, scripts, docs, and licenses. Tests, `.ai` reports, personal settings, credentials, and memory databases are excluded.
+
+Tests use the Pi executable on PATH. Set `PI_TEST_PACKAGE_DIR` to the installed npm package root if it cannot be located. The installer inventory adapter and some integration checks depend on host internals and need revalidation after a Pi upgrade. The adapter checks that its required host hooks exist before migration. Peers use `*` because Pi supplies them; compatibility has been validated against Pi 1.0.0. The established test convention is `node:test` with `node:assert`.
+
+See [verification evidence](docs/verification.md) and [attribution](THIRD_PARTY_NOTICES.md).
