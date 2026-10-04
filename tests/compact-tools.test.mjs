@@ -17,6 +17,7 @@ const settings = { shellCommandPrefix: "export COMPACT_TEST=kept", images: { aut
 const loaded = await loadExtensions([extensionPath], cwd);
 assert.deepEqual(loaded.errors, []);
 loaded.runtime.getSettings = () => settings;
+loaded.runtime.getAllTools = () => [];
 const extension = loaded.extensions[0];
 for (const handler of extension.handlers.get("session_start")) {
 	await handler({ type: "session_start", reason: "startup" }, { cwd });
@@ -45,7 +46,7 @@ const result = { content: [{ type: "text", text: outputMarker }], details: undef
 after(() => rm(cwd, { recursive: true, force: true }));
 
 for (const name of ["read", "bash", "edit", "write"]) {
-	test(`shouldRenderOneColoredLineWhen${name}IsCollapsed`, () => {
+	test(`shouldRenderOneUnboxedLineWhen${name}IsCollapsed`, () => {
 		// Given
 		const tool = tools.get(name);
 		const args = name === "bash" ? { command: "echo hello\n echo goodbye" } : { path: "example.txt" };
@@ -54,17 +55,17 @@ for (const name of ["read", "bash", "edit", "write"]) {
 		// Then
 		assert.deepEqual({
 			lineCount: lines.length,
-			background: lines[0].split(":")[0],
+			hasBackground: lines[0].startsWith("toolSuccessBg:"),
 			hasStatus: lines[0].includes(`${name} · completed`),
 			hasOutput: lines[0].includes(outputMarker),
-		}, { lineCount: 1, background: "toolSuccessBg", hasStatus: true, hasOutput: false });
+		}, { lineCount: 1, hasBackground: false, hasStatus: true, hasOutput: false });
 	});
 }
 
 for (const [overrides, expectedBackground, expectedStatus] of [
-	[{ isPartial: true }, "toolPendingBg", "running…"],
-	[{ isPartial: true, executionStarted: false }, "toolPendingBg", "preparing…"],
-	[{ isError: true }, "toolErrorBg", "error"],
+	[{ isPartial: true }, false, "running…"],
+	[{ isPartial: true, executionStarted: false }, false, "preparing…"],
+	[{ isError: true }, true, "error"],
 ]) {
 	test(`shouldShow${expectedStatus}WhenExecutionStateChanges`, () => {
 		// Given
@@ -72,9 +73,9 @@ for (const [overrides, expectedBackground, expectedStatus] of [
 		// When
 		const lines = render(tool, { command: "npm test" }, result, overrides);
 		// Then
-		assert.deepEqual({ count: lines.length, background: lines[0].split(":")[0],
+		assert.deepEqual({ count: lines.length, background: lines[0].startsWith("toolErrorBg:"),
 			status: lines[0].includes(expectedStatus) },
-		{ count: 1, background: expectedBackground, status: true });
+		{ count: overrides.isError ? 2 : 1, background: expectedBackground, status: true });
 	});
 }
 
@@ -88,8 +89,8 @@ test("shouldRevealAllAvailableOutputAndArgumentsWhenExpanded", () => {
 	// Then
 	assert.deepEqual({ hasLastLine: lines.some((line) => line.includes("output-119")),
 		hasArguments: lines.some((line) => line.includes('"timeout": 10')),
-		allGreen: lines.every((line) => line.startsWith("toolSuccessBg:")) },
-	{ hasLastLine: true, hasArguments: true, allGreen: true });
+		unboxed: lines.every((line) => !line.startsWith("toolSuccessBg:")) },
+	{ hasLastLine: true, hasArguments: true, unboxed: true });
 });
 
 test("shouldRevealDiffWhenEditIsExpanded", () => {
@@ -225,4 +226,43 @@ test("shouldRejectMissingFilesAndCancelledExecutionWhenToolsFail", async () => {
 	]);
 	// Then
 	assert.deepEqual(outcomes.map((outcome) => outcome.status), ["rejected", "rejected"]);
+});
+
+test("shouldShowOnlyThreeVisualTailRowsWhenCollapsedToolFails", () => {
+	// Given
+	const failure = { content: [{ type: "text", text: "earlier\n" + "failure 你好 🧪 ".repeat(12) + "\nlast cause\n\n" }] };
+	// When
+	const lines = render(tools.get("bash"), { command: "fail" }, failure, { isError: true }, 28);
+	// Then
+	assert.equal(lines.length, 4);
+	assert.ok(lines.at(-1).includes("last cause"));
+	assert.ok(!lines.some((line) => line.includes("earlier")));
+});
+
+test("shouldStripTerminalControlsOnlyFromPresentationWhenDisplayingFailure", () => {
+	// Given
+	const text = "\x1b]52;c;secret\x07\x1b[31mUnicode 你好 🧪\x1b[0m\nlast\x00\x08\r cause";
+	const failure = { content: [{ type: "text", text }] };
+	// When
+	const lines = render(tools.get("bash"), { command: "fail\x1b[2J" }, failure, { isError: true, expanded: true });
+	// Then
+	assert.ok(lines.some((line) => line.includes("Unicode 你好 🧪")));
+	assert.ok(lines.every((line) => !/[\x00-\x08\x0b-\x1f\x7f-\x9f]/u.test(line)));
+	assert.equal(failure.content[0].text, text);
+});
+
+test("shouldBoundVisualErrorRowsAndPreserveExpansionWhenTerminalIsNarrow", () => {
+	// Given
+	const failure = { content: [{ type: "text", text: "first\n" + "Unicode 你好 🧪 é ".repeat(8) + "\nlast cause\n" }], isError: true };
+	// When
+	for (const width of [1, 2, 3, 8, 20, 80]) {
+		const context = toolContext({ command: "fail" }, { isError: true });
+		const lines = tools.get("bash").renderResult(failure, context, theme, context).render(width);
+		// Then
+		assert.ok(lines.length <= 3);
+		assert.ok(lines.every((line) => visibleWidth(line) <= width));
+	}
+	const expanded = render(tools.get("bash"), { command: "fail" }, failure, { isError: true, expanded: true }, 80);
+	assert.ok(expanded.some((line) => line.includes("first")));
+	assert.ok(expanded.some((line) => line.includes("last cause")));
 });

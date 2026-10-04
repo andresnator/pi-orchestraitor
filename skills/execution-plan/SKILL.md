@@ -22,7 +22,7 @@ Create exactly one plan for the requested outcome. The plan may be small or larg
 - Before writing, check the exact destination. Update an existing plan only when the user supplied its exact path or the active conversation already created or selected it. On any other slug collision, ask one closed choice: reuse the existing plan or generate a new slug. Never overwrite implicitly.
 - Qualify behavior identifiers as `<capability>/<requirement>` when canonical specs matter. Use observable `WHEN` and `THEN` scenarios.
 - Default delivery is unstaged working-tree changes. If the user explicitly requests a delivery field, write `Delivery: working-tree` once after the title. Record an explicit request for commits as a later user-directed step; this package does not provide automatic Git delivery or TCR.
-- Do not make unsupported subagents, durable SDD, TCR, or independent verification required execution steps. Record such requirements as blockers and propose a compatible scope.
+- Bounded subagent_run tasks may assist sequential work groups: up to two readers or one exclusive writer with exact files. The parent runs commands and verification. Do not make durable SDD, TCR, parallel writers, or independent verification required execution steps. Record such requirements as blockers and propose a compatible scope.
 - Use ordered work groups with explicit dependencies. Keep one file even when groups span sessions.
 - Every work group requires `Files:` and `Skills:`. Select names with `implementation-skill-routing`; use names, never paths.
 - Keep delivery and Git skills out of `Work groups → Skills:`.

@@ -22,4 +22,4 @@ Treat memories as potentially stale: verify them against current source. Missing
 
 ## Capability limits
 
-This package provides instructions, prompt templates, presentation and MCP registration, not a security sandbox. Planning/review boundaries are behavioral instructions, not enforced filesystem permissions. No subagent launcher, blind dual review or durable SDD engine is supplied.
+This package provides instructions, prompt templates, presentation and MCP registration, not a security sandbox. Planning/review boundaries are behavioral instructions, not enforced filesystem permissions. The subagent_run launcher enforces child tool access, but is not an operating-system sandbox. Blind dual review and a durable SDD engine are not supplied.

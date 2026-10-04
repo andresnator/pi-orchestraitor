@@ -37,7 +37,7 @@ If no valid target is provided, ask for it before continuing.
 - Verify practices from source files, activation points, or wiring; do not promote README claims as proven behavior.
 - Contrast every candidate practice against this repository before recommending adoption.
 - Prefer repo-native context for the contrast step: `AGENTS.md`, `package.json`, `instructions/`, `extensions/`, `prompts/`, `skills/*/SKILL.md`, and relevant local artifacts.
-- Use separate focused reading passes for discovery and comparison. This package does not supply subagents; delegate only when the host exposes an authorized launcher.
+- Use separate focused reading passes for discovery and comparison. When subagent_run is enabled, up to two bounded readers may help; inspect their evidence in the parent. Keep direct reading for small scopes. Delegation does not constitute blind or independent verification.
 - Never auto-adopt, auto-commit, or silently edit this repository as a result of the audit.
 
 ## Workflow

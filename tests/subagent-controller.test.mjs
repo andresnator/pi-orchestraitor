@@ -1,0 +1,263 @@
+import assert from "node:assert/strict";
+import { access, realpath, readFile, rm } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import test from "node:test";
+import { BatchController, RpcDecoder } from "../extensions/subagent/controller.mjs";
+import { createWorkspace } from "./helpers/pi-host.mjs";
+
+const childPath = fileURLToPath(new URL("./fixtures/subagent-child.mjs", import.meta.url));
+const options = { childPath, startTimeout: 500, taskTimeout: 2000, stopGrace: 40 };
+const task = (cwd, id, context = "normal") => ({ cwd, id, context, role: "explore", instruction: "inspect", model: "fixture/model", reasoning: "high", files: [], skills: [], tools: ["read", "search", "list"] });
+
+test("shouldReturnOrderedReadersAndRejectOverlappingWriterWhenBatchIsActive", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const controller = new BatchController(options);
+	const paths = [join(cwd, "first.json"), join(cwd, "second.json")];
+	// When
+	const running = controller.run([{ ...task(cwd, "first"), delay: 200, timing: paths[0] }, { ...task(cwd, "second"), delay: 150, timing: paths[1] }], () => "work");
+	await assert.rejects(controller.run([{ ...task(cwd, "writer"), role: "implement", files: ["a"] }], () => "work"), /already active/);
+	const results = await running;
+	// Then
+	assert.deepEqual(results.map(({ id, status, terminated }) => ({ id, status, terminated })), ["first", "second"].map((id) => ({ id, status: "completed", terminated: true })));
+	const times = await Promise.all(paths.map(async (path) => JSON.parse(await readFile(path, "utf8"))));
+	assert.ok(Math.max(...times.map(({ start }) => start)) < Math.min(...times.map(({ end }) => end)));
+});
+
+for (const [mode, expected] of [["normal", "completed"], ["duplicate", "completed"], ["empty", "failed"], ["provider-error", "failed"], ["premature", "failed"], ["early-end", "failed"], ["bad-guard", "failed"], ["no-guard", "timed_out"]]) {
+	test(`shouldReturn${expected}WhenChildUses${mode}`, async (t) => {
+		// Given
+		const cwd = await realpath(await createWorkspace(t));
+		const manifest = { ...task(cwd, mode, mode), marker: join(cwd, "prompted") };
+		// When
+		const [result] = await new BatchController(options).run([manifest], () => "work");
+		// Then
+		assert.equal(result.status, expected, result.diagnostic);
+		assert.equal(result.terminated, true);
+		if (["bad-guard", "no-guard"].includes(mode)) await assert.rejects(access(manifest.marker));
+	});
+}
+
+for (const mode of ["startup-hang", "hang", "ignore-term"]) {
+	test(`shouldConfirmTerminationWhenCancelledDuring${mode}`, async (t) => {
+		// Given
+		const cwd = await realpath(await createWorkspace(t));
+		const controller = new BatchController(options);
+		const abort = new AbortController();
+		// When
+		const pending = controller.run([task(cwd, mode, mode)], () => "work", abort.signal);
+		setTimeout(() => abort.abort(), 120);
+		const [result] = await pending;
+		// Then
+		assert.deepEqual({ status: result.status, terminated: result.terminated, active: controller.active }, { status: "cancelled", terminated: true, active: undefined });
+	});
+}
+
+test("shouldRejectOversizedAndMalformedRecordsWhenDecodingRpc", () => {
+	// Given
+	const decoder = new RpcDecoder();
+	// When / Then
+	assert.throws(() => decoder.push("x".repeat(1024 * 1024 + 1), () => {}), /limit/);
+	assert.throws(() => new RpcDecoder().push("{broken}\n", () => {}));
+});
+
+test("shouldTimeOutRunningTaskAndRetainObservedWritesWhenStopping", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const controller = new BatchController({ ...options, taskTimeout: 180 });
+	// When
+	const [result] = await controller.run([task(cwd, "timeout", "hang")], () => "work");
+	const [writer] = await controller.run([{ ...task(cwd, "writer", "write"), role: "implement", files: ["target"], tools: ["read", "search", "list", "edit", "write"] }], () => "work");
+	// Then
+	assert.deepEqual({ status: result.status, terminated: result.terminated, writerStatus: writer.status, writes: writer.writes },
+		{ status: "timed_out", terminated: true, writerStatus: "completed", writes: [{ path: "target", phase: "completed" }] });
+});
+
+test("shouldAbortEveryReaderWhenParentLifecycleCancelsBatch", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const controller = new BatchController(options);
+	// When
+	const pending = controller.run([task(cwd, "one", "hang"), task(cwd, "two", "hang")], () => "work");
+	await new Promise((resolve) => setTimeout(resolve, 80));
+	await controller.cancel();
+	const results = await pending;
+	// Then
+	assert.deepEqual(results.map(({ status, terminated }) => ({ status, terminated })), [1, 2].map(() => ({ status: "cancelled", terminated: true })));
+});
+
+test("shouldBlockFurtherLaunchesWhenExitCannotBeConfirmed", async (t) => {
+	// Given
+	const { EventEmitter } = await import("node:events");
+	const { PassThrough } = await import("node:stream");
+	const cwd = await realpath(await createWorkspace(t));
+	const signals = [];
+	const child = new EventEmitter();
+	Object.assign(child, { pid: 123, stdin: new PassThrough(), stdout: new PassThrough(), stderr: new PassThrough(), kill: (signal) => signals.push(signal) });
+	const controller = new BatchController({ ...options, spawnProcess: (_command, args) => { t.after(() => rm(dirname(args[1]), { recursive: true, force: true })); return child; }, startTimeout: 10, stopGrace: 5 });
+	// When
+	const [result] = await controller.run([task(cwd, "unconfirmed")], () => "work");
+	// Then
+	assert.deepEqual({ status: result.status, terminated: result.terminated, blocked: controller.blocked, retained: controller.orphans.has(child), signals },
+		{ status: "termination_failed", terminated: false, blocked: true, retained: true, signals: ["SIGTERM", "SIGKILL"] });
+	await assert.rejects(controller.run([task(cwd, "next")], () => "work"), /blocked/);
+});
+
+test("shouldKeepWriterExclusiveUntilExitWhenOtherBatchesAreRequested", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const controller = new BatchController(options);
+	const writer = { ...task(cwd, "writer", "hang"), role: "implement", files: ["target"] };
+	// When
+	const pending = controller.run([writer], () => "work");
+	// Then
+	await assert.rejects(controller.run([task(cwd, "reader")], () => "work"), /already active/);
+	await assert.rejects(controller.run([writer], () => "work"), /already active/);
+	await controller.cancel();
+	assert.equal((await pending)[0].terminated, true);
+	assert.equal((await controller.run([task(cwd, "after")], () => "work"))[0].status, "completed");
+});
+
+test("shouldReportBoundedDiagnosticsWhenChildWritesExcessiveLogs", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	// When
+	const [result] = await new BatchController(options).run([task(cwd, "noisy", "noisy")], () => "work");
+	// Then
+	assert.equal(result.status, "completed");
+	assert.ok(result.diagnostic.length < 8300);
+	assert.match(result.diagnostic, /Diagnostics truncated/);
+});
+
+test("shouldCancelOtherReaderWhenStartupDeadlineExpires", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const controller = new BatchController({ ...options, startTimeout: 150 });
+	// When
+	const results = await controller.run([task(cwd, "missing", "no-guard"), task(cwd, "running", "hang")], () => "work");
+	// Then
+	assert.deepEqual(results.map(({ status, terminated }) => ({ status, terminated })), [{ status: "timed_out", terminated: true }, { status: "cancelled", terminated: true }]);
+});
+
+
+test("shouldAllowRetryWhenTemporaryDirectoryFailsBeforeSpawn", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const controller = new BatchController(options);
+	const previousTmpdir = process.env.TMPDIR;
+	let first;
+	// When
+	try {
+		process.env.TMPDIR = join(cwd, "missing-parent");
+		[first] = await controller.run([task(cwd, "failed-start")], () => "work");
+	} finally {
+		if (previousTmpdir === undefined) delete process.env.TMPDIR;
+		else process.env.TMPDIR = previousTmpdir;
+	}
+	const [retry] = await controller.run([task(cwd, "retry")], () => "work");
+	// Then
+	assert.deepEqual({ first: { status: first.status, terminated: first.terminated }, retry: { status: retry.status, terminated: retry.terminated }, blocked: controller.blocked, orphans: controller.orphans.size, active: controller.active },
+		{ first: { status: "failed", terminated: true }, retry: { status: "completed", terminated: true }, blocked: false, orphans: 0, active: undefined });
+	assert.match(first.diagnostic, /ENOENT/);
+});
+
+for (const stage of ["prompt", "spawn"]) {
+	test(`shouldAllowRetryWhen${stage}ThrowsBeforeCreatingChild`, async (t) => {
+		// Given
+		const cwd = await realpath(await createWorkspace(t));
+		const controller = new BatchController(stage === "spawn" ? { ...options, spawnProcess: () => { throw new Error("Fixture spawn failed"); } } : options);
+		// When
+		const [first] = await controller.run([task(cwd, "failed-start")], () => {
+			if (stage === "prompt") throw new Error("Fixture prompt failed");
+			return "work";
+		});
+		controller.options = options;
+		const [retry] = await controller.run([task(cwd, "retry")], () => "work");
+		// Then
+		assert.deepEqual({ first: { status: first.status, terminated: first.terminated }, retry: retry.status, blocked: controller.blocked, orphans: controller.orphans.size },
+			{ first: { status: "failed", terminated: true }, retry: "completed", blocked: false, orphans: 0 });
+		assert.match(first.diagnostic, new RegExp(`Fixture ${stage} failed`));
+	});
+}
+
+
+for (const trigger of ["cancellation", "timeout"]) {
+	test(`shouldDrainWriteNotificationsWhen${trigger}StopsChild`, async (t) => {
+		// Given
+		const { spawn } = await import("node:child_process");
+		const cwd = await realpath(await createWorkspace(t));
+		const abort = new AbortController();
+		const manifest = { ...task(cwd, "delayed-writes", "cancel-write"), role: "implement", files: ["target"], tools: ["read", "search", "list", "edit", "write"] };
+		const controller = new BatchController({ ...options, taskTimeout: 400,
+			spawnProcess: (...args) => {
+				const child = spawn(...args);
+				child.on("message", (message) => { if (trigger === "cancellation" && message.type === "file_changed") abort.abort(); });
+				return child;
+			},
+		});
+		// When
+		const [result] = await controller.run([manifest], () => "work", abort.signal);
+		// Then
+		assert.deepEqual({ file: await readFile(join(cwd, "target"), "utf8"), status: result.status, terminated: result.terminated, finalResponse: result.finalResponse, writes: result.writes },
+			{ file: "changed before cancellation", status: trigger === "cancellation" ? "cancelled" : "timed_out", terminated: true, finalResponse: "", writes: [{ path: "target", phase: "completed" }] });
+	});
+}
+
+test("shouldDrainQueuedWritesAfterExitBeforeReturningCancelledResult", async (t) => {
+	// Given
+	const { EventEmitter } = await import("node:events");
+	const { PassThrough } = await import("node:stream");
+	const { createHash } = await import("node:crypto");
+	const cwd = await realpath(await createWorkspace(t));
+	const abort = new AbortController();
+	const manifest = { ...task(cwd, "ipc-drain"), role: "implement", files: ["target"] };
+	const child = new EventEmitter();
+	Object.assign(child, { pid: 123, stdin: new PassThrough(), stdout: new PassThrough(), stderr: new PassThrough(), kill() {} });
+	const controller = new BatchController({ ...options, stopGrace: 80, spawnProcess: (_command, args) => {
+		void readFile(args[1], "utf8").then((raw) => child.emit("message", { type: "guard_ready", id: manifest.id, digest: createHash("sha256").update(raw).digest("hex"), cwd, tools: manifest.tools, model: manifest.model, reasoning: manifest.reasoning }));
+		return child;
+	} });
+	child.stdin.on("data", (chunk) => {
+		const command = JSON.parse(chunk.toString());
+		if (command.type === "get_state") child.stdout.write(JSON.stringify({ type: "response", id: "startup", success: true, data: { model: { provider: "fixture", id: "model" }, thinkingLevel: "high" } }) + "\n");
+		if (command.type === "prompt") abort.abort();
+		if (command.type === "abort") {
+			child.emit("exit", 0, null);
+			setTimeout(() => {
+				child.emit("message", { type: "write", path: "target", phase: "completed" });
+				child.emit("disconnect");
+				child.emit("close", 0, null);
+				setTimeout(() => child.emit("message", { type: "write", path: "target", phase: "attempted" }), 5);
+			}, 20);
+		}
+	});
+	// When
+	const [result] = await controller.run([manifest], () => "work", abort.signal);
+	await new Promise((resolve) => setTimeout(resolve, 30));
+	// Then
+	assert.deepEqual({ status: result.status, terminated: result.terminated, writes: result.writes }, { status: "cancelled", terminated: true, writes: [{ path: "target", phase: "completed" }] });
+});
+
+for (const trigger of ["cancellation", "timeout"]) {
+	test(`shouldReturnRealGuardWritesWhenNativeRpcChildStopsFor${trigger}`, async (t) => {
+		// Given
+		const { spawn } = await import("node:child_process");
+		const { hostRoot } = await import("./helpers/pi-host.mjs");
+		const cwd = await realpath(await createWorkspace(t));
+		const abort = new AbortController();
+		const manifest = { ...task(cwd, "native-write"), role: "implement", files: ["target"], contextFiles: [], tools: ["read", "search", "list", "edit", "write"] };
+		const controller = new BatchController({ childPath: fileURLToPath(new URL("./fixtures/subagent-native-child.mjs", import.meta.url)), sdkRoot: hostRoot, taskTimeout: 1500, stopGrace: 100,
+			spawnProcess: (...args) => {
+				const child = spawn(...args);
+				child.on("message", (message) => { if (trigger === "cancellation" && message.type === "file_changed") abort.abort(); });
+				return child;
+			},
+		});
+		// When
+		const [result] = await controller.run([manifest], () => "Fixture mock writes one file", abort.signal);
+		// Then
+		assert.deepEqual({ file: await readFile(join(cwd, "target"), "utf8"), status: result.status, terminated: result.terminated, writes: result.writes },
+			{ file: "native write before cancellation", status: trigger === "cancellation" ? "cancelled" : "timed_out", terminated: true, writes: [{ path: "target", phase: "completed" }] }, result.diagnostic);
+	});
+}

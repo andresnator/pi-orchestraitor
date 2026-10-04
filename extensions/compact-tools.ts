@@ -1,18 +1,20 @@
+import { stripVTControlCharacters } from "node:util";
 import {
 	createBashToolDefinition,
+	createCodemodeExtension,
 	createEditToolDefinition,
 	createReadToolDefinition,
 	createWriteToolDefinition,
 	keyHint,
 	type ExtensionAPI,
 	type Theme,
-	type ThemeBg,
 	type ToolDefinition,
 } from "@earendil-works/pi-coding-agent";
 import { Text, truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
 import type { TSchema } from "typebox";
 
 const HORIZONTAL_PADDING = 1;
+const ERROR_ROWS = 3;
 const COLLAPSED_MARKER = "▸";
 const EXPANDED_MARKER = "▾";
 const STATUS = {
@@ -30,31 +32,60 @@ export default function compactTools(pi: ExtensionAPI) {
 	// Wait for the effective settings and trusted working directory to be available.
 	pi.on("session_start", (_event, ctx) => {
 		const settings = pi.getSettings();
-		pi.registerTool(compactTool(createReadToolDefinition(ctx.cwd, {
+		const registerInactive = (tool: ToolDefinition) => pi.registerTool({ ...compactTool(tool), defaultActive: false });
+		registerInactive(createReadToolDefinition(ctx.cwd, {
 			autoResizeImages: settings.images?.autoResize,
-		})));
-		pi.registerTool(compactTool(createBashToolDefinition(ctx.cwd, {
+		}));
+		registerInactive(createBashToolDefinition(ctx.cwd, {
 			commandPrefix: settings.shellCommandPrefix,
 			shellPath: settings.shellPath,
-		})));
-		pi.registerTool(compactTool(createEditToolDefinition(ctx.cwd)));
-		pi.registerTool(compactTool(createWriteToolDefinition(ctx.cwd)));
+		}));
+		registerInactive(createEditToolDefinition(ctx.cwd));
+		registerInactive(createWriteToolDefinition(ctx.cwd));
+
+		// Reuse Pi's public factory only when its native codemode is already present.
+		// Delayed registration keeps disabled built-ins absent and avoids a startup
+		// replacement warning. Schema identity leaves foreign codemode tools alone.
+		const codemode = pi.getAllTools().find((tool) => tool.name === "codemode");
+		if (codemode) createCodemodeExtension()({
+			...pi,
+			registerTool(tool) {
+				if (tool.parameters === codemode.parameters) pi.registerTool(compactTool(tool));
+			},
+		});
 	});
 }
 
-function compactTool<TParams extends TSchema, TDetails, TState>(
+type Summary = { text: string; failed: boolean; errors: string };
+
+/** Shared presentation for native tools and the package's bounded subagents. */
+export function compactTool<TParams extends TSchema, TDetails, TState>(
 	original: ToolDefinition<TParams, TDetails, TState>,
 ): ToolDefinition<TParams, TDetails, TState> {
+	const summaries = new WeakMap<object, Summary>();
 	return {
 		...original,
-		// Do not activate tools disabled by CLI options or user preferences.
-		defaultActive: false,
 		renderShell: "self",
 		renderCall(args, theme, context) {
-			return renderCall(original.name, args, theme, context);
+			if (context.expanded && original.name === "codemode" && original.renderCall) {
+				return original.renderCall(args, theme, { ...context, lastComponent: undefined });
+			}
+			// Pi builds the call component before the result component. Read the
+			// summary at render time so streaming updates appear in the same row.
+			return {
+				render: (width) => renderCall(original.name, args, theme, context,
+					summaries.get(context.state as object)).render(width),
+				invalidate() {},
+			};
 		},
-		renderResult(result, { expanded }, theme, context) {
-			if (!expanded) return EMPTY_COMPONENT;
+		renderResult(result, options, theme, context) {
+			const { expanded } = options;
+			const summary = summarizeResult(original.name, result.details);
+			summaries.set(context.state as object, summary);
+			if (expanded && original.name === "codemode" && original.renderResult) {
+				return original.renderResult(result, options, theme, { ...context, lastComponent: undefined });
+			}
+			if (!expanded && !context.isError && !summary.failed) return EMPTY_COMPONENT;
 
 			const output = result.content
 				.filter((block) => block.type === "text")
@@ -63,29 +94,42 @@ function compactTool<TParams extends TSchema, TDetails, TState>(
 			const diff = original.name === "edit" && result.details &&
 				typeof result.details === "object" && "diff" in result.details
 				? result.details.diff : undefined;
-			const details = typeof diff === "string" ? `${output}\n${diff}` : output;
+			const errorOffset = output.lastIndexOf("\nScript error:");
+			const scriptError = original.name === "codemode" && context.isError && errorOffset >= 0
+				? output.slice(errorOffset + "\nScript error:".length).trimStart() : undefined;
+			const details = sanitizeDisplay(!expanded && scriptError
+				? scriptError : !expanded && !context.isError && summary.failed
+					? summary.errors : typeof diff === "string" ? `${output}\n${diff}` : output);
 			if (!details) return EMPTY_COMPONENT;
 
-			return withBackground(new Text(theme.fg("toolOutput", details), 0, 0), theme, context);
+			const text = new Text(theme.fg("toolOutput", expanded ? details : details.trimEnd()), 0, 0);
+			return withBackground(expanded ? text : {
+				render: (width) => original.name === "codemode"
+					? text.render(width).slice(0, ERROR_ROWS) : text.render(width).slice(-ERROR_ROWS),
+				invalidate: () => text.invalidate(),
+			}, theme, { ...context, isError: context.isError || summary.failed });
 		},
 	};
 }
 
-function renderCall(name: string, args: unknown, theme: Theme, context: RenderContext): Component {
+function renderCall(name: string, args: unknown, theme: Theme, context: RenderContext, result?: Summary): Component {
 	const marker = context.expanded ? EXPANDED_MARKER : COLLAPSED_MARKER;
+	const failed = context.isError || result?.failed;
 	const status = context.isError
 		? STATUS.error
+		: result?.failed
+			? context.isPartial ? "running with errors…" : "completed with errors"
 		: !context.isPartial
 			? STATUS.done
 			: context.executionStarted
 				? STATUS.running
 				: STATUS.preparing;
-	const statusColor = context.isError ? "error" : context.isPartial ? "muted" : "success";
-	const summary = summarizeArgs(args);
+	const statusColor = failed ? "error" : context.isPartial ? "muted" : "success";
+	const summary = [summarizeArgs(name, args), result?.text].filter(Boolean).join(" · ");
 	const header = `${marker} ${theme.fg("toolTitle", theme.bold(name))} · ${theme.fg(statusColor, status)}`;
 
 	if (context.expanded) {
-		const argumentsText = JSON.stringify(args, null, 2) ?? "";
+		const argumentsText = sanitizeDisplay(JSON.stringify(args, null, 2) ?? "");
 		return withBackground(
 			new Text(`${header}\n${theme.fg("toolOutput", argumentsText)}`, 0, 0),
 			theme,
@@ -93,29 +137,52 @@ function renderCall(name: string, args: unknown, theme: Theme, context: RenderCo
 		);
 	}
 
-	const hint = keyHint("app.tools.expand", "detalles");
+	const hint = keyHint("app.tools.expand", "details");
 	const label = `${header}${summary ? ` · ${theme.fg("accent", summary)}` : ""} ${hint}`;
 	return withBackground(
 		{ render: (width) => [truncateToWidth(label, width)], invalidate() {} },
 		theme,
-		context,
+		{ ...context, isError: Boolean(failed) },
 	);
 }
 
-function summarizeArgs(args: unknown): string {
+function summarizeArgs(name: string, args: unknown): string {
 	if (!args || typeof args !== "object") return "";
+	if (name === "subagent_run" && "tasks" in args && Array.isArray(args.tasks)) {
+		const roles = args.tasks.map((task) => task?.role).filter((role) => typeof role === "string");
+		return `${args.tasks.length} task${args.tasks.length === 1 ? "" : "s"} · ${sanitizeDisplay(roles.join(", "))}`;
+	}
 	const command = "command" in args ? args.command : undefined;
 	const subject = typeof command === "string" ? command : "path" in args ? args.path : undefined;
-	return typeof subject === "string" ? subject.replace(/\s+/gu, " ").trim() : "";
+	return typeof subject === "string" ? sanitizeDisplay(subject).replace(/\s+/gu, " ").trim() : "";
+}
+
+function summarizeResult(name: string, details: unknown): Summary {
+	const empty = { text: "", failed: false, errors: "" };
+	if (!details || typeof details !== "object") return empty;
+	if (name === "codemode" && "calls" in details && Array.isArray(details.calls)) {
+		const calls = details.calls;
+		const running = calls.filter((call) => call.status === "running");
+		const completed = calls.filter((call) => call.status === "ok").length;
+		const failures = calls.filter((call) => call.status === "error" || call.status === "cancelled");
+		const text = calls.length ? [
+			`${calls.length} call${calls.length === 1 ? "" : "s"}`,
+			running.length ? `${running.length} running (${sanitizeDisplay(String(running.at(-1).name))})` : `${completed} completed`,
+			failures.length ? `${failures.length} failed` : "",
+		].filter(Boolean).join(" · ") : "script";
+		return { text, failed: failures.length > 0,
+			errors: failures.map((call) => `${call.name}: ${call.error || call.status}`).join("\n") };
+	}
+	if (name === "subagent_run" && "results" in details && Array.isArray(details.results)) {
+		const results = details.results;
+		const failures = results.filter((task) => task.status !== "completed");
+		return { text: `${results.length - failures.length}/${results.length} completed`, failed: failures.length > 0,
+			errors: failures.map((task) => `${task.role}: ${task.status}${task.diagnostic ? ` · ${task.diagnostic}` : ""}`).join("\n") };
+	}
+	return empty;
 }
 
 function withBackground(component: Component, theme: Theme, context: RenderContext): Component {
-	const background: ThemeBg = context.isError
-		? "toolErrorBg"
-		: context.isPartial
-			? "toolPendingBg"
-			: "toolSuccessBg";
-
 	return {
 		invalidate: () => component.invalidate(),
 		render(width) {
@@ -123,8 +190,18 @@ function withBackground(component: Component, theme: Theme, context: RenderConte
 			const contentWidth = Math.max(1, width - padding * 2);
 			return component.render(contentWidth).map((line) => {
 				const padded = truncateToWidth(`${" ".repeat(padding)}${line}`, width);
-				return theme.bg(background, padded + " ".repeat(Math.max(0, width - visibleWidth(padded))));
+				return context.isError
+					? theme.bg("toolErrorBg", padded + " ".repeat(Math.max(0, width - visibleWidth(padded))))
+					: padded;
 			});
 		},
 	};
+}
+
+/** Sanitize untrusted terminal text before adding theme escapes. Never mutate tool data. */
+function sanitizeDisplay(text: string): string {
+	return stripVTControlCharacters(text)
+		.replace(/\r\n/g, "\n")
+		.replace(/\t/g, "    ")
+		.replace(/[\x00-\x09\x0b-\x1f\x7f-\x9f]/g, "");
 }

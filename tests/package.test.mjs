@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import { copyFile, mkdir, readFile, rm } from "node:fs/promises";
 import { basename, join } from "node:path";
 import test from "node:test";
+import { pathToFileURL } from "node:url";
 import {
 	createWorkspace, importHost, isolatedAgentDir, loadPackage, mcpStatus,
 	packageRoot, pi, startSession,
@@ -14,11 +15,12 @@ const EXPECTED_PROMPTS = ["absorb", "orchestraitor", "plan", "review"];
 const PROVENANCE = JSON.parse(await readFile(join(packageRoot, "docs/skills-provenance.json"), "utf8"));
 const EXPECTED_FILES = [
 	"LICENSE", "README.md", "THIRD_PARTY_NOTICES.md", "package.json",
-	"extensions/compact-tools.ts", "extensions/instructions.ts", "extensions/mcp.ts",
+	"extensions/compact-tools.ts", "extensions/instructions.ts", "extensions/mcp.ts", "extensions/subagents.ts",
+	"extensions/subagent/child.mjs", "extensions/subagent/controller.mjs", "extensions/subagent/guard.mjs", "extensions/subagent/policy.mjs", "extensions/subagent/runtime.mjs",
 	"instructions/core.md", "instructions/orchestraitor.md", "instructions/personality.md",
 	"scripts/install-pi.mjs", "scripts/pi-host.mjs", "scripts/skill-migration.mjs", "scripts/check-personality.mjs",
 	"scripts/skill-inventory.mjs", "scripts/package-registration.mjs",
-	"docs/skills.md", "docs/skills-provenance.json", "docs/verification.md",
+	"docs/skills.md", "docs/skills-provenance.json", "docs/verification.md", "docs/subagents.md",
 	"licenses/Apache-2.0.txt", "licenses/MIT.txt",
 	...PROVENANCE.skills.flatMap((skill) => skill.resources.map(({ path }) => `skills/${skill.name}/${path}`)),
 	...EXPECTED_PROMPTS.map((name) => `prompts/${name}.md`),
@@ -72,7 +74,7 @@ test("shouldLoadPromptsAndExtensionsWhenExplicitPackageBypassesDiscovery", async
 		prompts: loader.getPrompts().prompts.map(({ name }) => name).sort(),
 		skills: loader.getSkills().skills.length,
 	}, {
-		extensions: ["compact-tools.ts", "instructions.ts", "mcp.ts"],
+		extensions: ["compact-tools.ts", "instructions.ts", "mcp.ts", "subagents.ts"],
 		errors: [], prompts: EXPECTED_PROMPTS, skills: 61,
 	});
 });
@@ -114,10 +116,20 @@ test("shouldLoadOnlyPackagedResourcesWhenTarballIsExtractedElsewhere", async (t)
 	}, {
 		files: EXPECTED_FILES, errors: [], prompts: EXPECTED_PROMPTS,
 		skills: PROVENANCE.skills.map(({ name }) => name).sort(), skillDiagnostics: [],
-		active: ["read", "bash", "edit", "write"], prefix: "Host instructions",
+		active: ["read", "bash", "edit", "write", "subagent_run"], prefix: "Host instructions",
 		preservedSection: "Project-specific instructions", theme: "system", dependencies: undefined,
 		peers: { "@earendil-works/pi-coding-agent": "*", "@earendil-works/pi-tui": "*", typebox: "*" },
 	});
+	// The extracted bootstrap must resolve its sibling guard/runtime files without repo imports.
+	const { BatchController } = await import(pathToFileURL(join(extracted, "extensions/subagent/controller.mjs")).href);
+	const { hostRoot } = await import("./helpers/pi-host.mjs");
+	const [childResult] = await new BatchController({ sdkRoot: hostRoot, credentialDir: isolatedAgentDir,
+		childPath: join(extracted, "extensions/subagent/child.mjs") }).run([{
+		id: "extracted", role: "explore", instruction: "inspect", cwd: workspace,
+		model: "unavailable/model", reasoning: "high", skills: [], files: [], contextFiles: [], tools: ["read", "search", "list"],
+	}], () => "No model call is allowed");
+	assert.deepEqual({ status: childResult.status, terminated: childResult.terminated }, { status: "failed", terminated: true });
+	assert.match(childResult.diagnostic, /Model unavailable/);
 	assert.match(result.systemPromptOptions.sections.pi_orchestraitor_execution, /Orchestraitor/);
 	assert.match(result.systemPromptOptions.sections.pi_orchestraitor_personality, /Colombian software architect/);
 	assert.equal(PROVENANCE.skills.length, 61);
@@ -155,6 +167,6 @@ test("shouldAvoidDoubleRegistrationWhenOriginalGlobalExtensionIsExcluded", async
 		errors,
 	}, {
 		compactPaths: [join(packageRoot, "extensions/compact-tools.ts")],
-		tools: ["bash", "edit", "read", "write"], errors: [],
+		tools: ["bash", "edit", "read", "subagent_run", "write"], errors: [],
 	});
 });

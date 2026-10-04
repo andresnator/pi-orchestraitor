@@ -72,14 +72,14 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 
 | Resource | Purpose |
 | --- | --- |
-| `extensions/compact-tools.ts` | Compact read/bash/edit/write presentation with native execution and tool selection. Expand to inspect arguments and results. |
+| `extensions/compact-tools.ts` | Compact read/bash/edit/write and native codemode presentation with original execution and tool selection. Expand to inspect arguments and results. |
 | `extensions/instructions.ts` | Adds core, execution, and personality sections while preserving Pi and project instructions. |
 | `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. |
 | `skills/` | 61 unique skills and their supporting resources, with original public names. |
 | `prompts/` | `/orchestraitor`, `/plan`, `/review`, and `/absorb`, with explicit arguments. |
 | `scripts/install-pi.mjs` | Migration, native package registration, verification, and restoration. |
 
-The package preserves personal model, theme, editor, credentials, and MCP overrides. It does not implement subagents, independent verification, resumable SDD, dual review, TCR, or persistent Caveman. Its scope and personality instructions are behavioral rules; they are not a filesystem sandbox.
+The package preserves personal model, theme, editor, credentials, and MCP overrides. It provides bounded subagents through `subagent_run`. It does not implement independent verification, resumable SDD, dual review, TCR, or persistent Caveman. Its scope and personality instructions are behavioral rules; they are not a filesystem sandbox.
 
 ## MCP and memory
 
@@ -133,3 +133,13 @@ npm pack --dry-run --ignore-scripts
 Tests use the Pi executable on PATH. Set `PI_TEST_PACKAGE_DIR` to the installed npm package root if it cannot be located. The installer inventory adapter and some integration checks depend on host internals and need revalidation after a Pi upgrade. The adapter checks that its required host hooks exist before migration. Peers use `*` because Pi supplies them; compatibility has been validated against Pi 1.0.0. The established test convention is `node:test` with `node:assert`.
 
 See [verification evidence](docs/verification.md) and [attribution](THIRD_PARTY_NOTICES.md).
+
+## Subagents and verification
+
+Use `subagent_run` for up to two bounded readers or one exclusive implementer. Each task gets a fresh process/session; the parent runs commands and checks the result. See [subagent input, isolation and lifecycle](docs/subagents.md) for file restrictions, model selection, cancellation, output fields and pending real-model checks.
+
+Normal tools use one unboxed line. `codemode` shows nested-call counts and the currently running tool, and `subagent_run` shows task counts, roles and completion counts. Script source, nested-call arguments and successful output stay hidden until `Ctrl+O` expands the tool. Expansion restores codemode's native code/result view and the complete subagent response.
+
+Errors remain visible: the header plus up to three visual rows, including caught nested-call failures and failed, timed-out or cancelled children. Codemode shows the start of the error cause; other tools show the error tail. Normal rows have no filled background; error rows keep the error background. Presentation does not truncate or change model-facing results. Codemode is decorated through Pi's public factory only when its native tool is present, preserves inactive/disabled selection, and leaves foreign tools with a different parameter schema unchanged. Restart Pi or run `/reload` after changing the package.
+
+Reviews identify repository/base/scope and content fingerprints, including relevant new files, and recheck them before the verdict. Findings distinguish observed/inferred evidence and introduced/aggravated/pre-existing/unknown origin. Behavior changes use observed failing and passing checks where appropriate; the final diff alone does not prove RED/GREEN execution.

@@ -13,7 +13,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "9b31d89e760b02df5c7c81d5022679ee3c9b758fa216f00e6dd5e14d59172288"
+          "sha256": "d076b5afd8181d81db9f1eae05faea3e28c9897d57e4c5cc596075b220473bb0"
         }
       ],
       "adaptations": [
@@ -460,7 +460,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "6c11b6deb611fedeb68368a18f926ece38f465b5eb947ab743525caed4b49cb7"
+          "sha256": "874d4b4e8c8cf369ea6a7fb53d6fbb3fc5e10129d595b28f78754192899fb14e"
         },
         {
           "path": "assets/plan-template.md",
