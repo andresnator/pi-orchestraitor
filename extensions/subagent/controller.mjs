@@ -12,7 +12,26 @@ const MAX_DIAGNOSTIC = 8192;
 const MAX_RESPONSE = 128 * 1024;
 const STOP_GRACE_MS = 1000;
 const CHILD_PATH = fileURLToPath(new URL("./child.mjs", import.meta.url));
+const TOKEN_FIELDS = ["input", "output", "cacheRead", "cacheWrite", "totalTokens"];
+const OPTIONAL_TOKEN_FIELDS = ["reasoning", "cacheWrite1h"];
+const COST_FIELDS = ["input", "output", "cacheRead", "cacheWrite", "total"];
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Merge observed native usage without estimating prices or adding subset counters to totals. */
+export function mergeUsage(values) {
+	const observed = values.filter((value) => value !== undefined);
+	if (!observed.length) return undefined;
+	const sum = (records, fields) => Object.fromEntries(fields.map((field) => [field, records.reduce((total, record) => total + (record[field] ?? 0), 0)]));
+	const optional = OPTIONAL_TOKEN_FIELDS.filter((field) => observed.some((value) => value[field] !== undefined));
+	return { ...sum(observed, [...TOKEN_FIELDS, ...optional]), cost: sum(observed.map((value) => value.cost), COST_FIELDS) };
+}
+
+function validUsage(usage) {
+	const numeric = (value) => typeof value === "number" && Number.isFinite(value) && value >= 0;
+	return usage && TOKEN_FIELDS.every((field) => numeric(usage[field])) &&
+		OPTIONAL_TOKEN_FIELDS.every((field) => usage[field] === undefined || numeric(usage[field])) &&
+		usage.cost && COST_FIELDS.every((field) => numeric(usage.cost[field]));
+}
 
 /** One manager per parent session; poison survives lifecycle cancellation. */
 export class BatchController {
@@ -42,7 +61,7 @@ export class BatchController {
 				const terminated = !child || exited;
 				if (!terminated) this.orphans.add(child);
 				return { id: manifest.id, role: manifest.role, cwd: manifest.cwd, model: manifest.model, reasoning: manifest.reasoning,
-					status: "failed", finalResponse: "", writes: [], diagnostic: String(error), terminated };
+					status: "failed", finalResponse: "", writes: [], diagnostic: String(error), terminated, usageComplete: false };
 			}
 		}));
 		try {
@@ -81,12 +100,14 @@ export async function runTask(manifest, prompt, options = {}) {
 	const { signal, sdkRoot, credentialDir, childPath = CHILD_PATH, spawnProcess = spawn,
 		startTimeout = START_TIMEOUT_MS, taskTimeout = TASK_TIMEOUT_MS, stopGrace = STOP_GRACE_MS } = options;
 	const result = { id: manifest.id, role: manifest.role, cwd: manifest.cwd, model: manifest.model, reasoning: manifest.reasoning,
-		status: "failed", finalResponse: "", writes: [], diagnostic: "", terminated: false };
+		status: "failed", finalResponse: "", writes: [], diagnostic: "", terminated: false, usageComplete: false };
 	if (signal?.aborted) return { ...result, status: "cancelled", diagnostic: "Cancelled before startup", terminated: true };
 	let directory;
 	let timedOut = false;
 	let child, exited = false, closed = false, ipcClosed = false, exitCode, exitSignal, failure, settled = false, accepting = true, acceptingWrites = true, guardReady = false, prompted = false;
 	let finalMessage, resolveReady, rejectReady, resolveSettled, rejectSettled;
+	let acceptingUsage = true, usageReliable = true, responseOpen = false, lastEnd, stdoutEnded = false;
+	const decoder = new RpcDecoder();
 	const ready = new Promise((resolve, reject) => { resolveReady = resolve; rejectReady = reject; });
 	const completion = new Promise((resolve, reject) => { resolveSettled = resolve; rejectSettled = reject; });
 	// Cancellation may reject completion before startup has finished.
@@ -94,6 +115,28 @@ export async function runTask(manifest, prompt, options = {}) {
 	const diagnose = (text) => {
 		const combined = result.diagnostic + text;
 		result.diagnostic = combined.length > MAX_DIAGNOSTIC ? `[Diagnostics truncated]\n${combined.slice(-MAX_DIAGNOSTIC)}` : combined;
+	};
+	const incompleteUsage = (reason) => { usageReliable = false; diagnose(`Usage incomplete: ${reason}.\n`); };
+	const observeUsage = (event) => {
+		if (!prompted || event.message?.role !== "assistant") return;
+		if (event.type === "message_start") {
+			if (responseOpen) incompleteUsage("assistant response did not finish before the next start");
+			responseOpen = true;
+			lastEnd = undefined;
+		} else if (event.type === "message_end") {
+			const fingerprint = JSON.stringify(event.message);
+			if (!responseOpen) {
+				if (fingerprint !== lastEnd) incompleteUsage("unpaired assistant message_end");
+				return;
+			}
+			responseOpen = false;
+			lastEnd = fingerprint;
+			if (!validUsage(event.message.usage)) { incompleteUsage("missing or invalid finalized usage"); return; }
+			const combined = mergeUsage([result.usage, event.message.usage]);
+			if (validUsage(combined)) result.usage = combined;
+			else incompleteUsage("numeric overflow in finalized usage");
+			if (!["stop", "length", "toolUse"].includes(event.message.stopReason)) incompleteUsage("assistant response was not successful");
+		}
 	};
 	const fail = (error) => {
 		if (!accepting || failure) return;
@@ -160,10 +203,11 @@ export async function runTask(manifest, prompt, options = {}) {
 			result.reasoning = message.reasoning;
 			send({ id: "startup", type: "get_state" });
 		});
-		const decoder = new RpcDecoder();
+		child.stdout.once("end", () => { stdoutEnded = true; });
 		child.stdout.on("data", (chunk) => {
-			if (!accepting || failure) return;
+			if (!acceptingUsage) return;
 			try { decoder.push(chunk, (event) => {
+				observeUsage(event);
 				if (failure || !accepting) return;
 				if (event.type === "extension_error") return fail(new Error("Child guard extension error"));
 				if (event.type === "response" && event.id === "startup" && guardReady && !prompted) {
@@ -174,7 +218,7 @@ export async function runTask(manifest, prompt, options = {}) {
 				if (!prompted || settled) return;
 				if (event.type === "message_end" && event.message?.role === "assistant") finalMessage = event.message;
 				if (event.type === "agent_settled") { settled = true; resolveSettled(); }
-			}); } catch (error) { fail(error); }
+			}); } catch (error) { incompleteUsage("malformed or oversized RPC record"); fail(error); }
 		});
 		if (signal?.aborted) cancel();
 		await ready;
@@ -205,11 +249,14 @@ export async function runTask(manifest, prompt, options = {}) {
 			if (!exited) { child.kill("SIGTERM"); await waitForExit(() => exited, stopGrace); }
 			if (!exited) { child.kill("SIGKILL"); await waitForExit(() => exited, stopGrace); }
 		}
-		if (child && exited && !closed && !ipcClosed) {
-			await waitForExit(() => closed || ipcClosed, stopGrace);
+		if (child && exited && !closed && (!ipcClosed || !stdoutEnded)) {
+			await waitForExit(() => closed || (ipcClosed && stdoutEnded), stopGrace);
 			if (!closed && !ipcClosed) diagnose("IPC write-notification drain was not confirmed before the deadline.\n");
 		}
 		acceptingWrites = false;
+		acceptingUsage = false;
+		if (child && !closed && !stdoutEnded) incompleteUsage("stdout accounting drain was not confirmed before the deadline");
+		if (responseOpen || decoder.buffer.trim()) incompleteUsage("unfinished response or RPC record");
 		result.terminated = !child || exited;
 		if (!result.terminated) {
 			options.onUnterminated?.(child);
@@ -219,7 +266,15 @@ export async function runTask(manifest, prompt, options = {}) {
 			result.status = "failed";
 			diagnose(`Child did not exit cleanly (${exitCode ?? exitSignal}).\n`);
 		}
-		if (result.terminated && directory) await rm(directory, { recursive: true, force: true });
+		if (result.terminated && directory) {
+			try { await rm(directory, { recursive: true, force: true }); }
+			catch (error) {
+				if (result.status === "completed") result.status = "failed";
+				incompleteUsage(`temporary task cleanup failed: ${String(error)}`);
+			}
+		}
+		result.usageComplete = result.status === "completed" && result.usage !== undefined && usageReliable;
+		if (!result.usageComplete) diagnose("Usage accounting is incomplete; observed totals may understate consumption.\n");
 	}
 	return result;
 }

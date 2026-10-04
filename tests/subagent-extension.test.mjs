@@ -5,12 +5,12 @@ import test from "node:test";
 import { createWorkspace, loadExtensions, packageRoot } from "./helpers/pi-host.mjs";
 
 const controllerKey = Symbol.for("pi-orchestraitor.subagent-controller");
-async function fixture(t) {
+async function fixture(t, results = []) {
 	const cwd = await realpath(await createWorkspace(t));
 	const batches = [];
 	const previous = globalThis[controllerKey];
 	globalThis[controllerKey] = { cancelCount: 0, async cancel() { this.cancelCount++; }, async run(manifests, promptFor) {
-		batches.push({ manifests, prompts: manifests.map(promptFor) }); return [];
+		batches.push({ manifests, prompts: manifests.map(promptFor) }); return results;
 	} };
 	t.after(() => { globalThis[controllerKey] = previous; });
 	const loaded = await loadExtensions([join(packageRoot, "extensions/subagents.ts")], cwd);
@@ -25,6 +25,27 @@ async function fixture(t) {
 	} });
 	capture();
 	return { cwd, batches, loaded, extension, ctx, capture, tool: extension.tools.get("subagent_run").definition };
+}
+
+for (const scenario of ["writer", "readers", "partial", "unknown"]) {
+	test(`shouldExposeNativeBatchUsageWhenResultsAre${scenario}`, async (t) => {
+		// Given
+		const usage = { input: 1, output: 2, cacheRead: 3, cacheWrite: 4, totalTokens: 10, reasoning: 1, cacheWrite1h: 2,
+			cost: { input: 0.125, output: 0.25, cacheRead: 0, cacheWrite: 0, total: 0.375 } };
+		const results = scenario === "writer" ? [{ id: "one", role: "implement", status: "completed", usage, usageComplete: true }]
+			: [{ id: "one", role: "explore", status: "completed", ...(scenario !== "unknown" ? { usage } : {}), usageComplete: scenario !== "unknown" },
+				{ id: "two", role: "review", status: scenario === "partial" ? "cancelled" : "completed", ...(scenario !== "unknown" ? { usage } : {}), usageComplete: scenario === "readers" }];
+		const { tool, ctx } = await fixture(t, results);
+		const tasks = results.map(({ role }) => ({ role, instruction: "inspect", ...(role === "implement" ? { files: ["target"] } : {}) }));
+		// When
+		const result = await tool.execute("usage", { tasks }, undefined, undefined, ctx);
+		// Then
+		const expected = scenario === "unknown" ? undefined : scenario === "writer" ? usage
+			: { input: 2, output: 4, cacheRead: 6, cacheWrite: 8, totalTokens: 20, reasoning: 2, cacheWrite1h: 4,
+				cost: { input: 0.25, output: 0.5, cacheRead: 0, cacheWrite: 0, total: 0.75 } };
+		assert.deepEqual(result, { content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+			details: { results, usageComplete: ["writer", "readers"].includes(scenario) }, ...(expected ? { usage: expected } : {}) });
+	});
 }
 
 test("shouldInheritAndOverrideModelAndReasoningWhenPreparingChildTasks", async (t) => {
@@ -97,7 +118,15 @@ test("shouldIncludeExactEditablePathsWhenImplementerReceivesItsAssignment", asyn
 	const { tool, ctx, batches } = await fixture(t);
 	const files = ["src/selected-target.txt", "src/other target.txt"];
 	// When
-	await tool.execute("batch", { tasks: [{ role: "implement", instruction: "Correct the typo in the assigned file", files }] }, undefined, undefined, ctx);
+	await tool.execute("batch", { tasks: [{ role: "implement", instruction: "Correct the typo in the assigned file", context: "Acceptance: only the typo changes; parent verifies the diff.", files }] }, undefined, undefined, ctx);
 	// Then
-	assert.ok(batches[0].prompts[0].includes(`Editable files (exact project-relative paths):\n${JSON.stringify(files, null, 2)}`));
+	const prompt = batches[0].prompts[0];
+	assert.ok(prompt.includes(`Editable files (exact project-relative paths):\n${JSON.stringify(files, null, 2)}`));
+	assert.match(prompt, /Correct the typo in the assigned file/);
+	assert.match(prompt, /Acceptance: only the typo changes; parent verifies the diff\./);
+	assert.equal(prompt.match(/Handoff:/g)?.length, 1);
+	assert.match(prompt, /inspected\/changed paths and relevant line ranges/);
+	assert.match(prompt, /observed findings from inference/);
+	assert.match(prompt, /blockers, remaining work and unperformed checks/);
+	assert.match(prompt, /Do not run commands, delegate, or claim checks you did not perform/);
 });

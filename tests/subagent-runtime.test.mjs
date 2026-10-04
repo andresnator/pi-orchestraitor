@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir, realpath, readFile, writeFile, symlink, link } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
-import { createWorkspace, pi, hostRoot, packageRoot } from "./helpers/pi-host.mjs";
+import { createWorkspace, pi, hostRoot, packageRoot, importHost } from "./helpers/pi-host.mjs";
 import { createChildRuntime } from "../extensions/subagent/runtime.mjs";
 import { BatchController } from "../extensions/subagent/controller.mjs";
 
@@ -16,6 +16,65 @@ async function fixture(t, role = "explore") {
 	const manifest = { id: "test", cwd, role, instruction: "inspect", files: role === "implement" ? ["target"] : [], skills: [], contextFiles: [{ path: "captured/AGENTS.md", content: "CAPTURED" }],
 		model: "fixture/model", reasoning: "high", tools: role === "implement" ? ["read", "search", "list", "edit", "write"] : ["read", "search", "list"] };
 	return { cwd, temporary, modelRuntime, manifest };
+}
+
+for (const scenario of ["complete", "partial", "parent-cancelled"]) {
+	test(`shouldPersistNestedUsageOnceWhenNativeParentReceives${scenario}Results`, async (t) => {
+		// Given
+		const { cwd, temporary, modelRuntime } = await fixture(t);
+		const { createAssistantMessageEventStream } = await importHost("node_modules/@earendil-works/pi-ai/dist/index.js");
+		const childUsage = { input: 11, output: 7, cacheRead: 3, cacheWrite: 2, totalTokens: 23,
+			cost: { input: 0.125, output: 0.25, cacheRead: 0, cacheWrite: 0, total: 0.375 } };
+		const outcomes = ["explore", "review"].map((role, i) => ({ id: String(i), role, status: scenario === "complete" ? "completed" : "cancelled",
+			finalResponse: "fixture result", usage: childUsage, usageComplete: scenario === "complete", terminated: true }));
+		let requests = 0, session;
+		modelRuntime.registerProvider("fixture", { api: "openai-completions", baseUrl: "https://example.invalid", apiKey: "fixture",
+			models: [{ id: "model", name: "Local parent", reasoning: true, input: ["text"], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 8192, maxTokens: 1024 }],
+			streamSimple(model) {
+				const stream = createAssistantMessageEventStream();
+				const first = requests++ === 0;
+				const message = { role: "assistant", api: model.api, provider: model.provider, model: model.id, timestamp: Date.now(), stopReason: first ? "toolUse" : "stop",
+					usage: { input: 5, output: 2, cacheRead: 0, cacheWrite: 0, totalTokens: 7, cost: { input: 0.125, output: 0, cacheRead: 0, cacheWrite: 0, total: 0.125 } },
+					content: first ? [{ type: "toolCall", id: "batch", name: "subagent_run", arguments: { tasks: ["explore", "review"].map((role) => ({ role, instruction: "inspect" })) } }]
+						: [{ type: "text", text: "done" }] };
+				stream.push({ type: "done", reason: message.stopReason, message }); stream.end(message);
+				return stream;
+			},
+		});
+		const key = Symbol.for("pi-orchestraitor.subagent-controller");
+		const previous = globalThis[key];
+		globalThis[key] = { async cancel() {}, async run() {
+			if (scenario === "parent-cancelled") { void session.abort(); await new Promise(setImmediate); }
+			return outcomes;
+		} };
+		t.after(() => { globalThis[key] = previous; });
+		const settingsManager = pi.SettingsManager.inMemory({ retry: { enabled: false }, compaction: { enabled: false } });
+		const resourceLoader = new pi.DefaultResourceLoader({ cwd, agentDir: temporary, settingsManager, noExtensions: true,
+			additionalExtensionPaths: [join(packageRoot, "extensions/subagents.ts")], noSkills: true, noPromptTemplates: true, noThemes: true, noContextFiles: true });
+		await resourceLoader.reload();
+		({ session } = await pi.createAgentSession({ cwd, agentDir: temporary, settingsManager, resourceLoader, modelRuntime,
+			model: (await modelRuntime.getAvailable())[0], tools: ["read", "subagent_run"], sessionManager: pi.SessionManager.create(cwd, join(temporary, "sessions")) }));
+		t.after(() => session.dispose());
+		await session.bindExtensions({ onError: assert.fail });
+		// When
+		await session.prompt("Use the bounded fixture tool");
+		const entries = (await readFile(session.sessionFile, "utf8")).trim().split("\n").map(JSON.parse);
+		const results = entries.filter((entry) => entry.type === "message" && entry.message.role === "toolResult");
+		const stats = session.getSessionStats();
+		// Then
+		assert.equal(results.length, 1);
+		assert.deepEqual({ usage: results[0].message.usage, details: results[0].message.details, isError: results[0].message.isError },
+			{ usage: { input: 22, output: 14, cacheRead: 6, cacheWrite: 4, totalTokens: 46, cost: { input: 0.25, output: 0.5, cacheRead: 0, cacheWrite: 0, total: 0.75 } },
+				details: { results: outcomes, usageComplete: scenario === "complete" }, isError: false });
+		const stopped = scenario === "parent-cancelled";
+		assert.deepEqual({ tokens: stats.tokens, cost: stats.cost, assistants: stats.assistantMessages, tools: stats.toolResults },
+			{ tokens: { input: stopped ? 27 : 32, output: stopped ? 16 : 18, cacheRead: 6, cacheWrite: 4, total: stopped ? 53 : 60 }, cost: stopped ? 0.875 : 1, assistants: 2, tools: 1 });
+		if (stopped) {
+			const final = entries.filter((entry) => entry.type === "message" && entry.message.role === "assistant").at(-1).message;
+			assert.deepEqual({ reason: final.stopReason, tokens: final.usage.totalTokens, cost: final.usage.cost.total }, { reason: "error", tokens: 0, cost: 0 }, final.errorMessage);
+			assert.match(final.errorMessage, /aborted/i);
+		}
+	});
 }
 
 test("shouldLoadOnlyGuardAndCapturedContextWhenProjectAndGlobalResourcesExist", async (t) => {

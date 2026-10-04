@@ -38,10 +38,12 @@ modelRuntime.registerProvider("fixture", { api: "openai-completions", baseUrl: "
 	models: [{ id: "model", name: "Local mock", reasoning: true, input: ["text"], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 8192, maxTokens: 1024 }],
 	streamSimple(model, _context, options) {
 		const stream = createAssistantMessageEventStream();
+		const turn = requests++;
 		const message = { role: "assistant", api: model.api, provider: model.provider, model: model.id, timestamp: Date.now(),
-			usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
+			usage: manifest.fixtureUsage[turn],
 			stopReason: "toolUse", content: [{ type: "toolCall", id: "write-once", name: "write", arguments: { path: manifest.files[0], content: "native write before cancellation" } }] };
-		if (requests++ === 0) {
+		stream.push({ type: "start", partial: message });
+		if (turn === 0) {
 			stream.push({ type: "done", reason: "toolUse", message });
 			stream.end(message);
 		} else {
@@ -52,6 +54,7 @@ modelRuntime.registerProvider("fixture", { api: "openai-completions", baseUrl: "
 			};
 			if (options.signal.aborted) abort();
 			else options.signal.addEventListener("abort", abort, { once: true });
+			process.send({ type: "model_waiting" });
 		}
 		return stream;
 	},

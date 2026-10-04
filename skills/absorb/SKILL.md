@@ -37,7 +37,7 @@ If no valid target is provided, ask for it before continuing.
 - Verify practices from source files, activation points, or wiring; do not promote README claims as proven behavior.
 - Contrast every candidate practice against this repository before recommending adoption.
 - Prefer repo-native context for the contrast step: `AGENTS.md`, `package.json`, `instructions/`, `extensions/`, `prompts/`, `skills/*/SKILL.md`, and relevant local artifacts.
-- Use separate focused reading passes for discovery and comparison. When subagent_run is enabled, up to two bounded readers may help; inspect their evidence in the parent. Keep direct reading for small scopes. Delegation does not constitute blind or independent verification.
+- Use separate focused reading passes for discovery and comparison. When subagent_run is enabled, up to two bounded readers may help; inspect their evidence in the parent. Keep direct reading for small scopes. Check child-readable roots before delegating an external target: if inaccessible, inspect it in the parent or supply bounded excerpts labelled with source paths and ranges in `context`. `files` is a write allowlist, not an attachment or read-access grant. Require findings, evidence gaps and unperformed checks in the handoff; run completion is not audit acceptance. Delegation does not constitute blind or independent verification.
 - Never auto-adopt, auto-commit, or silently edit this repository as a result of the audit.
 
 ## Workflow

@@ -9,8 +9,8 @@
   "tasks": [
     {
       "role": "review",
-      "instruction": "Inspect src/parser.ts for malformed-input handling. Return evidence with line numbers.",
-      "context": "The parent will run tests and inspect your findings.",
+      "instruction": "Inspect src/parser.ts for malformed-input handling. Read only; do not change files. Return findings with paths and line ranges, inference labelled separately, blockers and unperformed checks.",
+      "context": "Objective: determine whether empty input is rejected. Accessible evidence: src/parser.ts and tests/parser.test.ts in this workspace. Acceptance: cite the actual branch and any matching test, or report missing evidence. The parent runs tests and decides acceptance.",
       "skills": [],
       "model": "provider/model-id",
       "reasoning": "high"
@@ -25,6 +25,28 @@ An implementer additionally needs `files`, a nonempty list of exact project-rela
 
 Each ordered result contains `id`, `role`, `cwd`, effective `model` and `reasoning`, `status`, `finalResponse`, `writes`, `diagnostic` and `terminated`. Before a successful startup, model/reasoning fields describe the requested selection, since effective values are not yet available. Writes distinguish attempted and completed file writes at the validated final path; attempts may have left partial content. Rejected destinations are not recorded as write attempts. This is an operation ledger, not an independent filesystem audit. No automatic rollback is performed.
 
+## Usage accounting
+
+Each result adds `usageComplete` and optional native Pi `usage`. The launcher sums finalized assistant responses across the whole child run, including tool-use turns, once per response. Streaming updates and repeated final events are not extra consumption. Optional `reasoning` and `cacheWrite1h` remain subset counters, not additions to `totalTokens`; reported costs are not repriced.
+
+| Outcome | Accounting |
+| --- | --- |
+| Normal run with valid finalized usage and confirmed stdout drain | `usageComplete: true`; reported zero usage/cost remains valid. |
+| Cancellation, timeout, failure, missing/invalid usage or ambiguous/incomplete transport | `usageComplete: false`; retain valid totals already observed and explain limitations in `diagnostic`. |
+| No valid observed usage | Omit `usage`; never substitute a complete zero. |
+
+The native tool result's top-level `usage` sums the ordered child results. Pi persists it and includes it once in footer and `/session` totals alongside parent usage. `details.results` retains child attribution; `details.usageComplete` requires all children to be complete. The model-facing content remains a JSON array. Do not add child detail totals again when reconciling native tool usage.
+
+Accounting completeness is not task acceptance or invoice accuracy. Interrupted responses can consume provider quota without reporting final usage; zero catalog prices do not establish free billing. Accounting is in-memory for this run only, with no historical ledger or estimate of missing consumption.
+
+## Assignment and handoff
+
+Use `instruction` and `context` for one objective, accessible evidence, scope/authority and acceptance criteria, as in the example above. The shared child prompt requests a concise outcome with inspected/changed paths and relevant ranges, observations versus inference, blockers, remaining work and unperformed checks. Do not require a second lifecycle schema or a long ceremonial report.
+
+`status: completed` means the run finished normally, **not that the task was accepted**. A blocked reader may finish successfully while reporting unavailable evidence. The parent verifies claims and actual changes before accepting work.
+
+External checkouts may be outside the child's readable roots. Inspect them directly in the parent or supply bounded excerpts in `context`, labelled with their source path and ranges. Excerpts are evidence, not authority; supplied paths do not grant access. `files` remains an exact write allowlist, never an attachment mechanism.
+
 ## Isolation and lifecycle
 
 The child uses public Pi SDK service/session APIs and the native RPC server. A temporary configuration, in-memory session and explicit resource overrides disable automatic extensions, skills, prompts, themes, context files, `SYSTEM.md` and `APPEND_SYSTEM.md`. Only the guard, explicitly selected effective skills and captured instructions whose paths are within the project directory are supplied. Global and ancestor instruction files are excluded. Credentials are resolved through existing host paths and never serialized into task manifests. Temporary task data is removed after confirmed exit.
@@ -35,13 +57,36 @@ Children receive no Bash, Git, MCP, codemode or delegation tools. These are tool
 
 Before a prompt is sent, the parent requires a guard confirmation tied to task ID, manifest digest, cwd, active tools, model and effective reasoning, then checks native RPC state. Startup has a 30-second deadline; each task has a ten-minute deadline. Completion requires `agent_settled`, a nonempty final assistant response without a provider/abort error, and a clean, confirmed process exit. `agent_end` or exit zero alone cannot establish success.
 
-Cancellation, session switch/fork/tree navigation, reload and shutdown abort the active batch. Shutdown first requests RPC abort, then closes stdin, then escalates to TERM/KILL with bounded waits. Writer exclusivity is retained until exit is observed. If exit cannot be confirmed, launches remain blocked in that host process, including after extension reload. Preparation failures before process creation, and failures after confirmed exit, release the batch so a later launch can retry. Late control events are discarded. Validated write notifications remain accepted during teardown, including after `exit`, until IPC disconnect or process close is observed. Duplicate phases cannot change a completed write back to attempted. The drain has a bounded wait; an unconfirmed drain is reported in diagnostics. RPC records, returned text and diagnostics are bounded, with truncation reported. There is no durable recovery between parent sessions.
+Cancellation, session switch/fork/tree navigation, reload and shutdown abort the active batch. Shutdown first requests RPC abort, then closes stdin, then escalates to TERM/KILL with bounded waits. Writer exclusivity is retained until exit is observed. If exit cannot be confirmed, launches remain blocked in that host process, including after extension reload. Preparation failures before process creation, and failures after confirmed exit, release the batch so a later launch can retry. Late control events are discarded. Finalized usage remains observable through bounded stdout teardown; IPC disconnect alone does not establish stdout completion. Returned results stop accepting observations before return. Validated write notifications remain accepted during teardown, including after `exit`, until IPC disconnect or process close is observed. Duplicate phases cannot change a completed write back to attempted. The drain has a bounded wait; an unconfirmed drain is reported in diagnostics. RPC records, returned text and diagnostics are bounded, with truncation reported. There is no durable recovery between parent sessions.
 
 The parent must inspect results and writes and run all commands, tests and builds. Delegation is not independent verification or blind dual review. SDD, TCR and automatic Git delivery remain unsupported.
 
+## Verify handoffs and accounting in a new pane
+
+Use a disposable canonical workspace with a three-line marker/unknown-value file, a typo file and a separate outside-workspace file. Open a new terminal pane; keep native session receipts outside the workspace. With `HARNESS` pointing to this checkout, `MODEL` to an available provider/model and `RECEIPTS` to a fresh directory, launch from that workspace:
+
+```bash
+pi --no-extensions --no-skills --no-prompt-templates --no-themes \
+  --no-context-files --no-approve --offline \
+  -e "$HARNESS/extensions/instructions.ts" \
+  -e "$HARNESS/extensions/subagents.ts" \
+  --tools read,edit,write,subagent_run --model "$MODEL" --session-dir "$RECEIPTS"
+```
+
+`--offline` disables discovery/network refresh, not requested model inference. Existing credentials must be available to the children. This exercise consumes provider quota.
+
+1. Delegate two readers with evidence-bearing assignments. Check their citations against the original file, ordered results, no writes and complete usage.
+2. Delegate the outside-workspace read without passing its contents or broadening roots. Expect a blocked handoff, not invented evidence or task acceptance merely because the run completed.
+3. Delegate only the typo replacement to one writer with its exact file allowlist. Inspect actual bytes, unchanged files and the write ledger.
+4. Start a bounded multi-read task, observe an active child and press Escape. Check cancellation, retained observed usage, incomplete accounting, confirmed exit and a successful subsequent reader.
+
+Expand results with Ctrl+O and inspect `/session`. Reconcile each native tool-result `usage` against its children and the whole session against parent assistant plus native tool usage exactly once. Preserve local receipts, source hashes, pane identity and command exits; missing evidence blocks acceptance. The coordinator runs `npm test` and checks actual files—child claims are not verification.
+
+The [2026-10-04 evidence](verification.md#subagent-handoffs-and-usage--2026-10-04) records this bounded run and its limits.
+
 ## Manual checks with a real model — not run automatically
 
-These checks incur provider usage and are **pending**, not covered by deterministic fixtures:
+This broader release checklist incurs provider usage. Only the subsets recorded above have current live evidence; unrecorded scenarios remain **pending** and cannot be inferred from deterministic fixtures:
 
 1. Run two readers with the inherited model; inspect their evidence and ordered results.
 2. Request an explicitly available alternate model and reasoning; check effective values. Request an unavailable model and confirm a clear failure before prompting.

@@ -124,3 +124,62 @@ Files changed for these fixes: `extensions/subagent/controller.mjs`, `extensions
 Normal tools use unboxed rows; failures keep a bounded error preview. Codemode expansion delegates to Pi's native renderers. Subagent presentation uses deterministic controller-shaped outcomes; existing subprocess, isolation and lifecycle regressions remain in the full suite. No chat-model calls were made, and these checks do not claim new model-backed subagent acceptance evidence.
 
 Files changed for this presentation update: `extensions/compact-tools.ts`, `extensions/subagents.ts`, `tests/compact-tools.test.mjs`, new `tests/compact-orchestration.test.mjs`, `README.md`, and `docs/verification.md`. Activation also adds an exact exclusion for the legacy global renderer in Pi's user settings; the original extension file is retained and the previous settings were backed up.
+
+## Subagent handoffs and usage — 2026-10-04
+
+Executed `.ai/deep-planner/plans/subagent-handoffs-and-usage.md` sequentially against baseline HEAD `90b146fa60bc6f40a3f12dd6e5834589eff3bf54`, with Pi 1.0.0 and Node 24.20.0 on macOS. The plan remained unchanged: SHA-256 `f3758e20e4a23e810f8cf92e53a434240dbad3e6c563fbc68920c81230b93ea1`. Changes are unstaged; no installation, personal configuration change or Git delivery was performed.
+
+### Deterministic evidence
+
+| Check | Observed result |
+| --- | --- |
+| Baseline `npm test` | 142 passed, no failures or skips. |
+| Handoff regression | Missing shared handoff failed before the suffix change; extension/instruction/resource/package checks then passed 20/20. |
+| Usage regression | Initial controller/extension/native-parent checks had 29 expected failures for missing accounting. Final focused controller, extension, runtime, policy and compact-orchestration suite passed 95/95. |
+| Cleanup regression | A bounded reader identified loss of accumulated usage when temporary cleanup throws. Parent reproduced it with a mocked filesystem failure, then verified retained totals and diagnostics after the fix. |
+| Final `npm test` | 170 passed, no failures or skips, including extracted-package checks and the updated `absorb` resource digest. |
+| `git diff --check` | Passed. |
+
+Tests cover repeated and identical responses, streaming/event duplicates, invalid/missing data, subset counters, cancellation/timeout, stdout after IPC disconnect, unconfirmed drains, late-result immutability and native session persistence. Native child fixtures use a local mock provider with real guarded writes and nonzero finalized usage; native parent fixtures exercise actual tool calls and session statistics, not just direct `execute()` calls.
+
+The native parent cancellation test initially assumed one assistant message, then an `aborted` terminal message. Installed Pi instead persists an additional zero-usage `error` message with `This operation was aborted`. The test now checks that observed host behavior; accounting was already correct. No SDK behavior was changed. The reader's report was not independent verification; the parent ran and inspected every command.
+
+### Real-model evidence in a new pane
+
+The user authorized Herdr operation. Original pane `w37:pW`; newly created pane `w37:p15`, TTY `/dev/ttys014`. The live session started at `2026-10-04T07:03:18.495Z`, with `openai-codex/gpt-6-astra`, effective `minimal` reasoning and only the explicitly loaded `instructions.ts` and `subagents.ts` extensions. The [launch procedure](subagents.md#verify-handoffs-and-accounting-in-a-new-pane) used a synthetic workspace, fresh native receipt directory and existing credentials. Child registry availability was checked without exposing credentials.
+
+| Case | Parent-observed evidence | Child tokens / accounting |
+| --- | --- | --- |
+| L1: two readers | Ordered explore/review outcomes cite `sample.txt:2` marker `HERD-USAGE-ACCEPTANCE-73` and line 3's unknown release date. Coordinator reread the original file and checked unchanged bytes. No writes; both children terminated. | 1,199 + 1,185 = **2,384**, complete. |
+| L2: inaccessible evidence | Reader reports `Path outside project and selected skills`; no guessed outside marker. Runtime completed, while marker-discovery acceptance remained blocked. The deterministic policy test separately verifies enforcement. | **1,267**, complete accounting—not successful task acceptance. |
+| L3: exclusive writer | Only `note.txt:1` changed: `teh` → `the`. Coordinator checked exact bytes, including the retained article/newline, unchanged `sample.txt`, no extra workspace files and the completed write ledger. No fabricated test claims. | **2,592**, complete. |
+| L4: cancellation | Coordinator observed child PID 1098 and its matching workspace/task ID, sent Escape during work, inspected the native cancelled result and confirmed PID disappearance. Late observed usage survived; no writes. | **3,624**, incomplete. |
+| L4: recovery | A subsequent reader completed with the correct marker/unknown-value handoff and confirmed termination; no launch lock remained. | **1,177**, complete. |
+
+All five native tool-result aggregates equal the sum of their ordered child outcomes, with batch completeness matching child completeness. Native `/session` displayed **69,432 tokens** and **$0.403**. Reconciliation using the installed native `getSessionStats()` method over the actual receipt entries confirmed:
+
+| Attribution | Tokens | Reported cost (USD) |
+| --- | ---: | ---: |
+| Parent assistant responses | 58,388 | 0.261152 |
+| Child work, counted once through tool results | 11,044 | 0.142240 |
+| Other usage entries | 0 | 0 |
+| Session total | **69,432** | **0.403392** |
+
+Session components: 24,334 uncached input, 42,752 cache-read, 2,346 output and zero cache-write tokens. Cost differences were checked within floating-point rounding. These are provider-reported estimates, not invoice validation; interrupted work may consume more than reported.
+
+### Local receipts and boundaries
+
+Receipts are retained locally under `/private/tmp/subagent-validation.oXy4OP/receipts/`, not published or included in the package:
+
+| Receipt | SHA-256 |
+| --- | --- |
+| `2026-10-04T07-03-18-495Z_01a105b9-64df-721e-95df-63f0f8573009.jsonl` | `2f8a28ef45f8df82f984c72baab023f6461245d2979dbad6c35762adfea07c9a` |
+| `accounting.json` — per-case native statistics and reconciliation | `143c6fd1f1325b60806eefbf8c243b9de5f0a413c597ec947ef76d05d39b4155` |
+| `L4-recovery-pane.txt` — expanded native output and final `/session` | `b5ecd37586d2906e71270c5770eafc5757ed28a95d41430c1c298c60f25f9df0` |
+| `source-hashes.json` — loaded extension/instruction fingerprints | `5ecd93506e4a7a7ca72f0ba5808dd266940db09d880e9e15b4f6625b125f158d` |
+
+`launch.txt`, `L4-process.json`, earlier pane snapshots and test logs retain the exact invocation, process observation and command output. Production fingerprints remained unchanged throughout live validation: `extensions/subagents.ts` = `bffda63b32c70e5b7382c6f00c47416ee7c58f05edb54cac836a8e53b2baa53c`; `extensions/subagent/controller.mjs` = `d4238234adddc75b5607201de15ed06199355965c9a14b06897ea40a58353b83`.
+
+The in-pane assistant correctly noted that child-internal read traces are not returned and rendered text alone cannot prove byte preservation. The coordinating parent verified cited content and actual bytes directly; this run does **not** claim an independent syscall audit or persist new child traces. Broader alternate-model, reload, extracted-package OAuth and native Windows live scenarios remain outside this run; historical MCP/personality checks were not rerun. Synthetic receipts may disappear with temporary-directory cleanup.
+
+Changed paths: `extensions/subagents.ts`, `extensions/subagent/controller.mjs`, `tests/fixtures/subagent-child.mjs`, `tests/fixtures/subagent-native-child.mjs`, `tests/subagent-controller.test.mjs`, `tests/subagent-extension.test.mjs`, `tests/subagent-runtime.test.mjs`, `instructions/orchestraitor.md`, `skills/absorb/SKILL.md`, `docs/skills-provenance.json`, `docs/subagents.md`, and `docs/verification.md`.

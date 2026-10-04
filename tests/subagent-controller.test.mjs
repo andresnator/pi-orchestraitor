@@ -9,6 +9,116 @@ import { createWorkspace } from "./helpers/pi-host.mjs";
 const childPath = fileURLToPath(new URL("./fixtures/subagent-child.mjs", import.meta.url));
 const options = { childPath, startTimeout: 500, taskTimeout: 2000, stopGrace: 40 };
 const task = (cwd, id, context = "normal") => ({ cwd, id, context, role: "explore", instruction: "inspect", model: "fixture/model", reasoning: "high", files: [], skills: [], tools: ["read", "search", "list"] });
+const usage = (n) => ({ input: n, output: 2 * n, cacheRead: 3 * n, cacheWrite: 4 * n, totalTokens: 10 * n,
+	cost: { input: n / 8, output: n / 4, cacheRead: 0, cacheWrite: 0, total: 3 * n / 8 } });
+
+for (const duplicates of [false, true]) {
+	test(`shouldCountEachResponseOnceWhenRepeatedRepresentationsAre${duplicates}`, async (t) => {
+		// Given
+		const cwd = await realpath(await createWorkspace(t));
+		const manifest = { ...task(cwd, "usage", "usage"), duplicates, streamingUsage: usage(100),
+			responses: [{ usage: { ...usage(1), reasoning: 1, cacheWrite1h: 2 }, stopReason: "toolUse" }, { usage: { ...usage(2), reasoning: 2 } }, { usage: { ...usage(2), reasoning: 2 } }] };
+		// When
+		const [result] = await new BatchController(options).run([manifest], () => "work");
+		// Then
+		assert.deepEqual({ status: result.status, usage: result.usage, complete: result.usageComplete },
+			{ status: "completed", usage: { ...usage(5), reasoning: 5, cacheWrite1h: 2 }, complete: true }, result.diagnostic);
+	});
+}
+
+for (const invalid of [null, { ...usage(1), input: -1 }, { ...usage(1), output: "2" }, { ...usage(1), cost: {} }, { ...usage(1), reasoning: null }, { ...usage(1), cacheWrite1h: -1 }]) {
+	test(`shouldKeepPriorUsageWhenFinalUsageIs${JSON.stringify(invalid)}`, async (t) => {
+		// Given
+		const cwd = await realpath(await createWorkspace(t));
+		const manifest = { ...task(cwd, "invalid", "usage"), responses: [{ usage: usage(1) }, { usage: invalid }] };
+		// When
+		const [result] = await new BatchController(options).run([manifest], () => "work");
+		// Then
+		assert.deepEqual({ status: result.status, usage: result.usage, complete: result.usageComplete }, { status: "completed", usage: usage(1), complete: false });
+		assert.match(result.diagnostic, /usage.*invalid|invalid.*usage/i);
+	});
+}
+
+for (const [mode, responses, expected, status] of [
+	["usage", [{ usage: usage(0) }], usage(0), "completed"],
+	["usage", [{ usage: null }], undefined, "completed"],
+	["usage", [{ missingUsage: true }], undefined, "completed"],
+	["usage", [{ usage: usage(1) }, { usage: usage(2), unpaired: true }], usage(1), "completed"],
+	["usage", [{ usage: usage(1), stopReason: "error" }], usage(1), "failed"],
+	["usage-unfinished", [{ usage: usage(1) }], usage(1), "completed"],
+	["usage-protocol-error", [{ usage: usage(1) }], usage(1), "failed"],
+	["usage-truncated", [{ usage: usage(1) }], usage(1), "completed"],
+]) {
+	test(`shouldExposeAccountingLimitsWhen${mode}Has${JSON.stringify(responses)}`, async (t) => {
+		// Given
+		const cwd = await realpath(await createWorkspace(t));
+		// When
+		const [result] = await new BatchController(options).run([{ ...task(cwd, "limits", mode), responses }], () => "work");
+		// Then
+		const complete = expected?.totalTokens === 0;
+		assert.deepEqual({ status: result.status, usage: result.usage, complete: result.usageComplete }, { status, usage: expected, complete }, result.diagnostic);
+		if (!complete) assert.match(result.diagnostic, /usage/i);
+		if (!expected) assert.equal(Object.hasOwn(result, "usage"), false);
+	});
+}
+
+for (const trigger of ["cancellation", "timeout"]) {
+	test(`shouldRetainFinalizedUsageDuringTeardownWhen${trigger}StopsChild`, async (t) => {
+		// Given
+		const { spawn } = await import("node:child_process");
+		const cwd = await realpath(await createWorkspace(t));
+		const abort = new AbortController();
+		const controller = new BatchController({ ...options, taskTimeout: 300, stopGrace: 100, spawnProcess: (...args) => {
+			const child = spawn(...args);
+			child.on("message", (message) => { if (trigger === "cancellation" && message.type === "usage_ready") abort.abort(); });
+			return child;
+		} });
+		// When
+		const [result] = await controller.run([{ ...task(cwd, "partial", "usage-hang"), responses: [{ usage: usage(1) }], abortUsage: usage(2) }], () => "work", abort.signal);
+		// Then
+		assert.deepEqual({ status: result.status, usage: result.usage, complete: result.usageComplete, terminated: result.terminated, response: result.finalResponse },
+			{ status: trigger === "cancellation" ? "cancelled" : "timed_out", usage: usage(3), complete: false, terminated: true, response: "" }, result.diagnostic);
+	});
+}
+
+for (const drainConfirmed of [true, false]) {
+	test(`shouldDrainUsageBeyondIpcDisconnectWhenStdoutClosureIs${drainConfirmed}`, async (t) => {
+		// Given
+		const { EventEmitter } = await import("node:events");
+		const { PassThrough } = await import("node:stream");
+		const { createHash } = await import("node:crypto");
+		const cwd = await realpath(await createWorkspace(t));
+		const abort = new AbortController();
+		const manifest = task(cwd, "stdout-drain");
+		const child = new EventEmitter();
+		Object.assign(child, { pid: 123, stdin: new PassThrough(), stdout: new PassThrough(), stderr: new PassThrough(), kill() {} });
+		const emit = (event) => child.stdout.write(JSON.stringify(event) + "\n");
+		const start = { type: "message_start", message: { role: "assistant" } };
+		const end = (n) => ({ type: "message_end", message: { role: "assistant", stopReason: "stop", usage: usage(n), content: [{ type: "text", text: "done" }] } });
+		const controller = new BatchController({ ...options, stopGrace: 80, spawnProcess: (_command, args) => {
+			void readFile(args[1], "utf8").then((raw) => child.emit("message", { type: "guard_ready", id: manifest.id, digest: createHash("sha256").update(raw).digest("hex"), cwd, tools: manifest.tools, model: manifest.model, reasoning: manifest.reasoning }));
+			return child;
+		} });
+		child.stdin.on("data", (chunk) => {
+			const command = JSON.parse(chunk.toString());
+			if (command.type === "get_state") emit({ type: "response", id: "startup", success: true, data: { model: { provider: "fixture", id: "model" }, thinkingLevel: "high" } });
+			if (command.type === "prompt") { emit(start); emit(end(1)); emit(start); abort.abort(); }
+			if (command.type === "abort") {
+				child.emit("exit", 0, null);
+				child.emit("disconnect");
+				setTimeout(() => { emit(end(2)); if (drainConfirmed) child.emit("close", 0, null); }, 20);
+			}
+		});
+		// When
+		const [result] = await controller.run([manifest], () => "work", abort.signal);
+		const returned = structuredClone(result);
+		emit(start); emit(end(9));
+		// Then
+		assert.deepEqual(result, returned);
+		assert.deepEqual({ status: result.status, usage: result.usage, complete: result.usageComplete }, { status: "cancelled", usage: usage(3), complete: false });
+		if (!drainConfirmed) assert.match(result.diagnostic, /stdout.*drain/i);
+	});
+}
 
 test("shouldReturnOrderedReadersAndRejectOverlappingWriterWhenBatchIsActive", async (t) => {
 	// Given
@@ -141,6 +251,27 @@ test("shouldCancelOtherReaderWhenStartupDeadlineExpires", async (t) => {
 });
 
 
+test("shouldRetainObservedUsageWhenTemporaryCleanupFails", async (t) => {
+	// Given
+	const fs = await import("node:fs/promises");
+	const { syncBuiltinESMExports } = await import("node:module");
+	const cwd = await realpath(await createWorkspace(t));
+	const original = fs.default.rm;
+	let leftover;
+	const mock = t.mock.method(fs.default, "rm", async (path, options) => {
+		if (String(path).includes("/pi-subagent-")) { leftover = path; throw new Error("Fixture cleanup failed"); }
+		return original(path, options);
+	});
+	syncBuiltinESMExports();
+	t.after(async () => { mock.mock.restore(); syncBuiltinESMExports(); if (leftover) await original(leftover, { recursive: true, force: true }); });
+	// When
+	const [result] = await new BatchController(options).run([{ ...task(cwd, "cleanup", "usage"), responses: [{ usage: usage(1) }] }], () => "work");
+	// Then
+	assert.deepEqual({ status: result.status, usage: result.usage, complete: result.usageComplete, terminated: result.terminated },
+		{ status: "failed", usage: usage(1), complete: false, terminated: true });
+	assert.match(result.diagnostic, /Fixture cleanup failed/);
+});
+
 test("shouldAllowRetryWhenTemporaryDirectoryFailsBeforeSpawn", async (t) => {
 	// Given
 	const cwd = await realpath(await createWorkspace(t));
@@ -178,6 +309,7 @@ for (const stage of ["prompt", "spawn"]) {
 		assert.deepEqual({ first: { status: first.status, terminated: first.terminated }, retry: retry.status, blocked: controller.blocked, orphans: controller.orphans.size },
 			{ first: { status: "failed", terminated: true }, retry: "completed", blocked: false, orphans: 0 });
 		assert.match(first.diagnostic, new RegExp(`Fixture ${stage} failed`));
+		assert.deepEqual({ usage: first.usage, complete: first.usageComplete }, { usage: undefined, complete: false });
 	});
 }
 
@@ -246,11 +378,11 @@ for (const trigger of ["cancellation", "timeout"]) {
 		const { hostRoot } = await import("./helpers/pi-host.mjs");
 		const cwd = await realpath(await createWorkspace(t));
 		const abort = new AbortController();
-		const manifest = { ...task(cwd, "native-write"), role: "implement", files: ["target"], contextFiles: [], tools: ["read", "search", "list", "edit", "write"] };
+		const manifest = { ...task(cwd, "native-write"), role: "implement", files: ["target"], contextFiles: [], tools: ["read", "search", "list", "edit", "write"], fixtureUsage: [usage(1), usage(2)] };
 		const controller = new BatchController({ childPath: fileURLToPath(new URL("./fixtures/subagent-native-child.mjs", import.meta.url)), sdkRoot: hostRoot, taskTimeout: 1500, stopGrace: 100,
 			spawnProcess: (...args) => {
 				const child = spawn(...args);
-				child.on("message", (message) => { if (trigger === "cancellation" && message.type === "file_changed") abort.abort(); });
+				child.on("message", (message) => { if (trigger === "cancellation" && message.type === "model_waiting") abort.abort(); });
 				return child;
 			},
 		});
@@ -259,5 +391,6 @@ for (const trigger of ["cancellation", "timeout"]) {
 		// Then
 		assert.deepEqual({ file: await readFile(join(cwd, "target"), "utf8"), status: result.status, terminated: result.terminated, writes: result.writes },
 			{ file: "native write before cancellation", status: trigger === "cancellation" ? "cancelled" : "timed_out", terminated: true, writes: [{ path: "target", phase: "completed" }] }, result.diagnostic);
+		assert.deepEqual({ usage: result.usage, complete: result.usageComplete }, { usage: usage(3), complete: false }, result.diagnostic);
 	});
 }

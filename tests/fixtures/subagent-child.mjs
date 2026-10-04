@@ -9,6 +9,10 @@ const mode = manifest.context;
 const ready = { type: "guard_ready", id: manifest.id, digest: createHash("sha256").update(raw).digest("hex"),
 	cwd: manifest.cwd, tools: manifest.tools, model: manifest.model, reasoning: manifest.reasoning };
 const output = (event) => process.stdout.write(JSON.stringify(event) + "\n");
+const zeroUsage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
+const assistant = (usage = zeroUsage, stopReason = "stop") => ({ role: "assistant", timestamp: 1, stopReason, usage, content: [{ type: "text", text: "same response" }] });
+const start = () => output({ type: "message_start", message: { role: "assistant", stopReason: "pending", content: [] } });
+const finish = (message) => output({ type: "message_end", message });
 if (mode === "premature") process.exit(0);
 if (mode !== "no-guard" && mode !== "startup-hang") process.send(mode === "bad-guard" ? { ...ready, digest: "wrong" } : ready);
 if (mode === "ignore-term") process.on("SIGTERM", () => {});
@@ -22,6 +26,24 @@ input.on("line", async (line) => {
 	if (command.type === "prompt") {
 		if (manifest.timing) await writeFile(manifest.timing, JSON.stringify({ start: Date.now() }));
 		if (manifest.marker) await writeFile(manifest.marker, "prompted");
+		if (mode.startsWith("usage")) {
+			for (const response of manifest.responses) {
+				if (!response.unpaired) start();
+				const message = { ...assistant(), ...response };
+				if (response.missingUsage) delete message.usage;
+				output({ type: "message_update", message: { ...message, usage: manifest.streamingUsage } });
+				finish(message);
+				if (manifest.duplicates) finish(message);
+				output({ type: "turn_end", message });
+				output({ type: "agent_end", messages: [message] });
+			}
+			if (mode === "usage-hang" || mode === "usage-unfinished") start();
+			if (mode === "usage-hang") { process.send({ type: "usage_ready" }); return; }
+			if (mode === "usage-protocol-error") { process.stdout.write("{broken}\n"); return; }
+			output({ type: "agent_settled" });
+			if (mode === "usage-truncated") process.stdout.write('{"type":');
+			return;
+		}
 		if (mode === "cancel-write") {
 			await writeFile(join(manifest.cwd, manifest.files[0]), "changed before cancellation");
 			process.send({ type: "file_changed" });
@@ -33,7 +55,8 @@ input.on("line", async (line) => {
 		await new Promise((resolve) => setTimeout(resolve, manifest.delay ?? 10));
 		if (manifest.timing) { const timing = JSON.parse(await readFile(manifest.timing, "utf8")); await writeFile(manifest.timing, JSON.stringify({ ...timing, end: Date.now() })); }
 		if (mode === "noisy") process.stderr.write("diagnostic".repeat(2000));
-		const message = { type: "message_end", message: { role: "assistant", stopReason: mode === "provider-error" ? "error" : "stop",
+		start();
+		const message = { type: "message_end", message: { role: "assistant", usage: zeroUsage, stopReason: mode === "provider-error" ? "error" : "stop",
 			errorMessage: mode === "provider-error" ? "Fixture provider failed" : undefined,
 			content: [{ type: "text", text: mode === "empty" ? "" : `result ${manifest.id} 你好 🧪` }] } };
 		const bytes = Buffer.from(JSON.stringify(message) + "\n" + JSON.stringify({ type: "agent_settled" }) + "\n");
@@ -41,6 +64,12 @@ input.on("line", async (line) => {
 		if (mode === "duplicate") { output(message); output({ type: "agent_settled" }); }
 	}
 	if (command.type === "abort" && mode !== "ignore-term") {
+		if (mode === "usage-hang") {
+			finish(assistant(manifest.abortUsage, "aborted"));
+			output({ type: "agent_settled" });
+			process.stdout.write("", () => process.exit(0));
+			return;
+		}
 		if (mode === "cancel-write") {
 			// Notifications already produced by a write can arrive while abort is handled.
 			for (const notification of [

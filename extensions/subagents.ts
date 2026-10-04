@@ -4,7 +4,7 @@ import { dirname, resolve } from "node:path";
 import { getAgentDir, getPackageDir, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { compactTool } from "./compact-tools.ts";
-import { BatchController } from "./subagent/controller.mjs";
+import { BatchController, mergeUsage } from "./subagent/controller.mjs";
 import { READ_TOOLS, WRITE_TOOLS, THINKING_LEVELS, selectModel, validateBatch, validatePath, within, concreteFile } from "./subagent/policy.mjs";
 
 /** Fresh, bounded child sessions. No automatic delivery or durable orchestration state. */
@@ -78,11 +78,14 @@ export default function subagents(pi: ExtensionAPI) {
 					? `Editable files (exact project-relative paths):\n${JSON.stringify(manifest.files, null, 2)}\nEdit only these files.`
 					: "This task is read-only.";
 				prompts.set(manifest.id, [`Role: ${manifest.role}`, scope, manifest.instruction, manifest.context ?? "", ...bodies,
-					"Return the result and limitations. Do not run commands, delegate, or claim checks you did not perform."].join("\n\n"));
+					"Handoff: give the outcome with inspected/changed paths and relevant line ranges; distinguish observed findings from inference. Report blockers, remaining work and unperformed checks. If required evidence is inaccessible, say so. Do not run commands, delegate, or claim checks you did not perform."].join("\n\n"));
 			}
 			if (generation !== startedGeneration) throw new Error("Parent session changed during subagent preparation");
 			const results = await controller.run(manifests, (manifest) => prompts.get(manifest.id), combinedSignal);
-			return { content: [{ type: "text", text: JSON.stringify(results, null, 2) }], details: { results } };
+			const usage = mergeUsage(results.map((result) => result.usage));
+			return { content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+				details: { results, usageComplete: results.length > 0 && results.every((result) => result.usageComplete === true) },
+				...(usage ? { usage } : {}) };
 		},
 	}));
 }
