@@ -207,7 +207,10 @@ test("shouldBlockFurtherLaunchesWhenExitCannotBeConfirmed", async (t) => {
 	Object.assign(child, { pid: 123, stdin: new PassThrough(), stdout: new PassThrough(), stderr: new PassThrough(), kill: (signal) => signals.push(signal) });
 	const controller = new BatchController({ ...options, spawnProcess: (_command, args) => { t.after(() => rm(dirname(args[1]), { recursive: true, force: true })); return child; }, startTimeout: 10, stopGrace: 5 });
 	// When
-	const [result] = await controller.run([task(cwd, "unconfirmed")], () => "work");
+	const observations = [];
+	const [result] = await controller.run([task(cwd, "unconfirmed")], () => "work", undefined, (event) => observations.push(event));
+	assert.equal(observations.at(-1).phase, "termination_failed");
+	assert.equal(observations.at(-1).terminated, false);
 	// Then
 	assert.deepEqual({ status: result.status, terminated: result.terminated, blocked: controller.blocked, retained: controller.orphans.has(child), signals },
 		{ status: "termination_failed", terminated: false, blocked: true, retained: true, signals: ["SIGTERM", "SIGKILL"] });
@@ -239,6 +242,79 @@ test("shouldReportBoundedDiagnosticsWhenChildWritesExcessiveLogs", async (t) => 
 	assert.ok(result.diagnostic.length < 8300);
 	assert.match(result.diagnostic, /Diagnostics truncated/);
 });
+
+test("shouldBoundModelObservationsWithoutChangingExecutionIdentityWhenModelIdIsLong", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const model = "fixture/" + "model".repeat(1000);
+	const observations = [];
+	// When
+	const [result] = await new BatchController(options).run([{ ...task(cwd, "long-model"), model }],
+		() => "work", undefined, (event) => observations.push(event));
+	// Then
+	assert.equal(result.model, model);
+	assert.equal(result.status, "completed");
+	assert.ok(observations.every(({ requestedModel, effectiveModel }) =>
+		requestedModel.length <= 200 && (effectiveModel === undefined || effectiveModel.length <= 200)));
+});
+
+test("shouldObserveImmutablePhasesWithoutChangingOrderedResultsWhenReadersRun", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const observations = [];
+	const controller = new BatchController(options);
+	const manifests = [{ ...task(cwd, "first"), delay: 100 }, task(cwd, "second")];
+	// When
+	const results = await controller.run(manifests, () => "work", undefined, (event) => {
+		observations.push(event);
+	});
+	// Then
+	assert.deepEqual(results.map(({ id, status }) => ({ id, status })),
+		[{ id: "first", status: "completed" }, { id: "second", status: "completed" }]);
+	assert.ok(observations.every(Object.isFrozen));
+	assert.deepEqual(observations.filter(({ phase }) => phase === "preparing").map(({ id }) => id), ["first", "second"]);
+	for (const id of ["first", "second"]) {
+		const phases = observations.filter((event) => event.id === id);
+		assert.deepEqual(phases.map(({ phase }) => phase), ["preparing", "starting", "running", "stopping", "completed"]);
+		assert.equal(phases[1].effectiveModel, undefined);
+		assert.equal(phases[2].effectiveModel, "fixture/model");
+		assert.equal(phases.at(-1).terminated, true);
+		assert.ok(phases.every((event) => !Object.hasOwn(event, "usage")));
+	}
+});
+
+for (const observer of [() => { throw new Error("Observer failed"); }, async () => { throw new Error("Observer rejected"); }]) {
+	test("shouldPreserveExecutionAndUsageWhenObserverThrowsOrRejects", async (t) => {
+		// Given
+		const cwd = await realpath(await createWorkspace(t));
+		const manifest = { ...task(cwd, "observer", "usage"), responses: [{ usage: usage(1) }] };
+		// When
+		const [result] = await new BatchController(options).run([manifest], () => "work", undefined, observer);
+		// Then
+		assert.deepEqual({ status: result.status, terminated: result.terminated, usage: result.usage, complete: result.usageComplete },
+			{ status: "completed", terminated: true, usage: usage(1), complete: true });
+	});
+}
+
+for (const [mode, expected] of [["bad-guard", "failed"], ["no-guard", "timed_out"], ["hang", "cancelled"]]) {
+	test(`shouldObserveActualFinalPhaseWhenChildEndsFor${mode}`, async (t) => {
+		// Given
+		const cwd = await realpath(await createWorkspace(t));
+		const abort = new AbortController();
+		const observations = [];
+		const controller = new BatchController({ ...options, startTimeout: 150 });
+		const pending = controller.run([task(cwd, "child", mode)], () => "work", abort.signal, (event) => observations.push(event));
+		if (mode === "hang") setTimeout(() => abort.abort(), 120);
+		// When
+		const [result] = await pending;
+		// Then
+		assert.equal(result.status, expected);
+		assert.equal(observations.at(-1)?.phase, expected);
+		assert.equal(observations.at(-1)?.terminated, true);
+		assert.ok(observations.find(({ phase }) => phase === "stopping"));
+		assert.equal(observations.some(({ phase }) => phase === "completed"), false);
+	});
+}
 
 test("shouldCancelOtherReaderWhenStartupDeadlineExpires", async (t) => {
 	// Given

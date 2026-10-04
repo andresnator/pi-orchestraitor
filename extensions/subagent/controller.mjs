@@ -10,6 +10,8 @@ import { START_TIMEOUT_MS, TASK_TIMEOUT_MS, validateBatch, concreteFile } from "
 const MAX_RECORD = 1024 * 1024;
 const MAX_DIAGNOSTIC = 8192;
 const MAX_RESPONSE = 128 * 1024;
+const PROGRESS_LABEL_LIMIT = 200;
+const PROGRESS_DETAIL_LIMIT = 1000;
 const STOP_GRACE_MS = 1000;
 const CHILD_PATH = fileURLToPath(new URL("./child.mjs", import.meta.url));
 const TOKEN_FIELDS = ["input", "output", "cacheRead", "cacheWrite", "totalTokens"];
@@ -33,13 +35,26 @@ function validUsage(usage) {
 		usage.cost && COST_FIELDS.every((field) => numeric(usage.cost[field]));
 }
 
+/** Optional presentation observations never own lifecycle or accounting. */
+function observeProgress(observer, manifest, phase, evidence = {}) {
+	if (typeof observer !== "function") return;
+	const event = Object.freeze({ id: manifest.id, role: manifest.role,
+		label: String(manifest.instruction ?? "").slice(0, PROGRESS_LABEL_LIMIT),
+		requestedModel: String(manifest.model).slice(0, PROGRESS_LABEL_LIMIT), phase, ...evidence,
+		...(typeof evidence.effectiveModel === "string" ? { effectiveModel: evidence.effectiveModel.slice(0, PROGRESS_LABEL_LIMIT) } : {}) });
+	try {
+		// Never await arbitrary observer work, including during teardown.
+		Promise.resolve(observer(event)).catch(() => {});
+	} catch { /* Presentation errors cannot change child execution. */ }
+}
+
 /** One manager per parent session; poison survives lifecycle cancellation. */
 export class BatchController {
 	active;
 	blocked = false;
 	orphans = new Set();
 	constructor(options = {}) { this.options = options; }
-	async run(manifests, promptFor, signal) {
+	async run(manifests, promptFor, signal, observer) {
 		validateBatch(manifests);
 		if (this.blocked) throw new Error("Subagent launches blocked: child termination was not confirmed");
 		if (this.active) throw new Error("A subagent batch is already active");
@@ -49,17 +64,21 @@ export class BatchController {
 		if (signal?.aborted) cancel();
 		const batch = { abort, done: undefined };
 		this.active = batch;
+		for (const manifest of manifests) observeProgress(observer, manifest, "preparing");
 		batch.done = Promise.all(manifests.map(async (manifest) => {
 			let child, exited = false;
 			try {
 				return await runTask(manifest, promptFor(manifest), { ...this.options, signal: abort.signal,
 					onSpawn: (process) => { child = process; }, onExit: () => { exited = true; },
-					onUnterminated: (process) => this.orphans.add(process), onTimeout: cancel });
+					onUnterminated: (process) => this.orphans.add(process), onTimeout: cancel, observer });
 			} catch (error) {
 				// Preparation and cleanup failures cannot orphan a process that never started
 				// or whose exit was already observed. Retain the lock only for a live unknown child.
 				const terminated = !child || exited;
 				if (!terminated) this.orphans.add(child);
+				observeProgress(observer, manifest, terminated ? "failed" : "termination_failed", {
+					terminated, diagnostic: String(error).slice(0, PROGRESS_DETAIL_LIMIT),
+				});
 				return { id: manifest.id, role: manifest.role, cwd: manifest.cwd, model: manifest.model, reasoning: manifest.reasoning,
 					status: "failed", finalResponse: "", writes: [], diagnostic: String(error), terminated, usageComplete: false };
 			}
@@ -101,7 +120,14 @@ export async function runTask(manifest, prompt, options = {}) {
 		startTimeout = START_TIMEOUT_MS, taskTimeout = TASK_TIMEOUT_MS, stopGrace = STOP_GRACE_MS } = options;
 	const result = { id: manifest.id, role: manifest.role, cwd: manifest.cwd, model: manifest.model, reasoning: manifest.reasoning,
 		status: "failed", finalResponse: "", writes: [], diagnostic: "", terminated: false, usageComplete: false };
-	if (signal?.aborted) return { ...result, status: "cancelled", diagnostic: "Cancelled before startup", terminated: true };
+	let effectiveModel;
+	const observe = (phase, evidence = {}) => observeProgress(options.observer, manifest, phase,
+		{ ...(effectiveModel ? { effectiveModel } : {}), ...evidence });
+	if (signal?.aborted) {
+		observe("cancelled", { diagnostic: "Cancelled before startup", terminated: true });
+		return { ...result, status: "cancelled", diagnostic: "Cancelled before startup", terminated: true };
+	}
+	observe("starting");
 	let directory;
 	let timedOut = false;
 	let child, exited = false, closed = false, ipcClosed = false, exitCode, exitSignal, failure, settled = false, accepting = true, acceptingWrites = true, guardReady = false, prompted = false;
@@ -212,6 +238,7 @@ export async function runTask(manifest, prompt, options = {}) {
 				if (event.type === "extension_error") return fail(new Error("Child guard extension error"));
 				if (event.type === "response" && event.id === "startup" && guardReady && !prompted) {
 					if (!event.success || `${event.data?.model?.provider}/${event.data?.model?.id}` !== manifest.model || event.data?.thinkingLevel !== result.reasoning) return fail(new Error("RPC startup state mismatch"));
+					effectiveModel = `${event.data.model.provider}/${event.data.model.id}`;
 					resolveReady();
 				}
 				if (event.type === "response" && event.id === "work" && !event.success) fail(new Error(`Prompt rejected: ${event.error}`));
@@ -225,6 +252,7 @@ export async function runTask(manifest, prompt, options = {}) {
 		clearTimeout(startTimer);
 		if (failure || signal?.aborted) throw failure ?? new Error("Task cancelled");
 		prompted = true;
+		observe("running");
 		send({ id: "work", type: "prompt", message: prompt });
 		await completion;
 		if (!finalMessage || !["stop", "length"].includes(finalMessage.stopReason)) throw new Error(`Child response failed: ${finalMessage?.errorMessage ?? finalMessage?.stopReason ?? "missing final response"}`);
@@ -236,6 +264,7 @@ export async function runTask(manifest, prompt, options = {}) {
 		result.status = timedOut ? "timed_out" : signal?.aborted ? "cancelled" : "failed";
 		diagnose(`${error instanceof Error ? error.message : String(error)}\n`);
 	} finally {
+		observe("stopping");
 		clearTimeout(startTimer); clearTimeout(taskTimer);
 		signal?.removeEventListener("abort", cancel);
 		accepting = false;
@@ -276,6 +305,9 @@ export async function runTask(manifest, prompt, options = {}) {
 		result.usageComplete = result.status === "completed" && result.usage !== undefined && usageReliable;
 		if (!result.usageComplete) diagnose("Usage accounting is incomplete; observed totals may understate consumption.\n");
 	}
+	observe(result.status, { terminated: result.terminated,
+		diagnostic: result.diagnostic.slice(0, PROGRESS_DETAIL_LIMIT),
+		finalResponse: result.finalResponse.slice(0, PROGRESS_DETAIL_LIMIT) });
 	return result;
 }
 

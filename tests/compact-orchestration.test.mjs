@@ -14,7 +14,7 @@ async function fixture(t, selection = ["read", "codemode", "subagent_run"], fact
 	const cwd = await createWorkspace(t);
 	const settingsManager = pi.SettingsManager.inMemory({ codemode: { mode: "only", inlineBudget: 0 } });
 	const resourceLoader = new pi.DefaultResourceLoader({ cwd, agentDir: isolatedAgentDir, settingsManager,
-		noExtensions: true, additionalExtensionPaths: [join(packageRoot, "extensions/compact-tools.ts"), join(packageRoot, "extensions/subagents.ts")],
+		noExtensions: true, additionalExtensionPaths: [join(packageRoot, "extensions/compact-tools.ts"), join(packageRoot, "extensions/subagents.ts"), join(packageRoot, "extensions/status-ui.ts")],
 		noSkills: true, noPromptTemplates: true, noThemes: true, noContextFiles: true,
 		extensionFactories: factory ? [factory] : [],
 	});
@@ -132,6 +132,100 @@ test("shouldCompactSubagentResultsAndExposeChildFailuresAndAllResponsesOnExpansi
 	component.updateResult({ content: [{ type: "text", text: JSON.stringify(successful) }], details: { results: successful } }, false);
 	assert.equal(component.render(120).map(stripAnsi).filter((line) => line.trim()).length, 1);
 	assert.match(component.render(120).map(stripAnsi).join("\n"), /2\/2 completed/);
+});
+
+test("shouldKeepStartingAndStoppingProgressSeparateFromFailuresWhenSubagentsAreCompact", async (t) => {
+	// Given
+	const { session } = await fixture(t);
+	const args = { tasks: [{ role: "explore", instruction: "inspect" }] };
+	const component = componentFor(session, "subagent_run", args);
+	component.markExecutionStarted();
+	// When
+	const rows = ["starting", "running", "stopping"].map((phase) => {
+		component.updateResult({ content: [], details: { progress: { version: 1,
+			tasks: [{ id: "one", role: "explore", phase }] } } }, true);
+		return component.render(120).map(stripAnsi).join("\n");
+	});
+	// Then
+	assert.ok(rows.every((row) => row.includes("1 active · 0/1 completed") && !row.includes("errors") && !row.includes("failed")));
+});
+
+test("shouldObserveNativeNestedIdentityWithoutDoubleUsageWhenCodemodeRunsSubagents", { timeout: 5000 }, async (t) => {
+	// Given
+	const { fakeUIContext } = await import("./helpers/ui-harness.mjs");
+	const { createAssistantMessageEventStream } = await importHost("node_modules/@earendil-works/pi-ai/dist/index.js");
+	const key = Symbol.for("pi-orchestraitor.subagent-controller");
+	const previous = globalThis[key];
+	t.after(() => { globalThis[key] = previous; });
+	let notifyRunning, finish;
+	const running = new Promise((resolve) => { notifyRunning = resolve; });
+	const gate = new Promise((resolve) => { finish = resolve; });
+	t.after(() => finish());
+	const nestedUsage = { input: 1, output: 2, cacheRead: 0, cacheWrite: 0, totalTokens: 3,
+		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
+	globalThis[key] = { async cancel() {}, async run(manifests, _prompt, _signal, observe) {
+		const manifest = manifests[0];
+		observe({ id: manifest.id, role: manifest.role, label: "nested marker",
+			requestedModel: manifest.model, effectiveModel: manifest.model, phase: "running" });
+		notifyRunning();
+		await gate;
+		return [{ id: manifest.id, role: manifest.role, model: manifest.model, status: "completed",
+			terminated: true, finalResponse: "nested marker inspected", usage: nestedUsage, usageComplete: true }];
+	} };
+	const { session } = await fixture(t);
+	const code = 'text(await tools.subagent_run({tasks:[{role:"explore",instruction:"nested marker",model:"fixture/model"}]}));';
+	let requests = 0;
+	session.modelRuntime.registerProvider("fixture", {
+		api: "openai-completions", baseUrl: "https://example.invalid", apiKey: "fixture",
+		models: [{ id: "model", name: "Local fixture", reasoning: false, input: ["text"],
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 100000, maxTokens: 1024 }],
+		streamSimple(model) {
+			const stream = createAssistantMessageEventStream();
+			const first = requests++ === 0;
+			const message = { role: "assistant", api: model.api, provider: model.provider, model: model.id,
+				timestamp: Date.now(), stopReason: first ? "toolUse" : "stop",
+				usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0,
+					cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
+				content: first ? [{ type: "toolCall", id: "compact-live", name: "codemode", arguments: { code } }]
+					: [{ type: "text", text: "done" }] };
+			stream.push({ type: "done", reason: message.stopReason, message });
+			stream.end(message);
+			return stream;
+		},
+	});
+	await session.setModel((await session.modelRuntime.getAvailable()).find(({ provider }) => provider === "fixture"));
+	const ui = fakeUIContext();
+	session.extensionRunner.setUIContext(ui.ctx.ui, "tui");
+	await session.extensionRunner.emit({ type: "session_start", reason: "startup" });
+	const ids = [];
+	const extension = session.resourceLoader.getExtensions().extensions.find(({ path }) => path.endsWith("status-ui.ts"));
+	for (const type of ["tool_execution_start", "tool_execution_update", "tool_execution_end"]) extension.handlers.get(type).push((event) => {
+		if (event.toolName === "subagent_run") ids.push({ type: event.type, id: event.toolCallId,
+			parent: event.parentToolCallId, partialUsage: event.partialResult?.usage });
+	});
+	// Use native model-issued root execution: Pi attaches nested usage when committing the root receipt.
+	const pending = session.prompt("Run the local nested fixture.");
+	await Promise.race([running, pending.then(() => { throw new Error("Native fixture finished before launching its reader"); })]);
+	const panelPromise = session.extensionRunner.getCommand("orchestraitor:agents").handler("", session.extensionRunner.createCommandContext());
+	const panel = ui.dialogs.at(-1).component;
+	const visible = panel.render(120).map(stripAnsi).join("\n");
+	// When
+	finish();
+	await pending;
+	const receipt = session.messages.find((message) => message.role === "toolResult" && message.toolCallId === "compact-live");
+	const completed = panel.render(120).map(stripAnsi).join("\n");
+	ui.dialogs.at(-1).done({ status: "closed" });
+	await panelPromise;
+	// Then
+	assert.match(visible, /running/);
+	assert.match(completed, /completed/);
+	assert.deepEqual(receipt.usage, nestedUsage);
+	assert.equal(session.getSessionStats().tokens.total, nestedUsage.totalTokens);
+	assert.ok(ids.length >= 3 && ids.every(({ id, parent, partialUsage }) =>
+		id === "compact-live/1" && parent === "compact-live" && partialUsage === undefined));
+	assert.equal(ids.filter(({ type }) => type === "tool_execution_start").length, 1);
+	assert.equal(ids.filter(({ type }) => type === "tool_execution_end").length, 1);
+	assert.doesNotMatch(completed, /accepted work:\s*yes/);
 });
 
 test("shouldKeepCodemodeInactiveOrAbsentAndLeaveForeignCodemodeToolsAlone", async (t) => {

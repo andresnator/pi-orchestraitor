@@ -1,4 +1,5 @@
-import { stripVTControlCharacters } from "node:util";
+import { sanitizeDisplay } from "./ui/display.ts";
+import { classifyAgent } from "./ui/agents.ts";
 import {
 	createBashToolDefinition,
 	createCodemodeExtension,
@@ -173,9 +174,19 @@ function summarizeResult(name: string, details: unknown): Summary {
 		return { text, failed: failures.length > 0,
 			errors: failures.map((call) => `${call.name}: ${call.error || call.status}`).join("\n") };
 	}
+	if (name === "subagent_run" && "progress" in details && details.progress &&
+		typeof details.progress === "object" && "tasks" in details.progress && Array.isArray(details.progress.tasks)) {
+		const tasks = details.progress.tasks;
+		const states = tasks.map(classifyAgent);
+		const failures = tasks.filter((_task, index) => states[index].failed);
+		const active = states.filter((state) => state.active).length;
+		const completed = states.filter((state) => state.phase === "completed").length;
+		return { text: `${active} active · ${completed}/${tasks.length} completed`, failed: failures.length > 0,
+			errors: failures.map((task) => `${task.role}: ${classifyAgent(task).phase}${task.diagnostic ? ` · ${task.diagnostic}` : ""}`).join("\n") };
+	}
 	if (name === "subagent_run" && "results" in details && Array.isArray(details.results)) {
 		const results = details.results;
-		const failures = results.filter((task) => task.status !== "completed");
+		const failures = results.filter((task) => classifyAgent(task).failed || classifyAgent(task).phase === "unavailable");
 		return { text: `${results.length - failures.length}/${results.length} completed`, failed: failures.length > 0,
 			errors: failures.map((task) => `${task.role}: ${task.status}${task.diagnostic ? ` · ${task.diagnostic}` : ""}`).join("\n") };
 	}
@@ -196,12 +207,4 @@ function withBackground(component: Component, theme: Theme, context: RenderConte
 			});
 		},
 	};
-}
-
-/** Sanitize untrusted terminal text before adding theme escapes. Never mutate tool data. */
-function sanitizeDisplay(text: string): string {
-	return stripVTControlCharacters(text)
-		.replace(/\r\n/g, "\n")
-		.replace(/\t/g, "    ")
-		.replace(/[\x00-\x09\x0b-\x1f\x7f-\x9f]/g, "");
 }

@@ -1,6 +1,6 @@
 # pi-orchestraitor
 
-A personal Pi package with **61 development skills**, compact tool output, Context7, Engram, and Orchestraitor for scoped changes and sequential plan execution. It automatically loads the source harness's Colombian architect personality: direct answers, practical explanations, respectful disagreement, and occasional Colombian expressions when the conversation supports them.
+A personal Pi package with **61 development skills**, compact tool output, optional interactive work UI, Context7, Engram, and Orchestraitor for scoped changes and sequential plan execution. It automatically loads the source harness's Colombian architect personality: direct answers, practical explanations, respectful disagreement, and occasional Colombian expressions when the conversation supports them.
 
 ## Install
 
@@ -75,11 +75,19 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 | `extensions/compact-tools.ts` | Compact read/bash/edit/write and native codemode presentation with original execution and tool selection. Expand to inspect arguments and results. |
 | `extensions/instructions.ts` | Adds core, execution, and personality sections while preserving Pi and project instructions. |
 | `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. |
+| `extensions/subagents.ts` | One bounded launcher, child guards, native usage and optional progress observations. |
+| `extensions/status-ui.ts` | One owner for agents/tasks panels, unified questions and compact work-header/native-footer chrome. |
 | `skills/` | 61 unique skills and their supporting resources, with original public names. |
 | `prompts/` | `/orchestraitor`, `/plan`, `/review`, and `/absorb`, with explicit arguments. |
 | `scripts/install-pi.mjs` | Migration, native package registration, verification, and restoration. |
 
 The package preserves personal model, theme, editor, credentials, and MCP overrides. It provides bounded subagents through `subagent_run`. It does not implement independent verification, resumable SDD, dual review, TCR, or persistent Caveman. Its scope and personality instructions are behavioral rules; they are not a filesystem sandbox.
+
+## Optional work UI
+
+Open `/orchestraitor:agents` or `/orchestraitor:tasks`; use `tasks expand|collapse` for detail and `/orchestraitor:ui hide|show` for passive chrome. The model-only task/question tools do not replace execution or permissions. No statistics dashboard, custom editor/header/footer, global shortcut or personal setting is added.
+
+See the [interactive UI guide](docs/interactive-ui.md) for schemas, task replay versus recovery, native keybindings, synthetic/live checks and limitations. Exclude `extensions/status-ui.ts` through `pi config` to disable all UI features without disabling the launcher. For one invocation, `--exclude-tools orchestraitor_tasks,orchestraitor_ask` persistently excludes just the model tools; `hide` only changes presentation.
 
 ## MCP and memory
 
@@ -125,12 +133,12 @@ npm run test:personality
 npm pack --dry-run --ignore-scripts
 ```
 
-- `npm test` checks native tool regressions, prompt and personality injection, packaged skill loading and resources, migration and recovery, and native installation in temporary configuration. It does not call models or live MCP services.
+- `npm test` checks native tool regressions, prompt and personality injection, packaged skill loading and resources, migration and recovery, and native installation in temporary configuration. It uses local synthetic providers for native UI/child integration, not live models or MCP services. Visible TUI acceptance remains a separate gate.
 - `test:mcp` calls Context7 and Engram through native `codemode`, with synthetic memories and a temporary database. It checks project separation and avoids personal memories.
 - `test:personality` makes bounded calls to the configured Pi model in isolated sessions. It writes synthetic transcripts for manual scoring; it uses the configured account and consumes model quota.
 - Packing includes extensions, instructions, skills, scripts, docs, and licenses. Tests, `.ai` reports, personal settings, credentials, and memory databases are excluded.
 
-Tests use the Pi executable on PATH. Set `PI_TEST_PACKAGE_DIR` to the installed npm package root if it cannot be located. The installer inventory adapter and some integration checks depend on host internals and need revalidation after a Pi upgrade. The adapter checks that its required host hooks exist before migration. Peers use `*` because Pi supplies them; compatibility has been validated against Pi 1.0.0. The established test convention is `node:test` with `node:assert`.
+Tests use the Pi executable on PATH. Set `PI_TEST_PACKAGE_DIR` to the installed npm package root if it cannot be located. The installer inventory adapter and some integration checks depend on host internals and need revalidation after a Pi upgrade. The adapter checks that its required host hooks exist before migration. Peers use `*` because Pi supplies them; the original baseline used Pi 1.0.0 and current deterministic/UI integration checks use Pi 1.0.2. Revalidate on upgrades. The UI guide documents native dynamic-selection versus persistent-exclusion behavior on reload. The established test convention is `node:test` with `node:assert`.
 
 See [verification evidence](docs/verification.md) and [attribution](THIRD_PARTY_NOTICES.md).
 
@@ -138,7 +146,7 @@ See [verification evidence](docs/verification.md) and [attribution](THIRD_PARTY_
 
 Use `subagent_run` for up to two bounded readers or one exclusive implementer. Each task gets a fresh process/session; the parent runs commands and checks the result. See [subagent input, isolation and lifecycle](docs/subagents.md) for file restrictions, model selection, cancellation, output fields and pending real-model checks.
 
-Normal tools use one unboxed line. `codemode` shows nested-call counts and the currently running tool, and `subagent_run` shows task counts, roles and completion counts. Script source, nested-call arguments and successful output stay hidden until `Ctrl+O` expands the tool. Expansion restores codemode's native code/result view and the complete subagent response.
+Normal tools use one unboxed line. `codemode` shows nested-call counts and the currently running tool, and `subagent_run` shows task counts, roles and completion counts. Script source, nested-call arguments and successful output stay hidden until Pi's configurable `app.tools.expand` action (`Ctrl+O` by default) expands the tool. Expansion restores codemode's native code/result view and the complete subagent response.
 
 Errors remain visible: the header plus up to three visual rows, including caught nested-call failures and failed, timed-out or cancelled children. Codemode shows the start of the error cause; other tools show the error tail. Normal rows have no filled background; error rows keep the error background. Presentation does not truncate or change model-facing results. Codemode is decorated through Pi's public factory only when its native tool is present, preserves inactive/disabled selection, and leaves foreign tools with a different parameter schema unchanged. Restart Pi or run `/reload` after changing the package.
 

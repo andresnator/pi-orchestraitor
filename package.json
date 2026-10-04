@@ -27,7 +27,8 @@
       "./extensions/compact-tools.ts",
       "./extensions/instructions.ts",
       "./extensions/mcp.ts",
-      "./extensions/subagents.ts"
+      "./extensions/subagents.ts",
+      "./extensions/status-ui.ts"
     ],
     "skills": [
       "./skills"

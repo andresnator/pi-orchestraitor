@@ -21,7 +21,7 @@ flowchart TD
   X -->|all required checks: E| V
 ```
 
-Node/edge evidence: **A** [instructions/orchestraitor.md:5–9](../../instructions/orchestraitor.md); **B** [prompts/plan.md:5–8](../../prompts/plan.md); **C** [evidence-first-planning:16–37](../../skills/evidence-first-planning/SKILL.md); **D** [architecture-ideation:16–29](../../skills/architecture-ideation/SKILL.md); **E** [instructions/orchestraitor.md:19–34](../../instructions/orchestraitor.md). These are instructed routes, not automatic dispatch code.
+Node/edge evidence: **A** [instructions/orchestraitor.md](../../instructions/orchestraitor.md); **B** [prompts/plan.md:5–8](../../prompts/plan.md); **C** [evidence-first-planning:16–37](../../skills/evidence-first-planning/SKILL.md); **D** [architecture-ideation:16–29](../../skills/architecture-ideation/SKILL.md); **E** [instructions/orchestraitor.md](../../instructions/orchestraitor.md). These are instructed routes, not automatic dispatch code.
 
 ## 1. Direct work: skip the plan when it adds no value
 
@@ -32,7 +32,7 @@ Example in a hypothetical application:
 2. The agent reads that file and relevant checks, changes the label and verifies it.
 3. Result: unstaged changes plus verification; no plan or SDD state created.
 
-Contract: [instructions/orchestraitor.md:5–15](../../instructions/orchestraitor.md). This is intentionally **not specification-driven planning**.
+Contract: [instructions/orchestraitor.md](../../instructions/orchestraitor.md). This is intentionally **not specification-driven planning**.
 
 ## 2. Plan: known outcome, explicit contract
 
@@ -95,6 +95,10 @@ Example:
 4. You review the ADR and plan, then request `/orchestraitor execute the plan <returned-path>`.
 
 The ADR explains **why**; the plan specifies **how to change safely**. Both remain documentation until execution is authorized. Contract: [architecture-ideation:16–29](../../skills/architecture-ideation/SKILL.md).
+
+## Optional UI follows the chosen route
+
+For substantial authorized work, the main agent can project tasks through `orchestraitor_tasks` and collect bounded preferences through `orchestraitor_ask`. [Agents/tasks panels](../interactive-ui.md) show native observations and active-branch receipts. Neither tool selects a workflow, launches a new executor, accepts a child automatically or validates durable resumption. Small/read-only work needs no task artifact; non-TUI work can use textual clarification.
 
 ## Optional review is not another executor
 

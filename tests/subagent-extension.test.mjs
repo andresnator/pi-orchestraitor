@@ -48,6 +48,50 @@ for (const scenario of ["writer", "readers", "partial", "unknown"]) {
 	});
 }
 
+test("shouldForwardNativeProgressWithoutResultsOrUsageWhenObserverReportsPhases", async (t) => {
+	// Given
+	const results = [{ id: "runtime", role: "explore", model: "fixture/first", status: "completed", terminated: true }];
+	const { tool, ctx, extension } = await fixture(t, results);
+	let observer, observedManifest;
+	globalThis[controllerKey].run = async (manifests, _prompt, _signal, report) => {
+		observer = report;
+		observedManifest = manifests[0];
+		for (const phase of ["starting", "running", "stopping", "completed"]) {
+			report({ id: manifests[0].id, role: manifests[0].role, label: "inspect", requestedModel: manifests[0].model,
+				...(phase !== "starting" ? { effectiveModel: manifests[0].model } : {}), phase });
+		}
+		return results;
+	};
+	const updates = [];
+	// When
+	const result = await tool.execute("native/1", { tasks: [{ role: "explore", instruction: "inspect" }] },
+		undefined, (value) => updates.push(value), ctx);
+	const before = updates.length;
+	await extension.handlers.get("session_shutdown")[0]({ type: "session_shutdown" }, ctx);
+	observer({ id: observedManifest.id, role: observedManifest.role, label: "inspect",
+		requestedModel: observedManifest.model, phase: "failed" });
+	// Then
+	assert.deepEqual(result, { content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+		details: { results, usageComplete: false } });
+	assert.equal(updates.length, before);
+	assert.ok(updates.every((value) => value.content.length === 0 && !value.usage && !value.details.results));
+	assert.deepEqual(updates.map(({ details }) => details.progress.sequence), [1, 2, 3, 4, 5, 6]);
+	assert.ok(updates.every(({ details }) => details.progress.toolCallId === "native/1" &&
+		Object.isFrozen(details.progress) && Object.isFrozen(details.progress.tasks) &&
+		details.progress.tasks.every(Object.isFrozen)));
+});
+
+test("shouldIgnoreBrokenProgressCallbackWhenNativeResultIsReturned", async (t) => {
+	// Given
+	const { tool, ctx } = await fixture(t, [{ id: "one", role: "explore", status: "completed", usageComplete: false }]);
+	// When
+	const result = await tool.execute("native", { tasks: [{ role: "explore", instruction: "inspect" }] },
+		undefined, () => { throw new Error("UI failed"); }, ctx);
+	// Then
+	assert.equal(result.details.results[0].status, "completed");
+	assert.equal(result.usage, undefined);
+});
+
 test("shouldInheritAndOverrideModelAndReasoningWhenPreparingChildTasks", async (t) => {
 	// Given
 	const { tool, ctx, batches } = await fixture(t);

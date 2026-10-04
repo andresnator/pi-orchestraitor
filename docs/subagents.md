@@ -25,6 +25,12 @@ An implementer additionally needs `files`, a nonempty list of exact project-rela
 
 Each ordered result contains `id`, `role`, `cwd`, effective `model` and `reasoning`, `status`, `finalResponse`, `writes`, `diagnostic` and `terminated`. Before a successful startup, model/reasoning fields describe the requested selection, since effective values are not yet available. Writes distinguish attempted and completed file writes at the validated final path; attempts may have left partial content. Rejected destinations are not recorded as write attempts. This is an operation ledger, not an independent filesystem audit. No automatic rollback is performed.
 
+## Observed progress (optional UI)
+
+The launcher forwards optional bounded lifecycle observations through native `tool_execution_update` as `details.progress`, with version, session/generation/tool-call identity, ordered task IDs and requested/effective model evidence. The controller remains the only lifecycle authority; observers are immutable and exception-isolated. Preparation/starting/running/stopping are not premature failures or completed work.
+
+The [interactive UI](interactive-ui.md) consumes these events for a read-only panel and one native-footer status. Nested calls use native identities; missing persisted nested history is marked unavailable after replay. Final `details.results`, JSON-array model content, native top-level usage and safety locks are unchanged. Progress carries no top-level usage and never marks parent tasks done. Disable the UI entrypoint without changing this launcher.
+
 ## Usage accounting
 
 Each result adds `usageComplete` and optional native Pi `usage`. The launcher sums finalized assistant responses across the whole child run, including tool-use turns, once per response. Streaming updates and repeated final events are not extra consumption. Optional `reasoning` and `cacheWrite1h` remain subset counters, not additions to `totalTokens`; reported costs are not repriced.
@@ -96,4 +102,4 @@ This broader release checklist incurs provider usage. Only the subsets recorded 
 6. Run from an extracted package with selected external skills and OAuth credentials; confirm only intended context and skill resources are visible.
 7. On a native Windows host, run read/edit/write/list/search with root-level and nested assignments and both separators. Inspect the `/`-normalized write ledger and confirm traversal and symlink rejection. Deterministic `path.win32` tests use simulated filesystem metadata and do not establish native Windows execution.
 
-Protocol reference: [Pi CLI integration](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/cli-integration.md). Deterministic tests use installed Pi 1.0.0 APIs and fixtures without model calls.
+Protocol reference: [Pi CLI integration](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/cli-integration.md). The original deterministic baseline used Pi 1.0.0; current checks use Pi 1.0.2, including local synthetic provider/guarded-child UI integration. This is not live-model or visible-terminal acceptance.

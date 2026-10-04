@@ -7,10 +7,18 @@ import { compactTool } from "./compact-tools.ts";
 import { BatchController, mergeUsage } from "./subagent/controller.mjs";
 import { READ_TOOLS, WRITE_TOOLS, THINKING_LEVELS, selectModel, validateBatch, validatePath, within, concreteFile } from "./subagent/policy.mjs";
 
+const CONTROLLER_KEY = Symbol.for("pi-orchestraitor.subagent-controller");
+const PROGRESS_LABEL_LIMIT = 200;
+
+/** Read-only observation of the existing controller's retained safety lock. */
+export function subagentLaunchesBlocked(): boolean {
+	return (globalThis as any)[CONTROLLER_KEY]?.blocked === true;
+}
+
 /** Fresh, bounded child sessions. No automatic delivery or durable orchestration state. */
 export default function subagents(pi: ExtensionAPI) {
 	// Keep a failed termination lock across extension reloads in this host process.
-	const key = Symbol.for("pi-orchestraitor.subagent-controller");
+	const key = CONTROLLER_KEY;
 	const shared = globalThis as typeof globalThis & { [key: symbol]: BatchController };
 	const controller = shared[key] ??= new BatchController();
 	let generation = 0;
@@ -35,7 +43,7 @@ export default function subagents(pi: ExtensionAPI) {
 			model: Type.Optional(Type.String({ description: "Exact available provider/model ID; defaults to the parent model" })),
 			reasoning: Type.Optional(Type.Union(THINKING_LEVELS.map((level: string) => Type.Literal(level)))),
 		}), { minItems: 1, maxItems: 2 }) }),
-		async execute(_id, args, signal, _update, ctx) {
+		async execute(_id, args, signal, update, ctx) {
 			validateBatch(args.tasks);
 			if (!captured || captured.cwd !== ctx.cwd) throw new Error("Parent project context has not been captured for this run");
 			const snapshot = captured;
@@ -67,6 +75,26 @@ export default function subagents(pi: ExtensionAPI) {
 			}
 			controller.options = { sdkRoot: getPackageDir(), credentialDir: getAgentDir() };
 			const combinedSignal = signal && ctx.signal ? AbortSignal.any([signal, ctx.signal]) : signal ?? ctx.signal;
+			let sequence = 0;
+			let batchStarted = false;
+			const sessionId = ctx.sessionManager?.getSessionId();
+			const progress = manifests.map((manifest) => Object.freeze({ id: manifest.id, role: manifest.role,
+				label: manifest.instruction.slice(0, PROGRESS_LABEL_LIMIT), requestedModel: manifest.model.slice(0, PROGRESS_LABEL_LIMIT), phase: "preparing" }));
+			const publish = (observation?: any) => {
+				if (!update || generation !== startedGeneration) return;
+				if (observation) {
+					const index = manifests.findIndex((manifest) => manifest.id === observation.id);
+					if (index < 0) return;
+					batchStarted = true;
+					progress[index] = Object.freeze({ ...observation });
+				}
+				const snapshot = Object.freeze({ version: 1, generation: startedGeneration, toolCallId: _id,
+					sessionId, batchStarted, sequence: ++sequence, tasks: Object.freeze(progress.map((task) => Object.freeze({ ...task }))),
+					launchBlocked: controller.blocked === true || progress.some((task) => task.phase === "termination_failed") });
+				try { Promise.resolve(update({ content: [], details: { progress: snapshot } })).catch(() => {}); }
+				catch { /* Native progress presentation cannot change execution. */ }
+			};
+			publish();
 			// Selected skill bodies are explicit context; unrelated catalogs never reach children.
 			const prompts = new Map<string, string>();
 			for (const manifest of manifests) {
@@ -81,7 +109,8 @@ export default function subagents(pi: ExtensionAPI) {
 					"Handoff: give the outcome with inspected/changed paths and relevant line ranges; distinguish observed findings from inference. Report blockers, remaining work and unperformed checks. If required evidence is inaccessible, say so. Do not run commands, delegate, or claim checks you did not perform."].join("\n\n"));
 			}
 			if (generation !== startedGeneration) throw new Error("Parent session changed during subagent preparation");
-			const results = await controller.run(manifests, (manifest) => prompts.get(manifest.id), combinedSignal);
+			const results = await controller.run(manifests, (manifest) => prompts.get(manifest.id), combinedSignal, publish);
+			publish();
 			const usage = mergeUsage(results.map((result) => result.usage));
 			return { content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
 				details: { results, usageComplete: results.length > 0 && results.every((result) => result.usageComplete === true) },

@@ -183,3 +183,45 @@ Receipts are retained locally under `/private/tmp/subagent-validation.oXy4OP/rec
 The in-pane assistant correctly noted that child-internal read traces are not returned and rendered text alone cannot prove byte preservation. The coordinating parent verified cited content and actual bytes directly; this run does **not** claim an independent syscall audit or persist new child traces. Broader alternate-model, reload, extracted-package OAuth and native Windows live scenarios remain outside this run; historical MCP/personality checks were not rerun. Synthetic receipts may disappear with temporary-directory cleanup.
 
 Changed paths: `extensions/subagents.ts`, `extensions/subagent/controller.mjs`, `tests/fixtures/subagent-child.mjs`, `tests/fixtures/subagent-native-child.mjs`, `tests/subagent-controller.test.mjs`, `tests/subagent-extension.test.mjs`, `tests/subagent-runtime.test.mjs`, `instructions/orchestraitor.md`, `skills/absorb/SKILL.md`, `docs/skills-provenance.json`, `docs/subagents.md`, and `docs/verification.md`.
+
+## Interactive harness UI — 2026-10-04
+
+Groups 1–7 of `.ai/deep-planner/plans/interactive-harness-ui.md` are implemented and verified, including actual V1–V6 terminal/model evidence. V6 initially paused after a native CLI settings side effect; the user explicitly approved continuation through the public SDK with non-persistent settings. That incident remains disclosed below. The original plan retains SHA-256 `baefb3905a8c6a7384f6d3b1ecc544a673dbc9abd1b000178fb8fe9f15e6a786`. Verified host: Pi CLI/SDK 1.0.2, Node 24.20.0, macOS. Changes remain unstaged and uncommitted.
+
+| Gate | Fresh evidence |
+| --- | --- |
+| Deterministic checks | Group 6 focused 45/45; full suite 276/276, no failures or skips. |
+| MCP services | `npm run test:mcp`: 1/1 with real Context7/Engram and isolated synthetic memory storage. |
+| Personality | Four fresh `openai-codex/gpt-6-astra` scenarios; parent inspected and accepted all predefined criteria, including language, respectful disagreement, formal correspondence and English artifacts. No model substitution. |
+| Package | Dry-run inventory: 223 files, five extension entrypoints, four UI modules and the canonical guide; no tests, private evidence, settings, credentials or sessions. Strict extracted-package tests pass. |
+| V1–V4 | Actual text and ANSI viewports in fullscreen/dark and regular/light: agents, task transitions/evidence/reopening, reviewed/corrected questions, cancellation, restored editor input and foreign widget/status coexistence. |
+| V5 | Actual widths 52/130/182, 13-row temporary collapse, light/system theme transitions, native scrolling, Unicode, reload replay, tree task revision 5→1 and a fresh empty session. |
+| V6 | Actual configured-model SDK native TUI, no fixture: two ordered readers, inspected citations/bytes, evidence-backed tasks, one explicit harmless choice, agents/tasks and native `/session`. Personal settings hash unchanged throughout the approved SDK run. |
+
+### Separate terminal and execution evidence
+
+Owned Herdr pane `w37:p1S` was created beside caller `w37:p1B`; an owned empty resize pane was used briefly for the short-height check. Both were closed, and the caller's original 260×50 layout/focus was restored. Viewports, timestamps, dimensions, modes, themes, source/record hashes and session identities are retained locally in `.ai/verification/interactive-harness-ui/screens.jsonl`; `evidence.json`, `checks.txt` and `consistency.md` retain checks and limitations. They are excluded from the package, not published or synced.
+
+Synthetic providers exercised native model-only tools and actual production guarded child processes. Both modes preserved exact marker bytes and the partial `typo.txt` written before interruption; native cancelled results retain a completed write ledger, incomplete observed usage and confirmed exit. The parent verified disappearance of the observed child processes and successful subsequent readers. Exact question receipts preserve opaque values and Unicode text; cancellation has no submitted answers. Native accounting equals top-level delegated usage once: fullscreen **275 tokens**, regular **325 tokens**, with zero synthetic cost. The actual regular `/session` viewport agrees; these are not real-model billing measurements.
+
+Failed startup/timing probes remain in the local record and are **not** acceptance frames. In particular, regular-mode startup initially matched stale visible content and received input too early. Later fresh-session frames and native receipts establish the accepted cases. Editor focus was checked by typing after submission; this does not claim an OS-level IME test or native Windows execution. Offline scratch startup reported optional ripgrep unavailable; nothing was downloaded or installed.
+
+### Blocker and host limitations
+
+Installed Pi's `getChangelogForDisplay()` calls `SettingsManager.setLastChangelogVersion(VERSION)` on fresh startup. The normal-profile V6 launch updated `lastChangelogVersion` to `1.0.2`, contrary to the plan's no-personal-settings-change constraint. No exact pre-launch settings snapshot exists, so no blind rollback was attempted. This native host side effect is not a UI-extension write. The initial owned process was stopped before live prompts. The user then explicitly approved the public SDK route: `InteractiveMode` over `AgentSessionRuntime`, with `SettingsManager.inMemory`, all five production extensions, native built-ins and existing auth/model-file references. No mock provider, credential copy, private host patch or model substitution was used. The personal settings SHA-256 matched before startup, after the real run and after shutdown; the earlier CLI metadata write was not undone.
+
+Pi 1.0.2 also distinguishes dynamic active-tool changes from persistent `tools`/`excludeTools` filters: native reload can reactivate dynamically deactivated default-active extension tools, including the pre-existing launcher. Exact persistent allowlist/denylist checks pass in TUI, RPC, JSON and print. The harness does not patch the host or reset selection. All historical plans/absorb fingerprints remain unchanged. See the [UI guide](interactive-ui.md) for contracts and the acceptance procedure.
+
+### Approved real-model V6 result
+
+The real run used `openai-codex/gpt-6-astra`, inherited `minimal` reasoning, fresh synthetic workspace/session data and owned pane `w37:p1V`. Both ordered readers cited `marker.txt:1` and `:2` correctly. The coordinator reread the file after their confirmed exits; an external parent check verified exact unchanged bytes, no workspace writes and stable `inspect`/`verify` task IDs with done evidence. One explicitly submitted harmless choice preserved `marker-choice` → `opaque-alpha`. Actual agents/tasks/question-review and `/session` frames are retained locally.
+
+The first real parent request supplied `files: []` for readers and was correctly rejected by the existing guard. One bounded scenario correction omitted optional editable-file fields; no production code or safety assertion was weakened. Failed launch observations remain visible alongside the successful results. Cancellation/partial-write/exit/retry were already exercised with actual production child runtimes in both V1 modes; no additional remote-model cancellation was needed.
+
+| Native attribution | Tokens | Reported cost (USD) |
+| --- | ---: | ---: |
+| Parent assistant responses | 139,661 | 0.42533 |
+| Delegated work, once through native tool usage | 1,915 | 0.02807 |
+| Session total | **141,576** | **0.45340** |
+
+The actual native `/session` agrees. Components: 28,435 uncached input, 112,000 cache-read, 1,141 output and zero cache-write tokens. Costs are provider-reported estimates, not invoice validation. Both children terminated, no child remains, the owned SDK process/pane was closed and the caller layout/focus restored. The new UI adds no accounting store or dashboard. Final local receipts include the exact approved launch, source/record hashes, settings-hash comparison and observed limitations.

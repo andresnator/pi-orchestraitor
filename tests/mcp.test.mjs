@@ -90,7 +90,7 @@ test("shouldReportMissingEngramWithoutBreakingOtherToolsWhenNativeConnectionFail
 	// Then
 	assert.match(status, /engram: failed[\s\S]*ENOENT/);
 	assert.deepEqual({ active: session.getActiveToolNames(), errors },
-		{ active: ["read", "bash", "edit", "write", "subagent_run"], errors: [] });
+		{ active: ["read", "bash", "edit", "write", "subagent_run", "orchestraitor_tasks", "orchestraitor_ask"], errors: [] });
 });
 
 test("shouldUseEachSessionWorkspaceWhenEngramHasNoFixedProject", async (t) => {

@@ -46,6 +46,29 @@ for (const mode of ["tui", "print", "json", "rpc"]) {
 	});
 }
 
+test("shouldKeepTasksAsEvidenceProjectionWhenExecutionGuidanceIsLoaded", async () => {
+	// Given
+	const path = join(packageRoot, "instructions/orchestraitor.md");
+	// When
+	const instructions = await readFile(path, "utf8");
+	// Then
+	assert.match(instructions, /direct model-only `orchestraitor_tasks`/);
+	assert.match(instructions, /Child completion never marks tasks done/);
+	assert.match(instructions, /not execution authority or durable SDD recovery/);
+	assert.match(instructions, /original plan path\/hash and stable group references/);
+});
+
+test("shouldKeepQuestionsAsClarificationWithoutGrantingPermissionsWhenGuidanceIsLoaded", async () => {
+	// Given
+	const path = join(packageRoot, "instructions/orchestraitor.md");
+	// When
+	const instructions = await readFile(path, "utf8");
+	// Then
+	assert.match(instructions, /direct model-only `orchestraitor_ask`/);
+	assert.match(instructions, /cancelled, busy or unavailable results are not approval/);
+	assert.match(instructions, /never replace native trust\/security dialogs/);
+});
+
 test("shouldKeepOnePersonalitySectionWhenTheInstructionsExtensionIsReloaded", async (t) => {
 	// Given
 	const cwd = await createWorkspace(t);

@@ -16,6 +16,16 @@ Use `subagent_run` for bounded tasks when useful; keep small changes direct. Eac
 
 Keep plan groups in their original order and preserve the plan hash. Cancel children on parent cancellation, session changes, reload or shutdown. Do not start another batch until all prior child exits are confirmed. Each task is limited to ten minutes. Preserve partial writes and report them; do not roll them back automatically. Cross-session recovery is unsupported.
 
+## Task projection
+
+For substantial authorized multi-step work, use the direct model-only `orchestraitor_tasks` tool when available. Read the current revision before mutations; record parent evidence when marking done and a reason when reopening. Exact-plan tasks carry the original plan path/hash and stable group references.
+
+Tasks are a branch-local view of successful native session receipts, not execution authority or durable SDD recovery. Child completion never marks tasks done. Unavailable UI does not block safe work; use ordinary textual progress instead.
+
+## Clarification
+
+Use the direct model-only `orchestraitor_ask` tool for bounded requirements/preferences when interactive UI is available. Submit requires explicit user input; cancelled, busy or unavailable results are not approval. Use ordinary textual clarification when UI is unavailable. Questions never replace native trust/security dialogs or authorize destructive operations.
+
 ## Execute a supplied plan
 
 An explicit instruction to execute an exact plan authorizes its existing implementation scope, not unrelated changes or automatic Git delivery.
