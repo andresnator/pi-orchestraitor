@@ -268,7 +268,7 @@ test("shouldBoundVisualErrorRowsAndPreserveExpansionWhenTerminalIsNarrow", () =>
 });
 
 for (const order of ["before", "after"]) {
-	test(`shouldPreserveForeignReadAndBashOwnersWhenTheirExtensionLoads${order === "before" ? "Before" : "After"}CompactTools`, async () => {
+	test(`shouldPreserveForeignReadAndGuardBashOwnershipWhenTheirExtensionLoads${order === "before" ? "Before" : "After"}CompactTools`, async () => {
 		// Given
 		const foreignPath = join(cwd, `foreign-${order}.ts`);
 		await writeFile(foreignPath, `import { createReadToolDefinition, createBashToolDefinition } from "@earendil-works/pi-coding-agent";
@@ -289,17 +289,28 @@ export default function(pi) {
 		const errors = [];
 		try {
 			// When
-			await session.bindExtensions({ onError: error => errors.push(error) });
+			const notifications = [];
+			await session.bindExtensions({ onError: error => errors.push(error), mode: "print",
+				uiContext: { ...session.extensionRunner.getUIContext(), notify: message => notifications.push(message) } });
 			for (let pass = 0; pass < 2; pass++) {
 				if (pass) await session.reload();
 				// Then
 				assert.deepEqual(session.getActiveToolNames(), ["read", "bash", "edit", "write"]);
-				for (const name of ["read", "bash"]) {
-					assert.equal(session.getAllTools().find(tool => tool.name === name).sourceInfo.path, foreignPath);
-					assert.match(session.getToolDefinition(name).renderCall({}, theme, toolContext({})).render(80).join("\n"), new RegExp(`Foreign ${name}`));
-				}
+				assert.equal(session.getAllTools().find(tool => tool.name === "read").sourceInfo.path, foreignPath);
+				const bashOwner = session.getAllTools().find(tool => tool.name === "bash").sourceInfo.path;
+				assert.equal(bashOwner, order === "before" ? foreignPath : extensionPath);
+				session.agent.state.messages.push({ role: "assistant", content: [{ type: "toolCall", id: `bash-${pass}`, name: "bash", arguments: { command: "printf ownership-marker" } }],
+					api: "openai-responses", provider: "fixture", model: "fixture", stopReason: "toolUse", timestamp: Date.now(),
+					usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } });
+				const ctx = session.extensionRunner.createToolContext(`bash-${pass}`, undefined);
+				const result = await ctx.executeTool("bash", { command: "printf ownership-marker" });
+				assert.equal(Boolean(result.isError), order === "before");
+				assert.match(result.result.content.map(block => block.text).join("\n"), order === "before" ? /Bash ownership conflict/ : /ownership-marker/);
+				assert.ok(!result.result.content.some(block => block.text === "ownership-marker") || order === "after");
 				assert.equal(session.getAllTools().find(tool => tool.name === "edit").sourceInfo.path, extensionPath);
 			}
+			assert.equal(notifications.length, order === "before" ? 2 : 0);
+			assert.ok(notifications.every(message => /shellPath.*shellCommandPrefix/.test(message)));
 			assert.deepEqual(errors, []);
 		} finally { await session.extensionRunner.emit({ type: "session_shutdown" }); session.dispose(); }
 	});

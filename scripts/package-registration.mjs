@@ -34,21 +34,23 @@ export async function restoreRegistration(settingsPath, beforeText, packageRoot,
 	};
 	const originals = (before.packages ?? []).flatMap((entry, index) => {
 		const identity = registrationIdentity(entry);
-		return identity ? [{ entry, index, identity }] : [];
+		return identity ? [{ entry, index }] : [];
 	});
-	const restored = new Set();
-	current.packages = (current.packages ?? []).flatMap((entry) => {
-		const identity = registrationIdentity(entry);
-		if (!identity) return [entry];
-		const original = originals.find((item) => item.identity === identity && !restored.has(item));
-		if (!original) return [];
-		restored.add(original);
-		return [original.entry];
-	});
-	// Native installation normally replaces a registration in place. If a target
-	// entry disappeared, recover its original position without dropping other entries.
-	for (const { entry, index } of originals.filter((item) => !restored.has(item))) {
-		current.packages.splice(Math.min(index, current.packages.length), 0, entry);
+	current.packages = (current.packages ?? []).filter((entry) => !registrationIdentity(entry));
+	// Recover original ordering around surviving declarations, while leaving
+	// concurrent unrelated additions and edits in their existing relative order.
+	const matches = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+	const unchangedPackages = matches(current.packages, (before.packages ?? []).filter((entry) => !registrationIdentity(entry)));
+	if (unchangedPackages) current.packages = before.packages ?? [];
+	for (const { entry, index } of unchangedPackages ? [] : originals) {
+		const previous = (before.packages ?? []).slice(0, index).reverse()
+			.map((anchor) => current.packages.findLastIndex((item) => matches(item, anchor)))
+			.find((position) => position >= 0);
+		const next = (before.packages ?? []).slice(index + 1)
+			.map((anchor) => current.packages.findIndex((item) => matches(item, anchor)))
+			.find((position) => position >= 0);
+		const position = previous !== undefined ? previous + 1 : next ?? Math.min(index, current.packages.length);
+		current.packages.splice(position, 0, entry);
 	}
 	if (!current.packages.length && !Object.hasOwn(before, "packages")) delete current.packages;
 	if (JSON.stringify(current) === JSON.stringify(before)) {

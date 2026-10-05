@@ -14,6 +14,7 @@ try {
 	const result = spawnSync(process.execPath, ["--test", fileURLToPath(new URL("../integration/pi-pretty.test.mjs", import.meta.url))], {
 		stdio: "inherit", timeout: 60000,
 		env: { ...process.env, HOME: testHome, PI_CODING_AGENT_DIR: agentDir, PRETTY_CONFIG_DIR: agentDir,
+			PRETTY_DISABLE_TOOLS: "", PRETTY_ENABLE_TOOLS: "",
 			PI_PRETTY_PACKAGE_DIR: prettyRoot, PI_PRETTY_ISOLATED_HOME: "1", PI_OFFLINE: "1", PI_TELEMETRY: "0" },
 	});
 	if (result.error) throw result.error;

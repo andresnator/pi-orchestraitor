@@ -15,7 +15,7 @@ npm run install:pi
 
 The preview lists every matching standalone skill, including multiple discovery aliases for the same source, and any blocking conflicts. Installation moves matching entries into a recoverable backup, registers this directory through native `pi install`, and verifies that all 61 skills resolve to the bundled adaptations. It also installs `@heyhuynhgiabuu/pi-pretty@0.6.30` through native Pi package management in the same user/project scope. Restart Pi or run `/reload` afterward.
 
-Use `--without-pretty` to install only the harness; this leaves any existing pretty registration intact. `--dry-run` lists companion packages without installing or downloading them.
+The installer adds `bash` to Pretty's `disableTools`, preserving other preferences, so the harness honors `shellPath` and `shellCommandPrefix`. It uses `PRETTY_CONFIG_DIR` or Pretty's default `$HOME/.pi/agent/`, independently of installation scope. A nonempty `PRETTY_DISABLE_TOOLS` list must include `bash`; an incompatible override stops installation before file changes. Use `--without-pretty` to install only the harness; this leaves any existing Pretty registration and configuration intact. `--dry-run` lists companion packages and the planned configuration path/adjustment without writes or downloads.
 
 For a project installation:
 
@@ -38,7 +38,7 @@ Another package's skills and source repository files require configuration chang
 
 Migration stays within each configured skill discovery root. It preserves configuration roots, checks the skill directory itself for repository ownership, and moves a configured symlink tree by its link. If the host cannot establish a discovery boundary, installation stops before moving files.
 
-A failed registration or skill-loading check rolls back both package declarations and the moved skills. Existing pretty versions and resource filters are restored; downloaded npm cache files may remain. Rollback recognizes Pi's local path forms, including `~/` sources, and restores the original registration and filters while preserving unrelated settings changes. If a new entry occupies an original path, rollback keeps it and reports the backup requiring attention. Repeated installation finds no further moves once conflicts are gone.
+A failed registration or skill-loading check rolls back both package declarations, the Pretty bash exclusion and the moved skills. Original source text, versions, resource filters and package order are restored; downloaded npm cache files may remain. Rollback recognizes Pi's local path forms, including `~/` sources, and whitespace after `npm:`, while preserving unrelated concurrent settings and Pretty preferences. If a new entry occupies an original path, rollback keeps it and reports the backup requiring attention. Repeated installation finds no further moves once conflicts are gone.
 
 To uninstall and recover:
 
@@ -53,7 +53,7 @@ npm run install:pi -- --restore /absolute/path/to/backup
 
 Restoration refuses to overwrite existing entries. Restore multiple backups in reverse installation order. Re-enable the original compact extension if needed, then restart Pi. A stale migration lock is reported with its exact path; inspect any interrupted migration before removing that lock.
 
-Native `pi install /path/to/package` also discovers bundled skills, but does not perform this migration or install the separate pretty companion. Use `install:pi` for conflict removal and effective-loading verification.
+Native `pi install /path/to/package` also discovers bundled skills, but does not perform this migration or install/configure the separate Pretty companion. Manual Pretty installations must disable its bash tool; see the [Pretty integration guide](docs/pi-pretty.md). Use `install:pi` for conflict removal and effective-loading verification.
 
 ## First use
 
@@ -76,8 +76,8 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 
 | Resource | Purpose |
 | --- | --- |
-| `extensions/compact-tools.ts` | Compact edit/write/codemode presentation, plus read/bash fallbacks when no other extension owns them. Expand to inspect arguments and results. |
-| `@heyhuynhgiabuu/pi-pretty@0.6.30` | Separately installed companion: highlighted reads, bash presentation, FFF-backed find/grep, prompt editor and activity indicators. |
+| `extensions/compact-tools.ts` | Compact bash/edit/write/codemode presentation, plus a read fallback. Bash uses effective shell settings; conflicting owners are reported and blocked. Expand to inspect arguments, results and error explanations. |
+| `@heyhuynhgiabuu/pi-pretty@0.6.30` | Separately installed companion: highlighted reads, FFF-backed find/grep, prompt editor and activity indicators. Its bash tool is disabled for harness ownership. |
 | `extensions/instructions.ts` | Adds core, execution, and personality sections while preserving Pi and project instructions. |
 | `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. |
 | `extensions/subagents.ts` | One bounded launcher, child guards, native usage and optional progress observations. |
@@ -142,7 +142,7 @@ npm pack --dry-run --ignore-scripts
 ```
 
 - `npm test` checks native tool regressions, prompt and personality injection, packaged skill loading and resources, migration and recovery, and native installation in temporary configuration. It uses local synthetic providers for native UI/child integration, not live models or MCP services. Visible TUI acceptance remains a separate gate.
-- `test:pretty` exercises the actual installed companion on the native Pi SDK and CLI in temporary profiles, including both load orders, reload, preserved tool selection, read/bash execution and find/grep. It requires the pinned companion or `PI_PRETTY_PACKAGE_DIR` and makes no model/MCP requests; terminal screenshots are a separate check.
+- `test:pretty` exercises the actual installed companion on the native Pi SDK and CLI in temporary profiles, including both load orders, reload, preserved tool selection, a custom shell/prefix, read and find/grep, plus bash conflict blocking/recovery. It requires the pinned companion or `PI_PRETTY_PACKAGE_DIR` and makes no model/MCP requests; terminal screenshots are a separate check.
 - `test:mcp` calls Context7 and Engram through native `codemode`, with synthetic memories and a temporary database. It checks project separation and avoids personal memories.
 - `test:personality` makes bounded calls to the configured Pi model in isolated sessions. It writes synthetic transcripts for manual scoring; it uses the configured account and consumes model quota.
 - Packing includes extensions, instructions, skills, scripts, docs, and licenses. Tests, `.ai` reports, personal settings, credentials, and memory databases are excluded.

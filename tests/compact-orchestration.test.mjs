@@ -152,6 +152,27 @@ test("shouldExposeFullReceiptsOnlyInExpandedViewWhenModelHandoffsAreCompact", as
 	assert.deepEqual(outcome, before);
 });
 
+for (const name of ["subagent_run", "codemode"]) {
+	test(`shouldDisplayTransformedErrorWithoutConfirmingCandidateMetadataWhen${name}IsExpanded`, async (t) => {
+		const { session } = await fixture(t);
+		const args = name === "codemode" ? { code: 'text("candidate")' } : { tasks: [{ role: "review", instruction: "inspect" }] };
+		const details = name === "codemode" ? { calls: [{ name: "read", status: "ok", result: "candidate output" }] }
+			: { results: [{ role: "review", status: "completed", finalResponse: "candidate output" }] };
+		const result = { content: [{ type: "text", text: "Rejected by result hook: explanation retained" }], details, isError: true };
+		const before = structuredClone(result);
+		const component = componentFor(session, name, args);
+		component.markExecutionStarted();
+		component.updateResult(result, false);
+		for (const expanded of [false, true, false]) {
+			component.setExpanded(expanded);
+			const output = component.render(120).map(stripAnsi).join("\n");
+			assert.match(output, /Rejected by result hook: explanation retained/);
+			assert.doesNotMatch(output, /candidate output|1\/1 completed|1 call · 1 completed/);
+		}
+		assert.deepEqual(result, before);
+	});
+}
+
 test("shouldKeepStartingAndStoppingProgressSeparateFromFailuresWhenSubagentsAreCompact", async (t) => {
 	// Given
 	const { session } = await fixture(t);

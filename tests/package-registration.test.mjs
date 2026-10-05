@@ -123,3 +123,29 @@ for (const existingPretty of [undefined, "npm:@heyhuynhgiabuu/pi-pretty", { sour
 		assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")), { ...current, packages: [...before.packages, "npm:concurrent"] });
 	});
 }
+
+for (const name of ["@heyhuynhgiabuu/pi-pretty", "unscoped-pretty"]) {
+	for (const concurrent of [false, true]) {
+		test(`shouldRestoreWhitespacePaddedNpmSourcesVersionsFiltersAndPositionFor${name}WithConcurrentChanges${concurrent}`, async (t) => {
+			const root = await createWorkspace(t), settingsPath = join(root, "settings.json");
+			const original = { source: `npm:  ${name}@0.6.29  `, extensions: ["!src/other.ts"], skills: [], prompts: ["*.md"], themes: [] };
+			const before = { packages: ["npm:before", original, "npm:after", { source: packageRoot, skills: [] }], theme: "old" };
+			const beforeText = `${JSON.stringify(before, null, 4)}\n`;
+			const current = { ...before, packages: ["npm:before", "npm:after", packageRoot, `npm: ${name}@0.6.30 `, ...(concurrent ? ["npm:unrelated"] : [])] };
+			if (concurrent) { current.theme = "new"; current.editor = "custom"; }
+			await writeFile(settingsPath, JSON.stringify(current));
+			await restoreRegistration(settingsPath, beforeText, packageRoot, [`npm:  ${name}@0.6.30  `]);
+			if (concurrent) assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")), { ...current, packages: [...before.packages, "npm:unrelated"] });
+			else assert.equal(await readFile(settingsPath, "utf8"), beforeText);
+		});
+	}
+}
+
+test("shouldRestoreExactPositionBetweenDuplicateUnrelatedAnchorsWhenNoConcurrentPackagesChanged", async (t) => {
+	const root = await createWorkspace(t), settingsPath = join(root, "settings.json");
+	const original = { source: "npm:  @heyhuynhgiabuu/pi-pretty@0.6.29  ", extensions: [] };
+	const beforeText = `${JSON.stringify({ packages: ["npm:duplicate", original, "npm:duplicate"] }, null, 4)}\n`;
+	await writeFile(settingsPath, JSON.stringify({ packages: ["npm:duplicate", "npm:duplicate", "npm:@heyhuynhgiabuu/pi-pretty@0.6.30"] }));
+	await restoreRegistration(settingsPath, beforeText, packageRoot, ["npm:@heyhuynhgiabuu/pi-pretty@0.6.30"]);
+	assert.equal(await readFile(settingsPath, "utf8"), beforeText);
+});

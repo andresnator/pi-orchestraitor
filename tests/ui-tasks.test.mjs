@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { mkdir, realpath, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
+import { stripVTControlCharacters } from "node:util";
 import { createUISession, createWorkspace, importHost, loadUiModule, pi, plainTheme, tui } from "./helpers/ui-harness.mjs";
 
 const pending = (id = "g1") => ({ id, title: "Inspect marker", status: "pending" });
@@ -376,6 +377,19 @@ test("shouldRejectTransformedOrAbortedResultWithoutPhantomTasksWhenNativePipelin
 	await session.prompt("Use local rejected-result fixture.");
 	// Then
 	assert.deepEqual(replayTasks(session.sessionManager.getBranch()), { version: 1, revision: 0, tasks: [] });
+	const result = session.messages.find(message => message.role === "toolResult" && message.toolName === "orchestraitor_tasks");
+	assert.equal(result.details.state.tasks.length, 1, "The hook retains candidate details");
+	const definition = session.getToolDefinition("orchestraitor_tasks");
+	pi.initTheme("dark", false);
+	const component = new pi.ToolExecutionComponent(definition.name, result.toolCallId, {}, { showImages: false }, definition, { requestRender() {} }, session.cwd);
+	component.markExecutionStarted();
+	component.updateResult(result, false);
+	for (const expanded of [false, true, false]) {
+		component.setExpanded(expanded);
+		const display = component.render(120).map(stripVTControlCharacters).join("\n");
+		assert.match(display, /Rejected by fixture/);
+		assert.doesNotMatch(display, /Inspect marker|"revision": 1|"state"/);
+	}
 });
 
 test("shouldRejectNativeNestedExecutionWithoutMutatingTasksWhenToolIsModelOnly", async (t) => {

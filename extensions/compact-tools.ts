@@ -39,7 +39,10 @@ export default function compactTools(pi: ExtensionAPI) {
 		const conflict = source && source.path !== EXTENSION_PATH
 			? `Bash ownership conflict: ${source.path} retains bash. The harness must own bash to honor shellPath and shellCommandPrefix. Add "bash" to pi-pretty.json disableTools (and to PRETTY_DISABLE_TOOLS if set), or disable the conflicting extension's bash tool, then /reload. Bash calls are blocked until ownership is corrected.`
 			: undefined;
-		if (conflict && conflict !== reportedConflict) ctx.ui.notify(conflict, "error");
+		if (conflict && conflict !== reportedConflict) {
+			if (ctx.hasUI) ctx.ui.notify(conflict, "error");
+			else console.error(conflict);
+		}
 		reportedConflict = conflict;
 		return conflict;
 	};
@@ -103,7 +106,7 @@ export function compactTool<TParams extends TSchema, TDetails, TState>(
 			// summary at render time so streaming updates appear in the same row.
 			return {
 				render: (width) => renderCall(original.name, args, theme, context,
-					summaries.get(context.state as object)).render(width),
+					context.isError ? undefined : summaries.get(context.state as object)).render(width),
 				invalidate() {},
 			};
 		},

@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { importPi } from "./pi-host.mjs";
 import { restoreRegistration } from "./package-registration.mjs";
+import { planPrettyConfig } from "./pretty-config.mjs";
 import { inventorySkills } from "./skill-inventory.mjs";
 import { applyMigration, exists, planMigration, restoreBackup } from "./skill-migration.mjs";
 
@@ -17,6 +18,7 @@ async function main() {
 		const restored = await restoreBackup(options.restore, options);
 		return console.log(JSON.stringify({ action: options.dryRun ? "restore-preview" : "restored", paths: restored }, null, 2));
 	}
+	const prettyConfig = options.withoutPretty ? undefined : await planPrettyConfig();
 	const pi = await importPi();
 	const cwd = resolve(options.cwd ?? process.cwd());
 	const agentDir = pi.getAgentDir();
@@ -35,17 +37,25 @@ async function main() {
 	const inventory = () => inventorySkills(pi, { cwd, agentDir });
 	const { migrationSkills, protectedRoots } = await inventory();
 	const plan = await planMigration({ resources: migrationSkills, protectedRoots, agentDir, catalog, packageRoot: PACKAGE_ROOT, discover });
-	console.log(JSON.stringify({ scope: options.local ? "project" : "user", cwd, settingsPath, skills: catalog.length, companionPackages, ...plan }, null, 2));
+	console.log(JSON.stringify({ scope: options.local ? "project" : "user", cwd, settingsPath, skills: catalog.length, companionPackages, prettyConfig: prettyConfig?.preview, ...plan }, null, 2));
 	if (plan.blockers.length) throw new Error("Resolve the listed configuration conflicts before installing. No skills were moved.");
 	if (options.dryRun) return;
 	const result = await applyMigration({
 		plan, agentDir,
 		register: async () => {
+			await prettyConfig?.apply();
 			for (const source of [PACKAGE_ROOT, ...companionPackages]) {
 				execFileSync("pi", ["install", ...(options.local ? ["--local", "--approve"] : []), source], { cwd, stdio: "inherit" });
 			}
 		},
-		rollbackRegistration: () => restoreRegistration(settingsPath, previousSettings, PACKAGE_ROOT, companionPackages),
+		rollbackRegistration: async () => {
+			const results = await Promise.allSettled([
+				restoreRegistration(settingsPath, previousSettings, PACKAGE_ROOT, companionPackages),
+				prettyConfig?.rollback(),
+			]);
+			const failures = results.filter((result) => result.status === "rejected");
+			if (failures.length) throw new Error(failures.map((result) => result.reason.message).join("; "));
+		},
 		verify: async () => {
 			const { skills: resources } = await inventory();
 			const result = pi.loadSkills({ cwd, agentDir, skillPaths: resources.filter(({ enabled }) => enabled).map(({ path }) => path), includeDefaults: false });
