@@ -1,0 +1,29 @@
+id = "pi.orchestraitor"
+name = "Orchestraitor Workbench"
+version = "0.1.0"
+min_herdr_version = "0.9.3"
+platforms = ["macos"]
+
+[[panes]]
+id = "workbench"
+title = "Orchestraitor · read-only"
+placement = "split"
+command = ["node", "--input-type=module", "-e", "const url=(await import('node:url')).pathToFileURL(process.env.HERDR_PLUGIN_ROOT+'/main.mjs'); await (await import(url.href)).launchPane();"]
+
+[[actions]]
+id = "toggle"
+title = "Toggle Orchestraitor workbench"
+contexts = ["pane"]
+command = ["node", "--input-type=module", "-e", "const url=(await import('node:url')).pathToFileURL(process.env.HERDR_PLUGIN_ROOT+'/actions.mjs'); await (await import(url.href)).runAction('toggle');"]
+
+[[actions]]
+id = "open"
+title = "Open Orchestraitor workbench"
+contexts = ["pane"]
+command = ["node", "--input-type=module", "-e", "const url=(await import('node:url')).pathToFileURL(process.env.HERDR_PLUGIN_ROOT+'/actions.mjs'); await (await import(url.href)).runAction('open');"]
+
+[[actions]]
+id = "close"
+title = "Close owned Orchestraitor workbench"
+contexts = ["pane"]
+command = ["node", "--input-type=module", "-e", "const url=(await import('node:url')).pathToFileURL(process.env.HERDR_PLUGIN_ROOT+'/actions.mjs'); await (await import(url.href)).runAction('close');"]
