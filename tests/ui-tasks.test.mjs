@@ -184,7 +184,7 @@ for (const nextTool of ["orchestraitor_ask", "subagent_run"]) for (const hidden 
 		const calls = operations.flatMap((operation, i) => [operation, nextTool === "orchestraitor_ask" ? askCall(`wait-${i}`) : { type: "toolCall", name: nextTool, id: `wait-${i}`, arguments: {} }]);
 		const ui = await nativeTasks(t, calls, { turn_end() { turns++; } }, options);
 		const { session, ctx, errors } = ui, runner = session.extensionRunner;
-		ctx.ui.select = wait;
+		ctx.ui.custom = async () => { await wait(); return { status: "cancelled" }; };
 		if (hidden) await runner.getCommand("orchestraitor:ui").handler("hide", runner.createCommandContext());
 		const running = session.prompt("Use local progress fixtures.");
 		try {
@@ -211,7 +211,7 @@ for (const rejection of ["blocked", "transformed"]) {
 		} : {
 			tool_result(event) { if (event.toolCallId === "tasks-1") return { isError: true }; },
 		});
-		ui.ctx.ui.select = async () => { started.resolve(); await release.promise; };
+		ui.ctx.ui.custom = async () => { started.resolve(); await release.promise; return { status: "cancelled" }; };
 		const running = ui.session.prompt("Use local rejection fixture.");
 		try {
 			await Promise.race([started.promise, running.then(() => { throw new Error("Question did not open"); })]);
@@ -271,7 +271,7 @@ test("shouldAwaitBindingRefreshBeforeOpeningNextNativeQuestion", { timeout: 5000
 	await mkdir(join(cwd, ".git"));
 	plan = join(cwd, "plan.md"); await writeFile(plan, "plan");
 	operation.binding = { project: cwd, path: "plan.md", sha256: createHash("sha256").update("plan").digest("hex"), groups: ["group"] };
-	ui.ctx.ui.select = async () => { opened = true; question.resolve(); await releaseQuestion.promise; };
+	ui.ctx.ui.custom = async () => { opened = true; question.resolve(); await releaseQuestion.promise; return { status: "cancelled" }; };
 	const running = ui.session.prompt("Use the local binding refresh fixture.");
 	try {
 		await Promise.race([checking.promise, running.then(() => { throw new Error("Refresh did not check binding"); })]);

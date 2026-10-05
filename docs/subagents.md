@@ -29,7 +29,7 @@ Each ordered result contains `id`, `role`, `cwd`, effective `model` and `reasoni
 
 The launcher forwards optional bounded lifecycle observations through native `tool_execution_update` as `details.progress`, with version, session/generation/tool-call identity, ordered task IDs and requested/effective model evidence. The controller remains the only lifecycle authority; observers are immutable and exception-isolated. Preparation/starting/running/stopping are not premature failures or completed work.
 
-The [interactive UI](interactive-ui.md) consumes these events for a read-only panel and one native-footer status. Nested calls use native identities; missing persisted nested history is marked unavailable after replay. Final `details.results`, JSON-array model content, native top-level usage and safety locks are unchanged. Progress carries no top-level usage and never marks parent tasks done. Disable the UI entrypoint without changing this launcher.
+The [interactive UI](interactive-ui.md) consumes these events for a read-only panel and one native-footer status. Nested calls use native identities; missing persisted nested history is marked unavailable after replay. Final `details.results`, JSON-array model content, native top-level usage and safety locks are unchanged. Progress carries no top-level usage and never marks parent tasks done. Disable the UI entrypoint without changing this launcher. The optional [Herdr workbench](herdr-workbench.md) observes the same bounded projections; it has no launch/cancel/accept controls or question answers.
 
 ## Usage accounting
 
@@ -41,7 +41,7 @@ Each result adds `usageComplete` and optional native Pi `usage`. The launcher su
 | Cancellation, timeout, failure, missing/invalid usage or ambiguous/incomplete transport | `usageComplete: false`; retain valid totals already observed and explain limitations in `diagnostic`. |
 | No valid observed usage | Omit `usage`; never substitute a complete zero. |
 
-The native tool result's top-level `usage` sums the ordered child results. Pi persists it and includes it once in footer and `/session` totals alongside parent usage. `details.results` retains child attribution; `details.usageComplete` requires all children to be complete. The model-facing content remains a JSON array. Do not add child detail totals again when reconciling native tool usage.
+The native tool result's top-level `usage` sums the ordered child results. Pi persists it and includes it once in footer and `/session` totals alongside parent usage. `details.results` retains child attribution; `details.usageComplete` requires all children to be complete. The model-facing content remains a JSON array. Do not add child detail totals again when reconciling native tool usage. The workbench publisher, enabled by default in eligible Herdr terminals, reconciles all native session entries, using complete category-exact child evidence only for model attribution; missing or nested evidence stays unattributed.
 
 Accounting completeness is not task acceptance or invoice accuracy. Interrupted responses can consume provider quota without reporting final usage; zero catalog prices do not establish free billing. Accounting is in-memory for this run only, with no historical ledger or estimate of missing consumption.
 

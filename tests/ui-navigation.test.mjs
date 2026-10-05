@@ -31,9 +31,16 @@ async function checkNewInteractions(ui) {
 		await pending;
 		ctx.ui.custom = original;
 	}
-	ctx.ui.select = async (_title, options) => options[0];
+	const original = ctx.ui.custom;
+	ctx.ui.custom = (...args) => {
+		const pending = original(...args);
+		const card = dialogs.at(-1).component;
+		for (const key of ["\r", "\x1b[B", "\x1b[B", "\r", "\x1b[B", "\r"]) card.handleInput(key);
+		return pending;
+	};
 	const ask = runner.getAllRegisteredTools().find(({ definition }) => definition.name === "orchestraitor_ask").definition;
 	assert.equal((await ask.execute("new-question", questionArgs, undefined, undefined, runner.createToolContext("new-question"))).details.status, "answered");
+	ctx.ui.custom = original;
 }
 
 for (const action of ["tree-veto", "summary-abort", "switch-veto", "fork-veto"]) for (const hidden of [false, true]) {
@@ -50,10 +57,19 @@ for (const action of ["tree-veto", "summary-abort", "switch-veto", "fork-veto"])
 		if (hidden) await runner.getCommand("orchestraitor:ui").handler("hide", runner.createCommandContext());
 		const branch = session.sessionManager.getBranch(), leaf = session.sessionManager.getLeafId();
 		const opened = Promise.withResolvers(), late = Promise.withResolvers();
-		ctx.ui.select = () => { opened.resolve(); return late.promise; }; // Ignore abort to exercise a late old dialog.
+		const originalCustom = ctx.ui.custom;
+		ctx.ui.custom = (factory, options) => originalCustom((tui, theme, keys, done) => {
+			const component = factory(tui, theme, keys, done);
+			// Deliver a late old completion after native cancellation; it must not
+			// close a replacement question or become an accepted answer.
+			late.promise.then(() => done({ status: "answered", answers: [{ id: "q", values: ["a"] }] }));
+			opened.resolve();
+			return component;
+		}, options);
 		const ask = runner.getAllRegisteredTools().find(({ definition }) => definition.name === "orchestraitor_ask").definition;
 		const oldQuestion = ask.execute("old-question", questionArgs, undefined, undefined, runner.createToolContext("old-question"));
 		await opened.promise;
+		ctx.ui.custom = originalCustom;
 		let result;
 		if (action === "summary-abort") {
 			const { createAssistantMessageEventStream } = await importHost("node_modules/@earendil-works/pi-ai/dist/index.js");

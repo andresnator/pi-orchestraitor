@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { createRequire } from "node:module";
 import { readFile, realpath } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -20,6 +21,15 @@ export async function findHostRoot() {
 		if (parent === directory) throw new Error("Cannot locate the installed Pi package; set PI_TEST_PACKAGE_DIR.");
 		directory = parent;
 	}
+}
+
+export async function importTui() {
+	const requireHost = createRequire(join(await findHostRoot(), "package.json"));
+	const ui = await import(pathToFileURL(requireHost.resolve("@earendil-works/pi-tui")).href);
+	for (const name of ["TuiAltScreen", "ProcessTerminal", "ScrollView", "VStack", "Box", "Text", "parseColor", "styleText", "visibleWidth", "truncateToWidth", "wrapTextWithAnsi", "matchesKey"]) {
+		if (typeof ui[name] !== "function") throw new Error(`Installed Pi TUI lacks ${name}; use a compatible Pi host. No dependency was installed.`);
+	}
+	return ui;
 }
 
 export async function importPi() {

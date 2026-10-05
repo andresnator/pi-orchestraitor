@@ -225,3 +225,38 @@ The first real parent request supplied `files: []` for readers and was correctly
 | Session total | **141,576** | **0.45340** |
 
 The actual native `/session` agrees. Components: 28,435 uncached input, 112,000 cache-read, 1,141 output and zero cache-write tokens. Costs are provider-reported estimates, not invoice validation. Both children terminated, no child remains, the owned SDK process/pane was closed and the caller layout/focus restored. The new UI adds no accounting store or dashboard. Final local receipts include the exact approved launch, source/record hashes, settings-hash comparison and observed limitations.
+
+## Optional Herdr workbench — 2026-10-05 acceptance in progress
+
+Groups 1–7 of `.ai/deep-planner/plans/herdr-workbench-ui.md` are implemented; Group 8 remains open for the user's **final visual approval, the unavailable reviewr coexistence boundary and final cleanup**. The immutable plan retains SHA-256 `22e571d1e2a6a55a0c3d9420a52aa2ecadc4c3603eee62989b1ee58b03418b33`; both predecessor plans retain their recorded hashes. This is parent verification, not independent or blind review. A bounded review reader timed out and supplied no findings.
+
+Observed host: Node 24.20.0, Pi/pi-tui 1.0.2, Herdr client/server 0.9.3 and protocol 22 on macOS. The package engine remains Node 22.19+. Native Linux, Windows, remote Herdr and OS-level IME acceptance are not claimed. See [user-directed activation and disabling](herdr-workbench.md); nothing is installed into the personal profile automatically.
+
+| Gate | Observed evidence |
+| --- | --- |
+| Deterministic regression | Observed focused failures before attributable fixes; latest full-suite and package results are retained in the private checks record. All original assertions remain, including explicitly user-approved test-only adaptations in `tests/ui-tasks.test.mjs` and `tests/ui-navigation.test.mjs`. |
+| Services | Fresh `npm run test:mcp`: 1/1 with actual Context7/Engram and isolated synthetic storage. Personality resources are unchanged; the out-of-scope personality script was not run. |
+| Deployment | Exact seven-file companion inventory and three Node-only projection modules; actual extracted `node_modules` package path containing spaces launched the native plugin with a minimal PATH and light preset, then its verified owned view closed. No fixtures, evidence, private snapshots, settings, credentials or sessions ship. |
+| Native Pi / workbench | Actual regular/dark and fullscreen/dark/light sessions verified draft/focus restoration, tasks and evidence/reopening, real guarded synthetic readers, failed/cancelled work, completed partial-write ledgers, confirmed exit/retry, exact opaque corrected choice and checkbox/text answers, explicit review/submission and cancellation. Companion snapshots exclude question content. |
+| Layout / palettes | Actual wide right and narrow down layout; debounced owned replacement retained details and foreign fixture geometry, with no automatic move back right. Tiny opening failed without creating a duplicate. Actual monochrome and Nord/light frames, Unicode, local quit and concurrent lifecycle operations were checked. |
+| Lifecycle | Native tree/fork/switch veto kept session/leaf/branch and display unchanged. Successful tree navigation changed branch tasks but retained all-entry totals; return/switch restored receipts; fork/fresh session changed publisher identity. Hide, disable/re-enable, reload, paused-source stale recovery and malformed snapshot rejection were checked. An independently isolated native server restart changed socket identity and rejected its dead original publisher before freshness timeout; both server exits were 0. |
+| Native host corrections | Real Escape initially cancelled text entry despite its Back hint; installed native keybindings reproduced the conflict and the corrected priority passed both modes. A real 64×12 pane exposed clipped card borders; bounded native-layout reservation restored complete borders and foreign footer/widget visibility in both modes. No Pi internals, editor/header/footer or child controller were patched. |
+| Personal state | Pi settings and Herdr configuration/registry hashes matched the Group 1 baseline before and after the live check. Existing credential metadata was unchanged; credential contents were not copied or exported. Final post-cleanup recheck remains required. |
+
+### Authorized configured-model result
+
+The user explicitly authorized **one bounded `openai-codex/gpt-6.1-sol` session and at most two read-only children**, using existing authentication by reference and `SettingsManager.inMemory`. No mock provider, fallback model, login or additional live scenario was used. Both children cited the harmless marker and its explicitly unavailable value; the parent reread the original file after confirmed child exits and recorded precise done evidence. Exact marker bytes and the sole-file workspace remained unchanged.
+
+| Native attribution | Recorded tokens |
+| --- | ---: |
+| Parent responses | 68,320 |
+| Delegated tool usage, counted once | 1,971 |
+| All-entry session total | **70,291** |
+
+Components reconcile exactly: **13,149 input + 694 output + 56,448 cache-read + 0 cache-write**. One recorded Codex model row covers the complete total; no unsupported or unattributed remainder was manufactured. The actual native `/session` agrees. Estimated active context was **10,539 / 272,000 (3.8746%)**, not cumulative consumption or subscription quota. Prices, account limits and reset counters are not companion features.
+
+### Remaining acceptance boundaries
+
+The final production physical Command-E test passed after the user widened the origin from 80 to 82 columns. Native keybinding toggle logs 25–32 corroborate successful open/close operations (exit 0), original Pi focus and an intact unsubmitted draft; recorded consumption stayed at 70,291 tokens. Earlier 80-column attempts were rejected before creating a pane because conservative chrome allowance left fewer than 80 usable chat columns. Programmatic lifecycle calls and synthetic UI fixtures are not substitutes for the user's remaining integrated visual approval; the cancelled final questionnaire is not approval. No active reviewr process was found in a bounded read-only inventory of the current host; same-host foreign geometry was checked with an owned ordinary-pane fixture, and reviewr code/configuration was not executed or changed. Actual reviewr coexistence therefore remains an explicit unavailable check, not a passing claim.
+
+Private bounded metadata is retained in `.ai/verification/herdr-workbench/{evidence.json,screens.jsonl,checks.txt,consistency.md}`; actual viewport files and native receipts stay in owned temporary directories. These are excluded from Git and the package. Failed setup/fixture probes are recorded separately, not accepted frames. Earlier scratch captures reused basenames; only metadata whose current text/ANSI files match their hashes is retained as frame evidence, and later captures use unique timestamped filenames. Original partial-write fixtures are preserved rather than rolled back. Changes remain unstaged and uncommitted.

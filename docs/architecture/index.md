@@ -32,7 +32,7 @@ Evidence for nodes and edges:
 
 ## Inside the package
 
-These are logical components, **not separately deployed services**. Only delegated children get separate processes.
+These are logical components, **not separately deployed services**. Delegated children and the explicitly opened optional Herdr companion get separate processes; the companion is presentation only.
 
 ```mermaid
 flowchart TB
@@ -51,6 +51,8 @@ flowchart TB
   X -->|status-ui.ts owns: M| UI[Task widget / native footer / modal]
   SR -->|native observations: M| UI
   A -->|model-only tasks / questions: M| UI
+  UI -->|eligible Herdr private display snapshots: N| WB[Separate Herdr companion]
+  HA[User-invoked Herdr action] -->|verified owned pane lifecycle: N| WB
 ```
 
 | Evidence | Source |
@@ -64,7 +66,7 @@ flowchart TB
 | K | [extensions/subagents.ts](../../extensions/subagents.ts), [instructions/orchestraitor.md](../../instructions/orchestraitor.md). |
 | L | [extensions/subagent/controller.mjs](../../extensions/subagent/controller.mjs), [extensions/subagent/child.mjs:18–28](../../extensions/subagent/child.mjs), [extensions/subagent/runtime.mjs:13–25](../../extensions/subagent/runtime.mjs). |
 
-**M:** [status-ui.ts](../../extensions/status-ui.ts) delegates to [agents](../../extensions/ui/agents.ts), [tasks](../../extensions/ui/tasks.ts) and [questions](../../extensions/ui/questions.ts). It uses native widgets/status/dialogs, not header/footer/editor factories. Task state comes only from successful active-branch native receipts; it cannot grant writes, accept child work or recover execution. See the [UI guide](../interactive-ui.md).
+**M:** [status-ui.ts](../../extensions/status-ui.ts) delegates to [agents](../../extensions/ui/agents.ts), [tasks](../../extensions/ui/tasks.ts) and [questions](../../extensions/ui/questions.ts). It uses native widgets/status/dialogs, not header/footer/editor factories. Task state comes only from successful active-branch native receipts; it cannot grant writes, accept child work or recover execution. See the [UI guide](../interactive-ui.md). **N:** [bridge](../../extensions/ui/workbench-bridge.mjs), [contract](../../extensions/ui/workbench-contract.mjs) and [plugin actions](../../herdr/workbench/actions.mjs) separate disposable display state from native receipt authority. The [workbench guide](../herdr-workbench.md) owns activation and failure instructions; no question/command channel points back from the companion.
 
 ## The distinctions that prevent confusion
 

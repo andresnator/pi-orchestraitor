@@ -1,5 +1,5 @@
-import type { ExtensionUIContext, KeybindingsManager, Theme, ToolDefinition } from "@earendil-works/pi-coding-agent";
-import { Input, ScrollView, SelectList, Text, truncateToWidth, wrapTextWithAnsi, type TUI } from "@earendil-works/pi-tui";
+import type { KeybindingsManager, Theme, ToolDefinition } from "@earendil-works/pi-coding-agent";
+import { Box, Input, ScrollView, SelectList, Text, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type TUI } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import type { createUIOwner } from "../status-ui.ts";
 import { sanitizeDisplay } from "./display.ts";
@@ -11,9 +11,10 @@ export const QUESTION_TEXT_LIMIT = 1000;
 export const QUESTION_LABEL_LIMIT = 200;
 export const ANSWER_TEXT_LIMIT = 1000;
 const ID_LIMIT = 80;
-const RESERVED_ROWS = 8;
-const SUBMIT = "Submit answer";
-const CHANGE = "Change answer";
+const CARD_FIXED_ROWS = 7;
+const CARD_NATIVE_LAYOUT_ROWS = 6; // Native footer, widget/status and chat spacing.
+const CARD_PADDING_COLUMNS = 4;
+const CARD_COMPACT_ROWS = 13;
 type Question = { id: string; prompt: string; selection: "single" | "multiple"; options: { label: string; value: string }[]; required?: boolean; allowText?: boolean };
 type Answer = { id: string; values: string[]; text?: string };
 type Answered = { status: "answered"; answers: Answer[] };
@@ -81,20 +82,6 @@ export function validateAnswers(questions: Question[], answers: Answer[]): Answe
 }
 
 const label = (value: string) => sanitizeDisplay(value).replace(/\s+/gu, " ");
-async function nativeSingle(question: Question, ui: ExtensionUIContext, signal: AbortSignal): Promise<Outcome> {
-	const labels = question.options.map((option, index) => `${index + 1}. ${label(option.label)}`);
-	for (;;) {
-		const selected = await ui.select(label(question.prompt), labels, { signal });
-		if (signal.aborted || selected === undefined) return { status: "cancelled" };
-		const index = labels.indexOf(selected);
-		if (index < 0) return { status: "cancelled" };
-		const review = await ui.select(`Review: ${labels[index]}`, [SUBMIT, CHANGE], { signal });
-		if (signal.aborted || review === undefined) return { status: "cancelled" };
-		if (review === SUBMIT) return { status: "answered", answers: validateAnswers([question], [{ id: question.id, values: [question.options[index].value] }]) };
-		if (review !== CHANGE) return { status: "cancelled" };
-	}
-}
-
 export function createQuestionTool(owner: ReturnType<typeof createUIOwner>): ToolDefinition<typeof QuestionParameters> {
 	return {
 		name: QUESTION_TOOL_NAME, label: "Ask", exposure: "model-only", executionMode: "sequential",
@@ -107,9 +94,7 @@ export function createQuestionTool(owner: ReturnType<typeof createUIOwner>): Too
 			let outcome: Outcome;
 			if (ctx.mode !== "tui" || !ctx.hasUI) outcome = { status: "unavailable" };
 			else if (!owner.isCurrent(ctx)) outcome = { status: "cancelled" };
-			else if (questions.length === 1 && questions[0].selection === "single" && !questions[0].allowText && questions[0].required !== false) {
-				outcome = await owner.interaction((dialogSignal, ui) => nativeSingle(questions[0], ui, dialogSignal), abort);
-			} else {
+			else {
 				outcome = await owner.modal<Answered>("question", (tui, _theme, keys, done) =>
 					createQuestionnaire(questions, tui, () => ctx.ui.theme, keys, done), abort);
 			}
@@ -155,7 +140,7 @@ export function createQuestionnaire(questions: Question[], tui: TUI, getTheme: (
 	function items() {
 		if (review()) return [...questions.map((question, index) => ({ value: `review:${index}`, label: `${index + 1}. ${label(question.prompt)}: ${summary(index)}` })), { value: "submit", label: "Submit answers" }];
 		const question = questions[questionIndex], draft = drafts[questionIndex];
-		return [...question.options.map((option, index) => ({ value: `option:${index}`, label: `${draft.values.includes(option.value) ? "[x]" : "[ ]"} ${index + 1}. ${label(option.label)}` })),
+		return [...question.options.map((option, index) => ({ value: `option:${index}`, label: `${question.selection === "single" ? draft.values.includes(option.value) ? "(●)" : "( )" : draft.values.includes(option.value) ? "[x]" : "[ ]"} ${index + 1}. ${label(option.label)}` })),
 			...(question.allowText ? [{ value: "text", label: "Write text" }] : []), { value: "continue", label: "Continue / review" }, { value: "clear", label: "Clear answer" }];
 	}
 	function summary(index: number) {
@@ -200,9 +185,10 @@ export function createQuestionnaire(questions: Question[], tui: TUI, getTheme: (
 		invalidate() { input.invalidate(); list.invalidate(); prompt.invalidate(); scroll.invalidate(); },
 		handleInput(data: string) {
 			if (disposed || finished) return;
+			// Pi's default Escape matches both actions; text-entry Back owns it first.
+			if (editing && keys.matches(data, "tui.select.cancel")) { input.onEscape(); return; }
 			if (keys.matches(data, "app.interrupt")) { finish({ status: "cancelled" }); return; }
 			if (editing) {
-				if (keys.matches(data, "tui.select.cancel")) { input.onEscape(); return; }
 				const previous = input.getValue();
 				input.handleInput(data);
 				if (sanitizeDisplay(input.getValue()) !== input.getValue() || input.getValue().length > ANSWER_TEXT_LIMIT) {
@@ -211,22 +197,43 @@ export function createQuestionnaire(questions: Question[], tui: TUI, getTheme: (
 			} else if (keys.matches(data, "tui.select.cancel")) finish({ status: "cancelled" });
 			else if (keys.matches(data, "tui.select.pageUp")) scroll.scrollBy(-Math.max(1, scroll.viewportHeight));
 			else if (keys.matches(data, "tui.select.pageDown")) scroll.scrollBy(Math.max(1, scroll.viewportHeight));
+			else if (matchesKey(data, "space") && !review() && selectionIndex < questions[questionIndex].options.length) select(`option:${selectionIndex}`);
 			else list.handleInput(data);
 			redraw();
 		},
 		render(width: number) {
 			const theme = getTheme();
-			const budget = Math.max(3, tui.terminal.rows - RESERVED_ROWS);
-			prompt.setText(wrapTextWithAnsi(label(review() ? "Review all answers; select a row to correct it" : questions[questionIndex].prompt), Math.max(1, width)).join("\n"));
-			const promptLines = scroll.render(width);
-			const promptHeight = Math.min(Math.max(1, budget - 3), Math.max(1, Math.min(3, promptLines.length)));
+			const bordered = width >= CARD_PADDING_COLUMNS + 2;
+			const inner = Math.max(1, width - (bordered ? CARD_PADDING_COLUMNS : 0));
+			const budget = Math.max(1, tui.terminal.rows - CARD_NATIVE_LAYOUT_ROWS - (bordered ? 2 : 0));
+			const compact = tui.terminal.rows <= CARD_COMPACT_ROWS;
+			prompt.setText(wrapTextWithAnsi(label(review() ? "Review all answers; select a row to correct it" : questions[questionIndex].prompt), inner).join("\n"));
+			const promptLines = scroll.render(inner);
+			const promptHeight = Math.min(Math.max(1, budget - CARD_FIXED_ROWS), Math.max(1, Math.min(3, promptLines.length)));
 			scroll.updateLayout(promptLines.length, promptHeight, redraw);
-			maxVisible = Math.max(1, budget - promptHeight - 2);
+			maxVisible = Math.max(1, budget - promptHeight - CARD_FIXED_ROWS);
 			syncControls();
-			const controls = editing ? input.render(width) : list.render(width);
-			return [truncateToWidth(theme.fg("accent", review() ? "Review answers" : `Question ${questionIndex + 1}/${questions.length}`), width),
-				...promptLines.slice(scroll.scrollTop, scroll.scrollTop + promptHeight), ...controls,
-				truncateToWidth(theme.fg(warning ? "warning" : "dim", warning || "Selection keys choose · page keys scroll · cancel exits"), width)].map((line) => truncateToWidth(line, width));
+			const controls = editing ? input.render(inner) : list.render(inner);
+			if (!editing && !compact) {
+				const current = items();
+				const start = Math.max(0, Math.min(selectionIndex - Math.floor(maxVisible / 2), current.length - maxVisible));
+				const actionStart = review() ? questions.length : questions[questionIndex].options.length;
+				if (actionStart >= start && actionStart < start + maxVisible) controls.splice(actionStart - start, 0, theme.fg("muted", `─ ACTIONS ${"─".repeat(Math.max(0, inner - 10))}`));
+			}
+			const hint = (action: Parameters<KeybindingsManager["getKeys"]>[0], fallback: string) => keys.getKeys?.(action)?.join("/") || fallback;
+			const hints = editing ? `${hint("tui.select.confirm", "enter")} save text · ${hint("tui.select.cancel", "esc")} back` :
+				`${hint("tui.select.confirm", "enter")} choose · ${hint("tui.select.pageDown", "pgdn")} scroll · ${hint("tui.select.cancel", "esc")} cancel`;
+			const content = [...promptLines.slice(scroll.scrollTop, scroll.scrollTop + promptHeight),
+				...(!compact ? [theme.fg("accent", editing ? "TEXT ENTRY" : review() ? "ANSWERS · correct or submit explicitly" : `CHOICES · ${questions[questionIndex].selection === "single" ? "Single choice" : "Multiple choices"}`)] : []),
+				...controls, theme.fg(warning ? "warning" : "muted", warning || (review() ? "Not submitted · choose Submit answers explicitly" : editing ? "Text is a draft until saved and submitted" : "Highlight is not approval · Space selects")), theme.fg("dim", hints)];
+			const bounded = content.length > budget ? [...content.slice(0, Math.max(0, budget - 2)), ...content.slice(-2)] : content;
+			if (!bordered) return bounded.map(line => truncateToWidth(line, width));
+			const box = new Box(1, 0, value => theme.bg("userMessageBg", value));
+			for (const line of bounded) box.addChild(new Text(truncateToWidth(line, inner), 0, 0));
+			const title = truncateToWidth(` ${review() ? "REVIEW · explicit submission" : `QUESTION · ${questionIndex + 1} / ${questions.length}`} `, width - 2);
+			return [theme.fg("accent", `╭${title}${"─".repeat(Math.max(0, width - 2 - visibleWidth(title)))}╮`),
+				...box.render(width - 2).map(line => theme.fg("accent", "│") + line + theme.fg("accent", "│")),
+				theme.fg("accent", `╰${"─".repeat(width - 2)}╯`)].map(line => truncateToWidth(line, width));
 		},
 	};
 }

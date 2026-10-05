@@ -20,7 +20,14 @@
     "skills/",
     "scripts/",
     "docs/",
-    "licenses/"
+    "licenses/",
+    "herdr/workbench/herdr-plugin.toml",
+    "herdr/workbench/actions.mjs",
+    "herdr/workbench/herdr-client.mjs",
+    "herdr/workbench/main.mjs",
+    "herdr/workbench/app.mjs",
+    "herdr/workbench/view.mjs",
+    "herdr/workbench/palette.mjs"
   ],
   "pi": {
     "extensions": [

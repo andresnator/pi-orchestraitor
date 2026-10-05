@@ -85,9 +85,9 @@ The package preserves personal model, theme, editor, credentials, and MCP overri
 
 ## Optional work UI
 
-Open `/orchestraitor:agents` or `/orchestraitor:tasks`; use `tasks expand|collapse` for detail and `/orchestraitor:ui hide|show` for passive chrome. The model-only task/question tools do not replace execution or permissions. No statistics dashboard, custom editor/header/footer, global shortcut or personal setting is added.
+Open `/orchestraitor:agents` or `/orchestraitor:tasks`; use `tasks expand|collapse` for detail and `/orchestraitor:ui hide|show` for passive chrome. The model-only task/question tools do not replace execution or permissions. Pi keeps its native editor/header/footer and counters. The separate optional Herdr workbench adds read-only Overview/Tasks/Agents/Usage; publishing starts by default in interactive Herdr terminals, can be disabled, and never installs a personal setting or global Pi shortcut.
 
-See the [interactive UI guide](docs/interactive-ui.md) for schemas, task replay versus recovery, native keybindings, synthetic/live checks and limitations. Exclude `extensions/status-ui.ts` through `pi config` to disable all UI features without disabling the launcher. For one invocation, `--exclude-tools orchestraitor_tasks,orchestraitor_ask` persistently excludes just the model tools; `hide` only changes presentation.
+See the [Herdr workbench guide](docs/herdr-workbench.md) for explicit publisher/plugin setup, optional Command-E, usage scope and safe disabling. See the [interactive UI guide](docs/interactive-ui.md) for schemas, task replay versus recovery, native keybindings, synthetic/live checks and limitations. Exclude `extensions/status-ui.ts` through `pi config` to disable all UI features without disabling the launcher. For one invocation, `--exclude-tools orchestraitor_tasks,orchestraitor_ask` persistently excludes just the model tools; `hide` only changes presentation.
 
 ## MCP and memory
 
@@ -136,7 +136,7 @@ npm pack --dry-run --ignore-scripts
 - `npm test` checks native tool regressions, prompt and personality injection, packaged skill loading and resources, migration and recovery, and native installation in temporary configuration. It uses local synthetic providers for native UI/child integration, not live models or MCP services. Visible TUI acceptance remains a separate gate.
 - `test:mcp` calls Context7 and Engram through native `codemode`, with synthetic memories and a temporary database. It checks project separation and avoids personal memories.
 - `test:personality` makes bounded calls to the configured Pi model in isolated sessions. It writes synthetic transcripts for manual scoring; it uses the configured account and consumes model quota.
-- Packing includes extensions, instructions, skills, scripts, docs, and licenses. Tests, `.ai` reports, personal settings, credentials, and memory databases are excluded.
+- Packing includes extensions, instructions, skills, scripts, docs, licenses, and the exact optional `herdr/workbench/` runtime files. Tests, `.ai` reports, personal settings, credentials, and memory databases are excluded.
 
 Tests use the Pi executable on PATH. Set `PI_TEST_PACKAGE_DIR` to the installed npm package root if it cannot be located. The installer inventory adapter and some integration checks depend on host internals and need revalidation after a Pi upgrade. The adapter checks that its required host hooks exist before migration. Peers use `*` because Pi supplies them; the original baseline used Pi 1.0.0 and current deterministic/UI integration checks use Pi 1.0.2. Revalidate on upgrades. The UI guide documents native dynamic-selection versus persistent-exclusion behavior on reload. The established test convention is `node:test` with `node:assert`.
 

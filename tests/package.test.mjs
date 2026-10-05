@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { copyFile, mkdir, readFile, rm } from "node:fs/promises";
+import { copyFile, mkdir, readFile, rename, rm } from "node:fs/promises";
 import { basename, join } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
@@ -17,11 +17,14 @@ const EXPECTED_FILES = [
 	"LICENSE", "README.md", "THIRD_PARTY_NOTICES.md", "package.json",
 	"extensions/compact-tools.ts", "extensions/instructions.ts", "extensions/mcp.ts", "extensions/subagents.ts",
 	"extensions/status-ui.ts", "extensions/ui/display.ts", "extensions/ui/agents.ts", "extensions/ui/tasks.ts", "extensions/ui/questions.ts",
+	"extensions/ui/workbench-contract.mjs", "extensions/ui/workbench-usage.mjs", "extensions/ui/workbench-bridge.mjs",
+	"herdr/workbench/herdr-plugin.toml", "herdr/workbench/actions.mjs", "herdr/workbench/herdr-client.mjs",
+	"herdr/workbench/main.mjs", "herdr/workbench/app.mjs", "herdr/workbench/view.mjs", "herdr/workbench/palette.mjs",
 	"extensions/subagent/child.mjs", "extensions/subagent/controller.mjs", "extensions/subagent/guard.mjs", "extensions/subagent/policy.mjs", "extensions/subagent/runtime.mjs",
 	"instructions/core.md", "instructions/orchestraitor.md", "instructions/personality.md",
 	"scripts/install-pi.mjs", "scripts/pi-host.mjs", "scripts/skill-migration.mjs", "scripts/check-personality.mjs",
 	"scripts/skill-inventory.mjs", "scripts/package-registration.mjs",
-	"docs/skills.md", "docs/skills-provenance.json", "docs/verification.md", "docs/subagents.md", "docs/interactive-ui.md",
+	"docs/skills.md", "docs/skills-provenance.json", "docs/verification.md", "docs/subagents.md", "docs/interactive-ui.md", "docs/herdr-workbench.md",
 	"docs/architecture/execution.md", "docs/architecture/flows.md", "docs/architecture/index.md",
 	"licenses/Apache-2.0.txt", "licenses/MIT.txt",
 	...PROVENANCE.skills.flatMap((skill) => skill.resources.map(({ path }) => `skills/${skill.name}/${path}`)),
@@ -88,7 +91,9 @@ test("shouldLoadOnlyPackagedResourcesWhenTarballIsExtractedElsewhere", async (t)
 		cwd: packageRoot, encoding: "utf8", env: { ...process.env, npm_config_cache: join(cwd, "npm-cache") },
 	}))[0];
 	execFileSync("tar", ["-xzf", join(cwd, packed.filename), "-C", cwd]);
-	const extracted = join(cwd, "package");
+	const modules = join(cwd, "node_modules"); await mkdir(modules);
+	const extracted = join(modules, "workbench package with spaces");
+	await rename(join(cwd, "package"), extracted);
 	const workspace = join(cwd, "consumer");
 	await mkdir(workspace);
 	// When
@@ -122,6 +127,12 @@ test("shouldLoadOnlyPackagedResourcesWhenTarballIsExtractedElsewhere", async (t)
 		preservedSection: "Project-specific instructions", theme: "system", dependencies: undefined,
 		peers: { "@earendil-works/pi-coding-agent": "*", "@earendil-works/pi-tui": "*", typebox: "*" },
 	});
+	// Both standalone runtime and native extensions must work under node_modules,
+	// including spaces. Do not rely on Node stripping TypeScript in dependencies.
+	const standalone = execFileSync(process.execPath, [join(extracted, "herdr/workbench/main.mjs"), "--help"], { encoding: "utf8" });
+	assert.match(standalone, /Read-only Herdr companion/);
+	const { validateWorkbenchSnapshot } = await import(pathToFileURL(join(extracted, "extensions/ui/workbench-contract.mjs")).href);
+	assert.equal(typeof validateWorkbenchSnapshot, "function");
 	// The extracted bootstrap must resolve its sibling guard/runtime files without repo imports.
 	const { BatchController } = await import(pathToFileURL(join(extracted, "extensions/subagent/controller.mjs")).href);
 	const { hostRoot } = await import("./helpers/pi-host.mjs");

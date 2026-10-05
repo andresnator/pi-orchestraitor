@@ -1,6 +1,6 @@
 # See delegated work, tasks and decisions without replacing Pi
 
-The optional UI extension adds read-only agents/tasks panels, a compact task work header, one native-footer status and a unified question tool. Pi still owns the editor, application keybindings, model/context/usage display and execution. This is presentation and branch-local task replay, not another scheduler or durable SDD recovery.
+The optional UI extension adds read-only agents/tasks panels, a compact task work header, one native-footer status and a unified question tool. Pi still owns the editor, application keybindings, native model/context/usage display and execution. A manually opened [Herdr companion](herdr-workbench.md), backed by automatic publishing in eligible Herdr terminals, independently projects read-only tasks/agents and recorded usage; it is not another Pi renderer. This is presentation and branch-local task replay, not another scheduler or durable SDD recovery.
 
 ## Quick path
 
@@ -20,7 +20,8 @@ Only native TUI mode creates components. In RPC, JSON and print, tasks still wor
 | Agent observations and bounded branch outcomes | `extensions/ui/agents.ts`; active batch plus at most 20 recent outcomes. |
 | Task authority | Validated successful native `orchestraitor_tasks` results on the active branch, replayed by `extensions/ui/tasks.ts`. |
 | Requirements/preferences | One `orchestraitor_ask` schema and interaction in `extensions/ui/questions.ts`. |
-| Safe terminal display | Shared `extensions/ui/display.ts`; original IDs and opaque values remain untouched. |
+| Safe terminal display | Native `extensions/ui/display.ts` and the bounded standalone workbench contract's matching Node sanitation primitives; original IDs and opaque values remain untouched. |
+| Optional companion publisher | Existing `status-ui.ts`, enabled by default only in interactive TUI/Herdr terminals and explicitly disableable; disposable display transport, never execution or answer authority. |
 
 ## Panels and compact chrome
 
@@ -73,7 +74,7 @@ Example model input:
 
 Use one to six unique IDs, `single` or `multiple`, two to eight distinct values per choice. Questions default to required; `required:false` permits skipping. Free text needs explicit `allowText:true`. Prompts/values/answers are bounded to 1,000 characters and labels to 200. IDs/option values are returned exactly, separately from sanitized labels.
 
-Single choice uses native dialogs and an explicit review step. Rich forms compose native selection, text input and scrolling, with correction before final submission. No option is approved just because it is highlighted. Results have version 1 and `answered` plus answers, or `cancelled`, `unavailable`, `busy` without submitted answers. Abort/session change discards drafts. An active question is not displaced by another panel/question. Questions collect requirements, not native trust or operation permissions.
+Simple and rich questions use the same bordered, padded native Pi card, composing selection, text input and scrolling with correction before explicit final submission. Radio marks represent single choice, checkboxes represent multiple choice, and text-entry focus, warnings, progress, actions and final review are distinct. Cards use Pi's current theme and configured native key hints. They never appear in the companion or change Herdr focus. No option is approved just because it is highlighted. Results have version 1 and `answered` plus answers, or `cancelled`, `unavailable`, `busy` without submitted answers. Abort/session change discards drafts. An active question is not displaced by another panel/question. Questions collect requirements, not native trust or operation permissions.
 
 Form transitions synchronize controls and text focus immediately, including when multiple keystrokes arrive before the next render. Enter after the last text answer opens review; another Enter acts on the newly focused review row, without implicit submission. Submission, cancellation and disposal end input handling, and the result callback runs at most once.
 

@@ -7,6 +7,55 @@ const choice = (id = "opaque-id") => ({ id, prompt: "Pick a marker", selection: 
 const keys = { matches: (data, action) => ({ "tui.select.cancel": "\x1b", "tui.select.pageDown": "\x1b[6~", "tui.select.pageUp": "\x1b[5~" })[action] === data };
 const down = "\x1b[B", enter = "\r";
 
+test("shouldRenderApprovedBorderedRadioCheckboxTextAndReviewCards", async (t) => {
+	// Given
+	const { createQuestionnaire } = await setup(t);
+	const frame = selection => createQuestionnaire([{ ...choice(), selection, allowText: true }], { terminal: { rows: 24 }, requestRender() {} }, () => plainTheme, keys, () => {});
+	const single = frame("single"), multiple = frame("multiple");
+	// When / Then
+	assert.match(single.render(80).join("\n"), /╭.*QUESTION/);
+	assert.match(single.render(80).join("\n"), /\( \)/);
+	assert.match(multiple.render(80).join("\n"), /\[ \]/);
+	single.handleInput(enter); assert.match(single.render(80).join("\n"), /\(●\)/);
+	for (const key of [down, down, enter]) single.handleInput(key);
+	single.focused = true;
+	assert.match(single.render(80).join("\n"), /TEXT ENTRY/);
+	single.handleInput("Exact draft"); single.handleInput(enter);
+	assert.match(single.render(80).join("\n"), /REVIEW/);
+	assert.match(single.render(80).join("\n"), /Submit answers/);
+});
+
+test("shouldReserveNativeLayoutRowsWhenQuestionCardUsesAShortTerminal", async (t) => {
+	// Given
+	const { createQuestionnaire } = await setup(t);
+	const outcomes = [];
+	const component = createQuestionnaire([{ ...choice(), allowText: true }], { terminal: { rows: 12 }, requestRender() {} }, () => plainTheme, keys, result => outcomes.push(result));
+	// When
+	const lines = component.render(64);
+	// Then
+	assert.ok(lines.length <= 6, "Native footer, status/widget and chat spacing must remain outside the card");
+	assert.match(lines[0], /QUESTION/);
+	assert.match(lines.at(-1), /^╰/);
+	assert.deepEqual(outcomes, []);
+});
+
+test("shouldBoundQuestionCardHeightAndHonorResolvedNativeHintsAcrossThemes", async (t) => {
+	// Given
+	const { createQuestionnaire } = await setup(t);
+	const configured = { ...keys, getKeys: action => action === "tui.select.cancel" ? ["ctrl+q"] : ["enter"] };
+	let theme = plainTheme;
+	const component = createQuestionnaire([{ ...choice(), prompt: "日本語 🧩 café ".repeat(50), allowText: true }], { terminal: { rows: 13 }, requestRender() {} }, () => theme, configured, () => {});
+	// When / Then
+	for (const width of [1, 20, 40, 48, 80, 120]) {
+		const lines = component.render(width);
+		assert.ok(lines.every(line => tui.visibleWidth(line) <= width));
+		assert.ok(lines.length <= 13);
+	}
+	assert.match(component.render(120).join("\n"), /ctrl\+q/);
+	theme = { ...plainTheme, fg: (_token, text) => `\x1b[32m${text}\x1b[0m` }; component.invalidate();
+	assert.match(component.render(80).join("\n"), /\x1b\[32m/);
+});
+
 test("shouldSynchronizeEveryTransitionWithoutRenderBetweenQuestionnaireKeystrokes", async (t) => {
 	const { createQuestionnaire } = await setup(t);
 	const outcomes = [];
@@ -25,6 +74,41 @@ test("shouldSynchronizeEveryTransitionWithoutRenderBetweenQuestionnaireKeystroke
 	assert.deepEqual(outcomes, [{ status: "answered", answers: [
 		{ id: "first", values: ["opaque/beta"] }, { id: "last", values: [], text: "free text" },
 	] }]);
+});
+
+test("shouldBackOutOfTextEntryBeforeCancellingWhenNativeEscapeBindingsOverlap", async (t) => {
+	// Given
+	const { createQuestionnaire } = await setup(t);
+	const { KeybindingsManager } = await importHost("dist/core/keybindings.js");
+	const nativeKeys = new KeybindingsManager();
+	const outcomes = [];
+	const component = createQuestionnaire([{ ...choice(), allowText: true }], { terminal: { rows: 24 }, requestRender() {} }, () => plainTheme, nativeKeys, result => outcomes.push(result));
+	component.focused = true;
+	for (const key of [down, down, enter, "Unsubmitted draft"]) component.handleInput(key);
+	assert.equal(nativeKeys.matches("\x1b", "app.interrupt"), true);
+	assert.equal(nativeKeys.matches("\x1b", "tui.select.cancel"), true);
+	// When
+	component.handleInput("\x1b");
+	// Then
+	assert.match(component.render(80).join("\n"), /CHOICES/);
+	assert.deepEqual(outcomes, []);
+	component.handleInput("\x1b");
+	assert.deepEqual(outcomes, [{ status: "cancelled" }]);
+});
+
+test("shouldRetainConfiguredWholeQuestionInterruptDuringTextEntry", async (t) => {
+	// Given
+	const { createQuestionnaire } = await setup(t);
+	const { KeybindingsManager } = await importHost("dist/core/keybindings.js");
+	const nativeKeys = new KeybindingsManager({ "app.interrupt": "ctrl+x", "tui.select.cancel": "ctrl+q" });
+	const outcomes = [];
+	const component = createQuestionnaire([{ ...choice(), allowText: true }], { terminal: { rows: 24 }, requestRender() {} }, () => plainTheme, nativeKeys, result => outcomes.push(result));
+	component.focused = true;
+	for (const key of [down, down, enter, "Unsubmitted draft"]) component.handleInput(key);
+	// When
+	component.handleInput("\x18");
+	// Then
+	assert.deepEqual(outcomes, [{ status: "cancelled" }]);
 });
 
 test("shouldTransferTextFocusImmediatelyWhenEditingStartsAndEndsWithoutRender", async (t) => {
@@ -105,21 +189,20 @@ for (const mode of ["rpc", "json", "print"]) {
 
 test("shouldPreserveOpaqueIdsAndValuesAndAllowCorrectionWhenNativeSingleChoiceSubmits", async (t) => {
 	// Given
-	const { tool, ctx } = await setup(t);
+	const { tool, ctx, dialogs } = await setup(t);
 	const question = choice("id\x1b[31m原");
 	question.options[1] = { label: "\x1b[31mBeta\x1b[0m\nnext", value: "\x1b[32mexact\nopaque" };
-	const seen = [];
-	let step = 0;
-	ctx.ui.select = async (title, options) => {
-		seen.push({ title, options });
-		return options[[1, 1, 0, 0][step++]];
-	};
+	const pending = tool.execute("ask", { questions: [question] }, undefined, undefined, ctx);
+	await Promise.resolve();
+	const component = dialogs.at(-1)?.component;
+	assert.ok(component, "Simple questions must use the same native card");
 	// When
-	const result = await tool.execute("ask", { questions: [question] }, undefined, undefined, ctx);
+	for (const key of [down, enter, down, enter, enter]) component.handleInput(key); // Choose Beta, review, then correct.
+	for (const key of [enter, down, down, enter, down, enter]) component.handleInput(key); // Choose Alpha, review and explicitly submit.
+	const result = await pending;
 	// Then
 	assert.deepEqual(result.details, { version: 1, status: "answered", answers: [{ id: question.id, values: ["opaque/alpha"] }] });
-	assert.equal(step, 4);
-	assert.ok(seen.every(({ title, options }) => !/[\x00-\x1f\x7f]/.test(title + options.join(""))));
+	assert.doesNotMatch(stripVTControlCharacters(component.render(80).join("\n")), /\x1b/);
 	assert.equal(tool.exposure, "model-only");
 	assert.equal(tool.executionMode, "sequential");
 });
@@ -127,18 +210,13 @@ test("shouldPreserveOpaqueIdsAndValuesAndAllowCorrectionWhenNativeSingleChoiceSu
 for (const action of ["cancel", "abort", "session-change"]) {
 	test(`shouldDiscardAllAnswersWhenNativeInteractionEndsBy${action}`, { timeout: 3000 }, async (t) => {
 		// Given
-		const { tool, owner, ctx } = await setup(t);
+		const { tool, owner, ctx, dialogs } = await setup(t);
 		const controller = new AbortController();
-		let started;
-		const entered = new Promise((resolve) => { started = resolve; });
-		ctx.ui.select = (_title, _options, { signal }) => new Promise((resolve) => {
-			started(resolve);
-			signal.addEventListener("abort", () => resolve(undefined), { once: true });
-		});
 		const pending = tool.execute("ask", { questions: [choice()] }, controller.signal, undefined, ctx);
-		const finish = await entered;
+		await Promise.resolve();
+		assert.ok(dialogs.at(-1));
 		// When
-		if (action === "cancel") finish(undefined);
+		if (action === "cancel") dialogs.at(-1).done({ status: "cancelled" });
 		else if (action === "abort") controller.abort();
 		else owner.activate(ctx);
 		// Then
@@ -149,15 +227,13 @@ for (const action of ["cancel", "abort", "session-change"]) {
 
 test("shouldRejectConcurrentQuestionAndPanelWithoutDisplacingInputWhenNativeDialogIsOwned", async (t) => {
 	// Given
-	const { tool, owner, ctx } = await setup(t);
-	let finish;
-	ctx.ui.select = () => new Promise((resolve) => { finish = resolve; });
+	const { tool, owner, ctx, dialogs } = await setup(t);
 	const first = tool.execute("ask", { questions: [choice()] }, undefined, undefined, ctx);
 	await Promise.resolve();
 	// When
 	const second = await tool.execute("ask2", { questions: [choice()] }, undefined, undefined, ctx);
 	const panel = await owner.modal("panel", () => ({ render: () => [], invalidate() {} }));
-	finish(undefined);
+	dialogs[0].done({ status: "cancelled" });
 	// Then
 	assert.deepEqual({ second: second.details, panel, first: (await first).details }, {
 		second: { version: 1, status: "busy" }, panel: { status: "busy" }, first: { version: 1, status: "cancelled" },
@@ -229,7 +305,7 @@ for (const action of ["submit", "abort", "session-change", "unavailable"]) {
 	test(`shouldPersistOnlyExplicitAnswersWhenNativeModelQuestionEndsBy${action}`, { timeout: 5000 }, async (t) => {
 		// Given
 		const { createAssistantMessageEventStream } = await importHost("node_modules/@earendil-works/pi-ai/dist/index.js");
-		const { session, ctx, errors } = await createUISession(t, action === "unavailable" ? "print" : "tui");
+		const { session, ctx, errors, dialogs } = await createUISession(t, action === "unavailable" ? "print" : "tui");
 		let entered;
 		const started = new Promise((resolve) => { entered = resolve; });
 		let requests = 0;
@@ -245,9 +321,11 @@ for (const action of ["submit", "abort", "session-change", "unavailable"]) {
 			},
 		});
 		await session.setModel((await session.modelRuntime.getAvailable()).find(({ provider }) => provider === "question-fixture"));
-		ctx.ui.select = (_title, options, { signal }) => {
-			entered();
-			return action === "submit" ? Promise.resolve(options[0]) : new Promise((resolve) => signal.addEventListener("abort", () => resolve(undefined), { once: true }));
+		const original = ctx.ui.custom;
+		ctx.ui.custom = (factory, options) => {
+			const pending = original(factory, options); entered();
+			if (action === "submit") for (const key of [enter, down, down, enter, down, enter]) dialogs.at(-1).component.handleInput(key);
+			return pending;
 		};
 		// When
 		const running = session.prompt("Use the harmless native question fixture.");
