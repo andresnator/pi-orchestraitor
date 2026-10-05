@@ -1,6 +1,6 @@
 ---
 name: implementation-skill-routing
-description: "Trigger: plan Skills field, implementation skill routing, execution skill selection. Select the smallest implementation skill set for each work group."
+description: "Select minimal implementation skills for plan groups and Skills fields."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

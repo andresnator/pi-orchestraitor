@@ -1,6 +1,6 @@
 ---
 name: java-exception-robustness
-description: "Trigger: Java exceptions, error handling, try-with-resources, resource cleanup, checked exceptions, robustness. Design Java failure handling safely."
+description: "Design Java error handling, checked exceptions, try-with-resources and cleanup."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

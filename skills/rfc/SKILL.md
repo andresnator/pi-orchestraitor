@@ -1,6 +1,6 @@
 ---
 name: rfc
-description: "Trigger: RFC, request for comments, technical proposal. Create RFCs for feature designs, engineering changes, trade-offs, alternatives, and open questions."
+description: "Create RFCs/technical proposals with design, alternatives, tradeoffs and open questions."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

@@ -1,8 +1,6 @@
 ---
 name: prompt-structure-writer
-description: >
-  Trigger: improve prompt, rewrite prompt, prompt structure, prompt review, prompt evaluation.
-  Convert loose ideas, rough instructions, or messy text into clear, brief, executable prompts for local agents such as Codex, Claude Code, OpenCode, and similar runtimes.
+description: "Improve, rewrite, structure, review or evaluate rough prompts into brief executable instructions for local AI agents."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

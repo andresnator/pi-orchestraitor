@@ -1,6 +1,6 @@
 ---
 name: java-secure-coding
-description: "Trigger: Java secure coding, Oracle Secure Coding Guidelines, input validation, trust boundaries, deserialization, least privilege, sensitive data. Review Java code for secure implementation practices."
+description: "Review Java security: Oracle guidelines, validation, trust, deserialization, privileges and sensitive data."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

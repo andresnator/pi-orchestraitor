@@ -1,6 +1,8 @@
 # See delegated work, tasks and decisions without replacing Pi
 
-The optional UI extension adds read-only agents/tasks panels, a compact task work header, one native-footer status and a unified question tool. Pi still owns the editor, application keybindings, native model/context/usage display and execution. A manually opened [Herdr companion](herdr-workbench.md), backed by automatic publishing in eligible Herdr terminals, independently projects read-only tasks/agents and recorded usage; it is not another Pi renderer. This is presentation and branch-local task replay, not another scheduler or durable SDD recovery.
+The optional UI extension adds read-only agents/tasks panels, a compact task work header, one native-footer status and a unified question tool. Pi still owns the editor, application keybindings, native model/context/usage display and execution. This is presentation and branch-local task replay, not another scheduler or durable SDD recovery.
+
+The installer also registers the separate [pi-pretty companion](pi-pretty.md). It owns read/bash presentation and its prompt-editor/activity customization; this UI extension still owns only the harness widget, status and foreground interactions.
 
 ## Quick path
 
@@ -20,8 +22,7 @@ Only native TUI mode creates components. In RPC, JSON and print, tasks still wor
 | Agent observations and bounded branch outcomes | `extensions/ui/agents.ts`; active batch plus at most 20 recent outcomes. |
 | Task authority | Validated successful native `orchestraitor_tasks` results on the active branch, replayed by `extensions/ui/tasks.ts`. |
 | Requirements/preferences | One `orchestraitor_ask` schema and interaction in `extensions/ui/questions.ts`. |
-| Safe terminal display | Native `extensions/ui/display.ts` and the bounded standalone workbench contract's matching Node sanitation primitives; original IDs and opaque values remain untouched. |
-| Optional companion publisher | Existing `status-ui.ts`, enabled by default only in interactive TUI/Herdr terminals and explicitly disableable; disposable display transport, never execution or answer authority. |
+| Safe terminal display | Native `extensions/ui/display.ts`; original IDs and opaque values remain untouched. |
 
 ## Panels and compact chrome
 
@@ -49,13 +50,15 @@ Before tree navigation, session switching or forking, the UI cancels its current
 }
 ```
 
+Mutation content returns `operation`, `revision`, `bindingCurrent`, `projectIdentity` and the affected `tasks` (empty after clear); a newly supplied binding is also returned. Reuse that revision for subsequent operations. `list` returns the complete `{state, bindingCurrent, projectIdentity}` view. Full versioned state remains in `details` for replay, native expansion and UI; historical receipts retain their meaning.
+
 Operations are `replace`, `add`, `update`, `list`, `clear`. IDs remain stable on replacement; explicit clear discards the list. Statuses are `pending`, `in_progress`, `blocked`, `done`. Limits: 50 tasks, 80-character IDs, 200-character titles and 1,000-character evidence/reason notes. Marking done requires evidence in that update; reopening requires a reason. Child success never completes a task automatically.
 
 Exact-plan work includes a binding with the canonical project identity returned by `list`, repository-relative `path`, original `sha256`, unique `groups` and each task's `group`. Binding verification is read-only and occurs outside rendering. Drift blocks mutations; reads/panels warn that the old projection is stale. The plan bytes and checkboxes are never changed by tasks.
 
 Uncommitted, failed, invalid or cancelled candidate snapshots are not authority. Reload/tree/fork replay follows the active native branch; a fresh session starts empty. This does not validate cross-session execution resumption. UI unavailability does not block otherwise safe work.
 
-Task replay is awaited at the start of each tool, so persisted creation, updates and clearing are visible while the next question or agent tool is still waiting. `turn_end` refreshes the final tool result. On Pi 1.0.2, `message_end` and `tool_execution_end` precede persistence, so their candidate results are not used to update the task widget. Async plan-binding checks apply only to the current context, interaction generation and latest refresh request. Hidden chrome stays hidden through these refreshes.
+Task refresh is awaited at the start of each tool, reusing the projection while the native manager and leaf are unchanged, so persisted creation, updates and clearing are visible while the next question or agent tool is still waiting. `turn_end` refreshes the final tool result. On Pi 1.0.2, `message_end` and `tool_execution_end` precede persistence, so their candidate results are not used to update the task widget. Async plan-binding checks apply only to the current context, interaction generation and latest refresh request. Hidden chrome stays hidden through these refreshes. Later refreshes still hash externally editable bound plans; only concurrent checks are coalesced.
 
 ## Question contract
 
@@ -74,7 +77,7 @@ Example model input:
 
 Use one to six unique IDs, `single` or `multiple`, two to eight distinct values per choice. Questions default to required; `required:false` permits skipping. Free text needs explicit `allowText:true`. Prompts/values/answers are bounded to 1,000 characters and labels to 200. IDs/option values are returned exactly, separately from sanitized labels.
 
-Simple and rich questions use the same bordered, padded native Pi card, composing selection, text input and scrolling with correction before explicit final submission. Radio marks represent single choice, checkboxes represent multiple choice, and text-entry focus, warnings, progress, actions and final review are distinct. Cards use Pi's current theme and configured native key hints. They never appear in the companion or change Herdr focus. No option is approved just because it is highlighted. Results have version 1 and `answered` plus answers, or `cancelled`, `unavailable`, `busy` without submitted answers. Abort/session change discards drafts. An active question is not displaced by another panel/question. Questions collect requirements, not native trust or operation permissions.
+Simple and rich questions use the same bordered, padded native Pi card, composing selection, text input and scrolling with correction before explicit final submission. Radio marks represent single choice, checkboxes represent multiple choice, and text-entry focus, warnings, progress, actions and final review are distinct. Cards use Pi's current theme and configured native key hints. No option is approved just because it is highlighted. Results have version 1 and `answered` plus answers, or `cancelled`, `unavailable`, `busy` without submitted answers. Abort/session change discards drafts. An active question is not displaced by another panel/question. Questions collect requirements, not native trust or operation permissions.
 
 Form transitions synchronize controls and text focus immediately, including when multiple keystrokes arrive before the next render. Enter after the last text answer opens review; another Enter acts on the newly focused review row, without implicit submission. Submission, cancellation and disposal end input handling, and the result callback runs at most once.
 

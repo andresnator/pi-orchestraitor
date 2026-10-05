@@ -1,6 +1,6 @@
 ---
 name: dependency-inversion
-description: "Trigger: dependency inversion, DIP, ports, interfaces, adapters. Detect concrete dependency risks at boundaries."
+description: "Evaluate DIP, ports, interfaces and adapters at concrete dependency boundaries."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

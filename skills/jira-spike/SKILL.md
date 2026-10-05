@@ -1,6 +1,6 @@
 ---
 name: jira-spike
-description: "Create or refine Jira Spike tickets in Jira Markup. Use when the user wants a Spike, research ticket, investigation ticket, technical exploration, discovery work, research question, or SDD-ready Spike input."
+description: "Draft/refine Jira Spikes in Jira Markup for research, investigation, technical exploration or SDD-ready discovery."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

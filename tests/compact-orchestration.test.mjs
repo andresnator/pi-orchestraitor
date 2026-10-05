@@ -134,6 +134,24 @@ test("shouldCompactSubagentResultsAndExposeChildFailuresAndAllResponsesOnExpansi
 	assert.match(component.render(120).map(stripAnsi).join("\n"), /2\/2 completed/);
 });
 
+test("shouldExposeFullReceiptsOnlyInExpandedViewWhenModelHandoffsAreCompact", async (t) => {
+	// Given
+	const { session } = await fixture(t);
+	const results = [{ id: "child", role: "review", cwd: "/private-workspace", model: "fixture/effective-model",
+		status: "completed", finalResponse: "src/a.ts:12 inspected", terminated: true }];
+	const outcome = { content: [{ type: "text", text: '[{"id":"child","status":"completed","finalResponse":"src/a.ts:12 inspected","terminated":true}]' }], details: { results } };
+	const before = structuredClone(outcome);
+	const component = componentFor(session, "subagent_run", { tasks: [{ role: "review", instruction: "Inspect" }] });
+	// When
+	component.updateResult(outcome, false);
+	component.setExpanded(true);
+	const expanded = component.render(120).map(stripAnsi).join("\n");
+	// Then
+	assert.match(expanded, /fixture\/effective-model/);
+	assert.match(expanded, /private-workspace/);
+	assert.deepEqual(outcome, before);
+});
+
 test("shouldKeepStartingAndStoppingProgressSeparateFromFailuresWhenSubagentsAreCompact", async (t) => {
 	// Given
 	const { session } = await fixture(t);

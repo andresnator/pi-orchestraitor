@@ -1,8 +1,6 @@
 ---
 name: repo-issues
-description: >
-  Trigger: repo issues, project problems, architecture issue shortlist.
-  Rank verified architecture gaps and pair them with proportional guardrails.
+description: "Rank verified project/architecture problems and pair them with proportionate guardrails."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

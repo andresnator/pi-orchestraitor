@@ -1,6 +1,6 @@
 ---
 name: cohesion-coupling
-description: "Trigger: cohesion, coupling, circular dependency, layer mixing. Detect low cohesion and excessive coupling."
+description: "Evaluate cohesion, coupling, circular dependencies and mixed layers."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

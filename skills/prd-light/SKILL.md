@@ -1,6 +1,6 @@
 ---
 name: prd-light
-description: "Trigger: PRD light, quick PRD, lightweight PRD, MVP requirements. Create lightweight PRDs for small features, internal tools, and early ideas."
+description: "Create lightweight PRDs for small features, internal tools, MVPs and early ideas."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

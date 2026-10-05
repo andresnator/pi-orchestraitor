@@ -98,7 +98,7 @@ The ADR explains **why**; the plan specifies **how to change safely**. Both rema
 
 ## Optional UI follows the chosen route
 
-For substantial authorized work, the main agent can project tasks through `orchestraitor_tasks` and collect bounded preferences through `orchestraitor_ask`. [Agents/tasks panels](../interactive-ui.md) show native observations and active-branch receipts. Neither tool selects a workflow, launches a new executor, accepts a child automatically or validates durable resumption. The separate, manually opened [Herdr workbench](../herdr-workbench.md), with publishing enabled by default in eligible Herdr terminals, follows the same native task/agent observations and all-entry usage; user-invoked pane lifecycle never routes task mutations, questions or execution commands. Small/read-only work needs no task artifact; non-TUI work can use textual clarification.
+For substantial authorized work, the main agent can project tasks through `orchestraitor_tasks` and collect bounded preferences through `orchestraitor_ask`. [Agents/tasks panels](../interactive-ui.md) show native observations and active-branch receipts. Neither tool selects a workflow, launches a new executor, accepts a child automatically or validates durable resumption. Small/read-only work needs no task artifact; non-TUI work can use textual clarification.
 
 ## Optional review is not another executor
 

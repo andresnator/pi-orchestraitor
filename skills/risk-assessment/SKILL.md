@@ -1,6 +1,6 @@
 ---
 name: risk-assessment
-description: "Trigger: risk assessment, refactor risk. Classify technical and functional legacy risk."
+description: "Assess technical and functional legacy/refactor risk."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

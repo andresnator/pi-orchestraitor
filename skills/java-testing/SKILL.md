@@ -1,6 +1,6 @@
 ---
 name: java-testing
-description: "Trigger: Java tests, JUnit, Mockito, AssertJ, legacy code, characterization tests, seams. Generate and retrofit Java tests safely."
+description: "Create/retrofit Java JUnit, Mockito and AssertJ tests, including legacy characterization tests and seams."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

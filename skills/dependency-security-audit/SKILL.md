@@ -1,8 +1,6 @@
 ---
 name: dependency-security-audit
-description: >
-  Trigger: dependency audit, CVE scan, vulnerable libraries, runtime support.
-  Audit dependency and runtime risk with read-only evidence.
+description: "Audit dependencies, CVEs and runtime support using read-only evidence."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

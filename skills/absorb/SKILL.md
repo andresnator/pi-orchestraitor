@@ -1,9 +1,6 @@
 ---
 name: absorb
-description: >
-  Analyze one or more external projects (git URL or local path) to extract
-  AI-harness practices, agent patterns, or instruction logic and contrast them
-  against this repository's harness. Not for application code review.
+description: "Compare external projects (Git URL/local path) with this AI harness; extract agent/instruction practices. Excludes application review."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

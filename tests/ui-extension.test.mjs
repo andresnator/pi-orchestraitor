@@ -1,223 +1,72 @@
 import assert from "node:assert/strict";
 import { dirname, join } from "node:path";
-import { realpath, rm } from "node:fs/promises";
+import { mkdir, realpath, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
 import { stripVTControlCharacters } from "node:util";
 import { BatchController } from "../extensions/subagent/controller.mjs";
 import test from "node:test";
 import { createUISession, createWorkspace, fakeUIContext, loadExtensions, loadUiModule, packageRoot } from "./helpers/ui-harness.mjs";
-import { loadPackage, startSession } from "./helpers/pi-host.mjs";
 
-async function workbenchHarness(t, { mode = "tui", flag, herdr = true, tty = true, rejectSource = false, native = false } = {}) {
-	const { default: register } = await loadUiModule(t, "extensions/status-ui.ts");
-	const handlers = new Map(), commands = new Map(), flags = new Map(), calls = [], updates = [];
-	const { ctx, calls: uiCalls } = fakeUIContext(mode);
-	ctx.cwd = await createWorkspace(t);
-	const fake = { on(name, handler) { const items = handlers.get(name) ?? []; items.push(handler); handlers.set(name, items); },
-		registerTool() {}, registerCommand(name, command) { commands.set(name, command); },
-		registerFlag(name, options) { flags.set(name, options); }, getFlag(name) { return flag ?? flags.get(name)?.default; } };
-	let beforePublish, factories = 0, session;
-	const workbench = {
-		isHerdrTerminal: () => herdr && tty,
-		async resolveSource(sourceCtx) { calls.push("resolve"); if (rejectSource) throw new Error("unavailable"); return { session: sourceCtx.sessionManager.getSessionId() }; },
-		createPublisher(options) { beforePublish = options.beforePublish; calls.push("create"); let enabled = false; let identity;
-			return { get enabled() { return enabled; }, get identity() { return identity; }, async start(source) { calls.push("start"); enabled = true; identity = source; },
-				update(value) { updates.push(structuredClone(value)); return true; }, async flush() {}, async stop() { calls.push("stop"); enabled = false; } };
-		},
-	};
-	if (native) {
-		const resources = await loadPackage(ctx.cwd, { settings: { packages: [] }, extensionFactories: [(pi) => {
-			factories++; register({ ...pi, getFlag: name => flag ?? pi.getFlag(name) }, workbench);
-		}] });
-		({ session } = await startSession(t, ctx.cwd, resources));
-		await session.bindExtensions({ uiContext: ctx.ui, mode });
-	} else register(fake, workbench);
-	const emit = async (name, event = {}) => {
-		if (session) return session.extensionRunner.emit({ type: name, ...event });
-		for (const handler of handlers.get(name) ?? []) await handler({ type: name, ...event }, ctx);
-	};
-	if (!native) t.after(() => emit("session_shutdown"));
-	return { get ctx() { return session?.extensionRunner.createContext() ?? ctx; }, calls, updates, uiCalls, emit,
-		command: args => session ? session.extensionRunner.getCommand("orchestraitor:workbench").handler(args, session.extensionRunner.createCommandContext()) : commands.get("orchestraitor:workbench")?.handler(args, ctx),
-		commands, flags, session, get factories() { return factories; }, heartbeat() { beforePublish?.(); } };
-}
+const header = ({ widgets, ctx }) => widgets.get("orchestraitor:work")?.({ terminal: { rows: 24 } }, ctx.ui.theme).render(100).join("\n") ?? "";
 
-test("shouldEnableWorkbenchByDefaultWhenPiStartsInAnEligibleHerdrTerminal", async (t) => {
+test("shouldReuseTaskProjectionWhenNativeHistoryIsUnchangedAcrossHooks", async (t) => {
 	// Given
-	const harness = await workbenchHarness(t);
+	const ui = await createUISession(t), { session } = ui;
+	const manager = session.sessionManager, runner = session.extensionRunner;
+	let branchReads = 0;
+	const branch = manager.getBranch.bind(manager);
+	manager.getBranch = () => { branchReads++; return branch(); };
+	manager.getEntries = () => { assert.fail("Native UI must not scan all session entries"); };
 	// When
-	await harness.emit("session_start");
+	await runner.emit({ type: "tool_execution_start", toolName: "read" });
+	await runner.emit({ type: "turn_end" });
+	await runner.emit({ type: "agent_settled" });
 	// Then
-	assert.equal(harness.flags.get("orchestraitor-workbench").default, true);
-	assert.deepEqual({ calls: harness.calls, updates: harness.updates.length, uiCalls: harness.uiCalls },
-		{ calls: ["resolve", "create", "start"], updates: 1, uiCalls: [] });
+	assert.equal(branchReads, 0);
+	manager.appendMessage({ role: "toolResult", toolName: "orchestraitor_tasks", toolCallId: "seed", content: [], isError: false, timestamp: 1,
+		details: { version: 1, operation: "add", state: { version: 1, revision: 1, tasks: [{ id: "one", title: "Branch work", status: "pending" }] } } });
+	await runner.emit({ type: "tool_execution_start", toolName: "read" });
+	assert.equal(branchReads, 1);
+	assert.match(header(ui), /0\/1 done/);
 });
 
-for (const [condition, options] of [["OutsideHerdr", { herdr: false }], ["NotAnInteractiveTerminal", { tty: false }]]) {
-	test(`shouldKeepDefaultWorkbenchInertWhen${condition}`, async (t) => {
-		// Given
-		const harness = await workbenchHarness(t, options);
-		// When
-		await harness.emit("session_start");
-		// Then
-		assert.deepEqual({ calls: harness.calls, updates: harness.updates, uiCalls: harness.uiCalls },
-			{ calls: [], updates: [], uiCalls: [] });
-	});
-}
-
-test("shouldPreserveDisableUntilExplicitReenableWhenDefaultPublisherIsReconstructed", async (t) => {
+test("shouldRefreshBranchTasksWhenNavigationKeepsEntryCount", async (t) => {
 	// Given
-	const harness = await workbenchHarness(t);
-	await harness.emit("session_start");
+	const ui = await createUISession(t), { session, widgets } = ui;
+	const manager = session.sessionManager, runner = session.extensionRunner;
+	const root = manager.appendMessage({ role: "user", content: "root", timestamp: 0 });
+	manager.appendMessage({ role: "toolResult", toolName: "orchestraitor_tasks", toolCallId: "seed", content: [], isError: false, timestamp: 1,
+		details: { version: 1, operation: "add", state: { version: 1, revision: 1, tasks: [{ id: "one", title: "Branch work", status: "pending" }] } } });
+	await runner.emit({ type: "turn_end" });
+	assert.match(header(ui), /0\/1 done/);
+	const count = manager.getEntryCount();
+	manager.getEntries = () => { assert.fail("Native UI must not scan all session entries"); };
 	// When
-	await harness.command("disable");
-	await harness.emit("session_start", { reason: "reload" });
-	await harness.emit("session_tree");
-	await harness.emit("turn_end");
-	const disabledCalls = [...harness.calls];
-	await harness.command("enable");
-	await harness.command("enable");
+	manager.branch(root);
+	await runner.emit({ type: "session_tree", oldLeafId: null, newLeafId: root });
 	// Then
-	assert.deepEqual({ disabledCalls, calls: harness.calls },
-		{ disabledCalls: ["resolve", "create", "start", "stop"], calls: ["resolve", "create", "start", "stop", "resolve", "create", "start"] });
+	assert.equal(manager.getEntryCount(), count);
+	assert.equal(widgets.has("orchestraitor:work"), false);
 });
 
-for (const flag of [true, false]) test(`shouldPreserveExplicitPublisherOverridesAcrossNativeReloadWithFlag${flag}`, async (t) => {
+test("shouldDetectExternalPlanDriftEvenWhenTaskProjectionIsCached", async (t) => {
 	// Given
-	const harness = await workbenchHarness(t, { native: true, flag });
-	await harness.emit("session_start");
-	const firstRunner = harness.session.extensionRunner;
+	const ui = await createUISession(t), { session } = ui;
+	const cwd = await realpath(session.extensionRunner.createContext().cwd);
+	await mkdir(join(cwd, ".git")); await writeFile(join(cwd, "plan.md"), "original");
+	const binding = { project: cwd, path: "plan.md", sha256: createHash("sha256").update("original").digest("hex"), groups: ["g1"] };
+	session.sessionManager.appendMessage({ role: "toolResult", toolName: "orchestraitor_tasks", toolCallId: "bound", content: [], isError: false, timestamp: 0,
+		details: { version: 1, operation: "replace", state: { version: 1, revision: 1, binding, tasks: [{ id: "one", title: "Bound work", group: "g1", status: "pending" }] } } });
+	await session.extensionRunner.emit({ type: "turn_end" });
+	assert.doesNotMatch(header(ui), /plan binding stale/);
+	session.sessionManager.getBranch = () => { assert.fail("Unchanged branch must not be reconstructed"); };
 	// When
-	await harness.command("disable");
-	const starts = harness.calls.filter(call => call === "start").length;
-	await harness.session.reload();
+	await writeFile(join(cwd, "plan.md"), "external edit");
+	await session.extensionRunner.emit({ type: "turn_end" });
 	// Then
-	assert.notEqual(harness.session.extensionRunner, firstRunner);
-	assert.equal(harness.factories, 2);
-	assert.equal(harness.calls.filter(call => call === "start").length, starts);
-	await harness.command("enable");
-	await harness.session.reload();
-	assert.equal(harness.factories, 3);
-	assert.equal(harness.calls.filter(call => call === "start").length, starts + 2);
-});
-
-test("shouldKeepWorkbenchInertWhenExplicitlyDisabledAndStopAfterManualEnable", async (t) => {
-	// Given
-	const harness = await workbenchHarness(t, { flag: false });
-	await harness.emit("session_start");
-	assert.deepEqual(harness.calls, []);
-	// When
-	assert.ok(harness.commands.has("orchestraitor:workbench"));
-	await harness.command("enable");
-	await harness.command("disable");
-	await harness.emit("tool_execution_update", { toolName: "read" });
-	// Then
-	assert.deepEqual(harness.calls, ["resolve", "create", "start", "stop"]);
-	assert.equal(harness.updates.length, 1);
-});
-
-for (const mode of ["rpc", "json", "print"]) test(`shouldNotStartOptedInWorkbenchIn${mode}`, async (t) => {
-	// Given / When
-	const harness = await workbenchHarness(t, { mode, flag: true });
-	await harness.emit("session_start"); await harness.command("enable");
-	// Then
-	assert.deepEqual(harness.calls, []);
-});
-
-test("shouldPublishCommittedTasksButNeverQuestionsOrTranscriptContent", async (t) => {
-	// Given
-	const harness = await workbenchHarness(t, { flag: true });
-	await harness.emit("session_start");
-	harness.ctx.sessionManager.appendMessage({ role: "user", content: "PRIVATE PROMPT AND DRAFT", timestamp: Date.now() });
-	harness.ctx.sessionManager.appendMessage({ role: "toolResult", toolName: "orchestraitor_ask", content: [{ type: "text", text: "PRIVATE ANSWER" }], toolCallId: "q", timestamp: Date.now(), isError: false });
-	harness.ctx.sessionManager.appendMessage({ role: "toolResult", toolName: "orchestraitor_tasks", toolCallId: "t", content: [], timestamp: Date.now(), isError: false,
-		details: { version: 1, operation: "replace", state: { version: 1, revision: 1, tasks: [{ id: "one", title: "Committed work", status: "pending" }] } } });
-	// When
-	await harness.emit("tool_execution_start", { toolName: "orchestraitor_ask", toolCallId: "waiting" });
-	const before = harness.calls.length;
-	await harness.emit("session_before_tree"); // Simulate a veto: no committed session_tree follows.
-	// Then
-	assert.equal(harness.updates.at(-1)?.tasks.rows[0]?.title, "Committed work");
-	assert.doesNotMatch(JSON.stringify(harness.updates), /PRIVATE|waiting/);
-	assert.equal(harness.calls.length, before);
-});
-
-test("shouldRecreateOptedInPublisherOnReloadButKeepItThroughCommittedTreeAndVeto", async (t) => {
-	// Given
-	const harness = await workbenchHarness(t, { flag: true });
-	await harness.emit("session_start");
-	// When
-	await harness.emit("session_before_tree");
-	await harness.emit("session_tree");
-	assert.equal(harness.calls.filter(call => call === "create").length, 1);
-	await harness.emit("session_start", { reason: "reload" });
-	await harness.emit("session_shutdown");
-	const count = harness.updates.length;
-	await harness.emit("tool_execution_update", { toolName: "subagent_run", toolCallId: "late" });
-	await harness.emit("turn_end");
-	// Then
-	assert.equal(harness.calls.filter(call => call === "create").length, 2);
-	assert.equal(harness.calls.filter(call => call === "stop").length, 2);
-	assert.equal(harness.updates.length, count);
-});
-
-test("shouldReuseUsageProjectionDuringChildProgressInsteadOfRescanningHistory", async (t) => {
-	// Given
-	const harness = await workbenchHarness(t, { flag: true });
-	await harness.emit("session_start");
-	const original = harness.ctx.sessionManager.getEntries;
-	harness.ctx.sessionManager.getEntries = () => { assert.fail("Progress must not re-read history"); };
-	// When
-	await harness.emit("tool_execution_update", { toolName: "subagent_run", toolCallId: "unknown" });
-	// Then
-	assert.equal(harness.updates.length, 2);
-	harness.ctx.sessionManager.getEntries = original;
-});
-
-for (const boundary of ["heartbeat", "model_select"]) test(`shouldRefreshIdleNativeUsageReceiptsAt${boundary}`, async (t) => {
-	// Given
-	const harness = await workbenchHarness(t, { native: true });
-	await harness.emit("session_start");
-	const manager = harness.session.sessionManager;
-	const getEntries = manager.getEntries.bind(manager);
-	let scans = 0;
-	manager.getEntries = () => { scans++; return getEntries(); };
-	// When: append the same native receipt used by CacheWarmer.onWarmed while idle.
-	assert.equal(harness.ctx.isIdle(), true);
-	manager.appendUsage("cache_warm", "openai-codex", "idle-model", { input: 100, output: 0, cacheRead: 0, cacheWrite: 4, totalTokens: 104 });
-	if (boundary === "heartbeat") harness.heartbeat(); else await harness.emit("model_select");
-	// Then
-	assert.deepEqual(harness.updates.at(-1).usage.total, { input: 100, output: 0, cacheRead: 0, cacheWrite: 4, total: 104 });
-	assert.equal(harness.updates.at(-1).usage.complete, true);
-	assert.equal(scans, 1);
-	harness.heartbeat();
-	await harness.emit("tool_execution_update", { toolName: "subagent_run", toolCallId: "unknown" });
-	assert.equal(scans, 1);
-});
-
-test("shouldContainSourceFailureWithoutAffectingNativeUiWhenDefaultPublishingStarts", async (t) => {
-	// Given
-	const harness = await workbenchHarness(t, { rejectSource: true });
-	// When
-	await harness.emit("session_start");
-	await harness.emit("turn_end");
-	// Then
-	assert.deepEqual({ calls: harness.calls, updates: harness.updates }, { calls: ["resolve"], updates: [] });
-	assert.equal(harness.uiCalls.filter(row => row[0] === "notify" && /Workbench/.test(row[1])).length, 1);
-});
-
-test("shouldContainWorkbenchSourceFailureWithoutChangingNativeUiOrTools", async (t) => {
-	// Given
-	const harness = await workbenchHarness(t, { flag: false, rejectSource: true });
-	await harness.emit("session_start");
-	// When
-	await harness.command("enable");
-	await harness.emit("turn_end");
-	// Then
-	assert.deepEqual(harness.calls, ["resolve"]);
-	assert.deepEqual(harness.updates, []);
-	assert.ok(harness.uiCalls.some(row => row[0] === "notify" && /Workbench/.test(row[1])));
+	assert.match(header(ui), /plan binding stale/);
 });
 
 test("shouldClearOnlyOwnedChromeWhenDisposedRepeatedly", async (t) => {
@@ -310,8 +159,8 @@ test("shouldRegisterOneLifecycleOwnerWithoutStartupChromeWhenExtensionLoads", as
 	for (const handler of extension.handlers.get("session_shutdown")) await handler({ type: "session_shutdown" }, ctx);
 	// Then
 	assert.deepEqual({ tools: [...extension.tools.keys()], shortcuts: [...extension.shortcuts.keys()],
-		publisherDefault: extension.flags.get("orchestraitor-workbench")?.default, calls },
-		{ tools: ["orchestraitor_tasks", "orchestraitor_ask"], shortcuts: [], publisherDefault: true, calls: [] });
+		flags: [...extension.flags.keys()], commands: [...extension.commands.keys()], calls },
+		{ tools: ["orchestraitor_tasks", "orchestraitor_ask"], shortcuts: [], flags: [], commands: ["orchestraitor:ui", "orchestraitor:tasks", "orchestraitor:agents"], calls: [] });
 });
 
 for (const mode of ["tui", "rpc", "json", "print"]) {

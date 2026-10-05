@@ -1,6 +1,6 @@
 ---
 name: type-contracts
-description: "Trigger: type contracts, Object, Map<String,Object>, primitive obsession. Detect weak or implicit Java type contracts."
+description: "Find weak Java type contracts: Object, Map<String,Object> and primitive obsession."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

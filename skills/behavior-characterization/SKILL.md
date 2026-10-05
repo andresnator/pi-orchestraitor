@@ -1,6 +1,6 @@
 ---
 name: behavior-characterization
-description: "Trigger: behavior characterization, observable behavior. Record what legacy code does today."
+description: "Characterize observable legacy behavior before changes."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

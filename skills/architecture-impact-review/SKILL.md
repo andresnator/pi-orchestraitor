@@ -1,6 +1,6 @@
 ---
 name: architecture-impact-review
-description: "Trigger: architecture impact review, layer boundaries. Decide whether legacy risk is local or architectural."
+description: "Review layer boundaries and architecture impact; distinguish local from architectural legacy risk."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

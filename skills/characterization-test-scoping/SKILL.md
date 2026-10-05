@@ -1,6 +1,6 @@
 ---
 name: characterization-test-scoping
-description: "Trigger: characterization tests, seams, high-risk refactor planning, test safety planning. Scope high-risk refactor work around tests, seams, containment, and rollback."
+description: "Scope risky refactors using characterization tests, seams, containment and rollback."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

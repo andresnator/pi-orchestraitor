@@ -1,6 +1,6 @@
 ---
 name: java-naming-readability
-description: "Trigger: Java naming, readability, test names. Evaluate Java naming and readability with domain language."
+description: "Review Java names, readability and test names using domain language."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

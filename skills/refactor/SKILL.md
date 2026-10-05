@@ -1,16 +1,6 @@
 ---
 name: refactor
-description: |
-  Cross-language catalog of 62+ refactoring techniques based on Martin Fowler's "Refactoring" and
-  Alexander Shvets' "Refactoring Guru". Detects the project's language automatically and provides
-  idiomatic examples. Works with Java, Python, TypeScript, JavaScript, C#, Go, Kotlin, Ruby, PHP,
-  Rust, Swift. Use this skill whenever the user asks to refactor code, improve code quality, eliminate
-  code smells, simplify conditionals, restructure classes, improve API design, or apply any named
-  refactoring technique. Also trigger when the user mentions code smells, legacy code improvement,
-  clean code practices, SOLID principles, or asks "how can I improve this code". Even if the user
-  just pastes code and asks for improvement suggestions, use this skill to identify applicable techniques.
-  Equivalent requests in the user's language also activate this skill.
-
+description: "Select Fowler/Shvets refactoring techniques across languages. Use for refactoring, code improvement, smells, SOLID, conditionals/classes/APIs or pasted code needing improvement; equivalent requests in any language apply."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

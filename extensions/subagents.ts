@@ -106,13 +106,15 @@ export default function subagents(pi: ExtensionAPI) {
 					? `Editable files (exact project-relative paths):\n${JSON.stringify(manifest.files, null, 2)}\nEdit only these files.`
 					: "This task is read-only.";
 				prompts.set(manifest.id, [`Role: ${manifest.role}`, scope, manifest.instruction, manifest.context ?? "", ...bodies,
-					"Handoff: give the outcome with inspected/changed paths and relevant line ranges; distinguish observed findings from inference. Report blockers, remaining work and unperformed checks. If required evidence is inaccessible, say so. Do not run commands, delegate, or claim checks you did not perform."].join("\n\n"));
+					"Handoff: be concise; give the outcome with inspected/changed paths and relevant line ranges; distinguish observed findings from inference. Report blockers, remaining work and unperformed checks. If required evidence is inaccessible, say so. Do not run commands, delegate, or claim checks you did not perform."].join("\n\n"));
 			}
 			if (generation !== startedGeneration) throw new Error("Parent session changed during subagent preparation");
 			const results = await controller.run(manifests, (manifest) => prompts.get(manifest.id), combinedSignal, publish);
 			publish();
 			const usage = mergeUsage(results.map((result) => result.usage));
-			return { content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+			const handoffs = results.map(({ id, status, finalResponse, writes, diagnostic, terminated, usageComplete }) =>
+				({ id, status, finalResponse, writes, diagnostic, terminated, usageComplete }));
+			return { content: [{ type: "text", text: JSON.stringify(handoffs) }],
 				details: { results, usageComplete: results.length > 0 && results.every((result) => result.usageComplete === true) },
 				...(usage ? { usage } : {}) };
 		},

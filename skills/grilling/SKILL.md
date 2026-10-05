@@ -1,6 +1,6 @@
 ---
 name: grilling
-description: "Interview the user relentlessly about a plan or design. Use when the user wants to stress-test a plan before building, or uses any 'grill' trigger phrases."
+description: "Interview the user to stress-test a plan or design; activates on grill requests."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

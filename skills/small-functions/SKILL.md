@@ -1,6 +1,6 @@
 ---
 name: small-functions
-description: "Trigger: small functions, long method, extract method. Detect oversized functions and extractable blocks."
+description: "Find long methods and oversized functions; identify extraction opportunities."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

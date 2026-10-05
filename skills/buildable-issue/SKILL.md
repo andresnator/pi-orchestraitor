@@ -1,13 +1,6 @@
 ---
 name: buildable-issue
-description: >
-  Creates agent-ready GitHub issues that are ready to build. Formerly framed as
-  sdd-issue / SDD-ready issue creation. Use when creating a buildable issue,
-  implementation-ready ticket, SDD-ready issue, preparing work for an
-  orchestrator, or when the user says "create an issue", "write a ticket", or
-  "I need to build X". Also use when the user references an existing issue and
-  wants it enriched with scope, constraints, acceptance scenarios, and technical
-  context.
+description: "Create or enrich agent-ready GitHub issues/tickets (formerly SDD issues) with scope, acceptance and technical context."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

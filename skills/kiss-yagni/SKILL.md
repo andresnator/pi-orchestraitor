@@ -1,6 +1,6 @@
 ---
 name: kiss-yagni
-description: "Trigger: KISS, YAGNI, overengineering, speculative abstraction. Keep refactor plans simple and non-speculative."
+description: "Evaluate KISS, YAGNI, overengineering and speculative abstractions; simplify refactor plans."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

@@ -1,6 +1,6 @@
 ---
 name: god-object-detection
-description: "Trigger: God Object, Large Class, too many collaborators. Detect oversized objects with too many responsibilities."
+description: "Find God Objects and Large Classes with too many responsibilities or collaborators."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

@@ -1,6 +1,6 @@
 ---
 name: code-conventions
-description: "Trigger: writing production code or tests, applying test naming/assert style, extracting constants, placing DTOs or characterization tests. Andres's personal code and test conventions."
+description: "Apply Andres's production-code and test conventions: naming/assertions, constants, DTO placement and characterization tests. Excludes prose/config-only work."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

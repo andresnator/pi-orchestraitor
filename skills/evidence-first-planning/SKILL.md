@@ -1,6 +1,6 @@
 ---
 name: evidence-first-planning
-description: "Trigger: deep plan, evidence-first plan, planificar a fondo, planificacion basada en evidencia, discovery plan. Discover decisions and plan executable work from repository evidence."
+description: "Discover repository evidence and decisions for deep, evidence-first planning."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

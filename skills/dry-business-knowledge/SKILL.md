@@ -1,6 +1,6 @@
 ---
 name: dry-business-knowledge
-description: "Trigger: DRY, duplicated business knowledge, duplication. Distinguish harmful knowledge duplication from harmless similarity."
+description: "Evaluate DRY and duplication; separate repeated business knowledge from harmless similarity."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

@@ -1,6 +1,6 @@
 ---
 name: tooling-compatibility-matrix
-description: "Trigger: tooling compatibility matrix, mutation coverage tooling. Offline baseline for test, coverage, and mutation tool choices."
+description: "Choose test, coverage and mutation tools using an offline compatibility baseline."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

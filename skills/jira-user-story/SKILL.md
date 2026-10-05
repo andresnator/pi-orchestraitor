@@ -1,6 +1,6 @@
 ---
 name: jira-user-story
-description: "Create or refine Jira User Story tickets in Jira Markup. Use when the user wants a user story, story ticket, product capability, end-user outcome, acceptance criteria for a story, developer-ready story, or SDD-ready User Story input."
+description: "Draft/refine Jira User Stories in Jira Markup for product outcomes, acceptance criteria and developer/SDD readiness."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

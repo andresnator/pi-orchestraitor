@@ -1,6 +1,6 @@
 ---
 name: tooling-audit
-description: "Trigger: tooling audit, test tooling gaps. Detect build/test/coverage/mutation tooling for refactor safety plans."
+description: "Find build, test, coverage and mutation tooling gaps for refactor safety."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

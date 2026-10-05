@@ -163,7 +163,7 @@ export function createTaskTool(getGeneration: () => number): ToolDefinition {
 	return {
 		name: TASK_TOOL_NAME, label: "Work tasks", exposure: "model-only", executionMode: "sequential",
 		annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
-		description: "Project authorized multi-step work into this session branch. Operations: replace/add/update/list/clear. Mutations require expectedRevision; done requires parent evidence and reopening requires a reason. Use list for revision and canonical repository project identity. Plan binding is read-only verification, not execution recovery.",
+		description: "Track authorized branch work: replace/add/update/list/clear. Mutations require expectedRevision; done needs parent evidence, reopening a reason. Reuse returned revisions; list retrieves the complete board and project identity. Plan binding verifies the plan, not execution recovery.",
 		parameters: TaskParameters,
 		async execute(_id, params: TaskOperation, signal, _onUpdate, ctx: ExtensionContext) {
 			const combined = signal && ctx.signal ? AbortSignal.any([signal, ctx.signal]) : signal ?? ctx.signal;
@@ -178,7 +178,13 @@ export function createTaskTool(getGeneration: () => number): ToolDefinition {
 			const projectIdentity = await repositoryRoot(ctx.cwd);
 			if (combined?.aborted) throw new Error("Task update cancelled");
 			if (generation !== getGeneration() || leaf !== ctx.sessionManager.getLeafId() || JSON.stringify(before) !== JSON.stringify(replayTasks(ctx.sessionManager.getBranch()))) throw new Error("Session changed during task operation; retry from current branch state");
-			return { content: [{ type: "text", text: JSON.stringify({ state, bindingCurrent, projectIdentity }) }],
+			const response = params.operation === "list" ? { state, bindingCurrent, projectIdentity } : {
+				operation: params.operation, revision: state.revision, bindingCurrent, projectIdentity,
+				tasks: params.operation === "clear" ? [] : params.operation === "update" ? state.tasks.filter(task => task.id === params.id)
+					: state.tasks.filter(task => params.tasks?.some(changed => changed.id === task.id)),
+				...(params.binding ? { binding: state.binding } : {}),
+			};
+			return { content: [{ type: "text", text: JSON.stringify(response) }],
 				details: { version: TASK_SCHEMA_VERSION, operation: params.operation, state, bindingCurrent, projectIdentity } };
 		},
 	};

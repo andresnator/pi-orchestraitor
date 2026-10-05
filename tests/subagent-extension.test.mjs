@@ -5,6 +5,22 @@ import test from "node:test";
 import { createWorkspace, loadExtensions, packageRoot } from "./helpers/pi-host.mjs";
 
 const controllerKey = Symbol.for("pi-orchestraitor.subagent-controller");
+
+test("shouldPreserveHandoffAndSafetyEvidenceWithoutRepeatedMetadataWhenChildrenFinish", async (t) => {
+	// Given
+	const child = { id: "child", role: "review", cwd: "/project", model: "fixture/first", reasoning: "high", status: "cancelled",
+		finalResponse: "Observed src/a.ts:12; remaining check unavailable", writes: [{ path: "src/a.ts", status: "completed" }],
+		diagnostic: "Cancelled after a completed write", terminated: true, usageComplete: false,
+		usage: { input: 1, output: 2, cacheRead: 0, cacheWrite: 0, totalTokens: 3, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } };
+	const { tool, ctx } = await fixture(t, [child]);
+	// When
+	const result = await tool.execute("run", { tasks: [{ role: "review", instruction: "Inspect one file" }] }, undefined, undefined, ctx);
+	// Then
+	assert.deepEqual(JSON.parse(result.content[0].text), [{ id: "child", status: "cancelled", finalResponse: child.finalResponse,
+		writes: child.writes, diagnostic: child.diagnostic, terminated: true, usageComplete: false }]);
+	assert.deepEqual(result.details.results, [child]);
+	assert.deepEqual(result.usage, child.usage);
+});
 async function fixture(t, results = []) {
 	const cwd = await realpath(await createWorkspace(t));
 	const batches = [];
@@ -43,7 +59,10 @@ for (const scenario of ["writer", "readers", "partial", "unknown"]) {
 		const expected = scenario === "unknown" ? undefined : scenario === "writer" ? usage
 			: { input: 2, output: 4, cacheRead: 6, cacheWrite: 8, totalTokens: 20, reasoning: 2, cacheWrite1h: 4,
 				cost: { input: 0.25, output: 0.5, cacheRead: 0, cacheWrite: 0, total: 0.75 } };
-		assert.deepEqual(result, { content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+		const handoffs = scenario === "writer" ? [{ id: "one", status: "completed", usageComplete: true }]
+			: [{ id: "one", status: "completed", usageComplete: scenario !== "unknown" },
+				{ id: "two", status: scenario === "partial" ? "cancelled" : "completed", usageComplete: scenario === "readers" }];
+		assert.deepEqual(result, { content: [{ type: "text", text: JSON.stringify(handoffs) }],
 			details: { results, usageComplete: ["writer", "readers"].includes(scenario) }, ...(expected ? { usage: expected } : {}) });
 	});
 }
@@ -71,7 +90,7 @@ test("shouldForwardNativeProgressWithoutResultsOrUsageWhenObserverReportsPhases"
 	observer({ id: observedManifest.id, role: observedManifest.role, label: "inspect",
 		requestedModel: observedManifest.model, phase: "failed" });
 	// Then
-	assert.deepEqual(result, { content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+	assert.deepEqual(result, { content: [{ type: "text", text: '[{"id":"runtime","status":"completed","terminated":true}]' }],
 		details: { results, usageComplete: false } });
 	assert.equal(updates.length, before);
 	assert.ok(updates.every((value) => value.content.length === 0 && !value.usage && !value.details.results));

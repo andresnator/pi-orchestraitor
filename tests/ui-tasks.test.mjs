@@ -10,6 +10,54 @@ const receipt = (result, isError = false) => ({ type: "message", message: { role
 
 async function taskModule(t) { return loadUiModule(t, "extensions/ui/tasks.ts"); }
 
+test("shouldReturnOnlyAffectedTasksAndKeepFullReceiptsWhenUpdatingLargeBoards", async (t) => {
+	// Given
+	const { createTaskTool, replayTasks } = await taskModule(t);
+	const cwd = await realpath(await createWorkspace(t));
+	const ctx = { cwd, sessionManager: pi.SessionManager.inMemory(cwd) };
+	const tool = createTaskTool(() => 0);
+	const seed = await tool.execute("seed", { operation: "replace", expectedRevision: 0,
+		tasks: Array.from({ length: 20 }, (_, index) => pending(`t${index}`)) }, undefined, undefined, ctx);
+	ctx.sessionManager.appendMessage({ role: "toolResult", toolName: tool.name, toolCallId: "seed", isError: false, timestamp: Date.now(), ...seed });
+	// When
+	const result = await tool.execute("update", { operation: "update", expectedRevision: 1, id: "t0",
+		changes: { status: "done", evidence: "Synthetic check passed" } }, undefined, undefined, ctx);
+	ctx.sessionManager.appendMessage({ role: "toolResult", toolName: tool.name, toolCallId: "update", isError: false, timestamp: Date.now(), ...result });
+	const listed = await tool.execute("list", { operation: "list" }, undefined, undefined, ctx);
+	const { convertResponsesMessages } = await importHost("node_modules/@earendil-works/pi-ai/dist/api/openai-responses-shared.js");
+	const wire = convertResponsesMessages({ provider: "openai-codex", api: "openai-responses", id: "fixture", input: ["text"] },
+		{ messages: [{ role: "toolResult", toolName: tool.name, toolCallId: "update", isError: false, timestamp: 0, ...result }] }, new Set(["openai-codex"]));
+	// Then
+	assert.deepEqual(JSON.parse(result.content[0].text), { operation: "update", revision: 2, bindingCurrent: true, projectIdentity: cwd,
+		tasks: [{ ...pending("t0"), status: "done", evidence: "Synthetic check passed" }] });
+	assert.deepEqual(JSON.parse(listed.content[0].text).state, replayTasks(ctx.sessionManager.getBranch()));
+	assert.equal(result.details.state.tasks.length, 20);
+	assert.ok(result.content[0].text.length < listed.content[0].text.length * 0.4);
+	assert.deepEqual(wire, [{ type: "function_call_output", call_id: "update", output: result.content[0].text }]);
+});
+
+test("shouldReturnAffectedAddsReplacementAndClearWithReusableRevisions", async (t) => {
+	// Given
+	const { createTaskTool } = await taskModule(t);
+	const cwd = await createWorkspace(t);
+	const ctx = { cwd, sessionManager: pi.SessionManager.inMemory(cwd) };
+	const tool = createTaskTool(() => 0);
+	const responses = [];
+	let revision = 0;
+	// When
+	for (const input of [{ operation: "add", tasks: [pending("one")] }, { operation: "add", tasks: [pending("two")] },
+		{ operation: "replace", tasks: [pending("one"), pending("two")] }, { operation: "clear" }]) {
+		const result = await tool.execute("mutation", { ...input, expectedRevision: revision }, undefined, undefined, ctx);
+		const response = JSON.parse(result.content[0].text);
+		revision = response.revision;
+		responses.push({ operation: response.operation, revision, ids: response.tasks.map(task => task.id) });
+		ctx.sessionManager.appendMessage({ role: "toolResult", toolName: tool.name, toolCallId: "mutation", isError: false, timestamp: revision, ...result });
+	}
+	// Then
+	assert.deepEqual(responses, [{ operation: "add", revision: 1, ids: ["one"] }, { operation: "add", revision: 2, ids: ["two"] },
+		{ operation: "replace", revision: 3, ids: ["one", "two"] }, { operation: "clear", revision: 4, ids: [] }]);
+});
+
 test("shouldRequireEvidenceAndReopeningReasonWhenTaskStatusChanges", async (t) => {
 	// Given
 	const { emptyTasks, applyTaskOperation } = await taskModule(t);

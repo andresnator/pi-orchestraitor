@@ -1,6 +1,6 @@
 ---
 name: spaghetti-code-detection
-description: "Trigger: spaghetti code, temporal coupling, hidden side effects. Detect hard-to-follow flow and hidden ordering constraints."
+description: "Find tangled flow, temporal coupling and hidden side effects."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

@@ -1,6 +1,6 @@
 ---
 name: java-api-design
-description: "Trigger: Java API design, public API, encapsulation, modules, visibility, contracts, binary compatibility. Design Java APIs with clear boundaries."
+description: "Design Java public APIs: encapsulation, modules, visibility, contracts and binary compatibility."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

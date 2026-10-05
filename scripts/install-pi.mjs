@@ -8,7 +8,7 @@ import { inventorySkills } from "./skill-inventory.mjs";
 import { applyMigration, exists, planMigration, restoreBackup } from "./skill-migration.mjs";
 
 const PACKAGE_ROOT = fileURLToPath(new URL("../", import.meta.url));
-const HELP = "Usage: npm run install:pi -- [--local] [--cwd <project>] [--dry-run]\n       npm run install:pi -- --restore <backup-directory> [--dry-run]";
+const HELP = "Usage: npm run install:pi -- [--local] [--cwd <project>] [--without-pretty] [--dry-run]\n       npm run install:pi -- --restore <backup-directory> [--dry-run]";
 
 async function main() {
 	const options = parseOptions(process.argv.slice(2));
@@ -20,6 +20,8 @@ async function main() {
 	const pi = await importPi();
 	const cwd = resolve(options.cwd ?? process.cwd());
 	const agentDir = pi.getAgentDir();
+	const prettySource = JSON.parse(await readFile(join(PACKAGE_ROOT, "package.json"), "utf8")).config.piPretty;
+	const companionPackages = options.withoutPretty ? [] : [prettySource];
 	const catalog = JSON.parse(await readFile(join(PACKAGE_ROOT, "docs/skills-provenance.json"), "utf8")).skills;
 	const settingsPath = join(options.local ? join(cwd, ".pi") : agentDir, "settings.json");
 	const previousSettings = await exists(settingsPath) ? await readFile(settingsPath, "utf8") : undefined;
@@ -33,13 +35,17 @@ async function main() {
 	const inventory = () => inventorySkills(pi, { cwd, agentDir });
 	const { migrationSkills, protectedRoots } = await inventory();
 	const plan = await planMigration({ resources: migrationSkills, protectedRoots, agentDir, catalog, packageRoot: PACKAGE_ROOT, discover });
-	console.log(JSON.stringify({ scope: options.local ? "project" : "user", cwd, settingsPath, skills: catalog.length, ...plan }, null, 2));
+	console.log(JSON.stringify({ scope: options.local ? "project" : "user", cwd, settingsPath, skills: catalog.length, companionPackages, ...plan }, null, 2));
 	if (plan.blockers.length) throw new Error("Resolve the listed configuration conflicts before installing. No skills were moved.");
 	if (options.dryRun) return;
 	const result = await applyMigration({
 		plan, agentDir,
-		register: async () => execFileSync("pi", ["install", ...(options.local ? ["--local", "--approve"] : []), PACKAGE_ROOT], { cwd, stdio: "inherit" }),
-		rollbackRegistration: () => restoreRegistration(settingsPath, previousSettings, PACKAGE_ROOT),
+		register: async () => {
+			for (const source of [PACKAGE_ROOT, ...companionPackages]) {
+				execFileSync("pi", ["install", ...(options.local ? ["--local", "--approve"] : []), source], { cwd, stdio: "inherit" });
+			}
+		},
+		rollbackRegistration: () => restoreRegistration(settingsPath, previousSettings, PACKAGE_ROOT, companionPackages),
 		verify: async () => {
 			const { skills: resources } = await inventory();
 			const result = pi.loadSkills({ cwd, agentDir, skillPaths: resources.filter(({ enabled }) => enabled).map(({ path }) => path), includeDefaults: false });
@@ -55,7 +61,7 @@ async function main() {
 			if (failures.length) throw new Error(failures.join("\n"));
 		},
 	});
-	console.log(JSON.stringify({ installed: PACKAGE_ROOT, verifiedSkills: catalog.length, backup: result.backup ?? null, next: "Restart Pi or run /reload." }, null, 2));
+	console.log(JSON.stringify({ installed: PACKAGE_ROOT, companionPackages, verifiedSkills: catalog.length, backup: result.backup ?? null, next: "Restart Pi or run /reload." }, null, 2));
 }
 
 function parseOptions(args) {
@@ -64,6 +70,7 @@ function parseOptions(args) {
 		const argument = args[index];
 		if (argument === "--local") options.local = true;
 		else if (argument === "--dry-run") options.dryRun = true;
+		else if (argument === "--without-pretty") options.withoutPretty = true;
 		else if (argument === "--help") options.help = true;
 		else if (argument === "--cwd" || argument === "--restore") {
 			const value = args[++index];
@@ -71,7 +78,7 @@ function parseOptions(args) {
 			options[argument.slice(2)] = value;
 		} else throw new Error(`Unknown option: ${argument}\n${HELP}`);
 	}
-	if (options.restore && (options.local || options.cwd)) throw new Error("Use --restore separately from installation options.");
+	if (options.restore && (options.local || options.cwd || options.withoutPretty)) throw new Error("Use --restore separately from installation options.");
 	return options;
 }
 

@@ -1,6 +1,6 @@
 ---
 name: execution-plan
-description: "Trigger: execution plan, executable plan, deep plan. Draft one verifiable plan for sequential execution in Pi."
+description: "Draft a verifiable execution/deep plan for sequential Pi work."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

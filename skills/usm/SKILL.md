@@ -1,6 +1,6 @@
 ---
 name: usm
-description: "Trigger: USM, user story map, story map, mapa de historias, MVP slice. Create journey-first story maps with MVP slicing and Mermaid output."
+description: "Create journey-first USM/user story maps with MVP slicing and Mermaid; includes mapa de historias requests."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

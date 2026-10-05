@@ -1,8 +1,6 @@
 ---
 name: architecture-map
-description: >
-  Trigger: architecture map, C4 diagram, container diagram, flow map,
-  architecture docs, architecture drift. Create compact evidence-backed C4-lite docs.
+description: "Create evidence-backed C4-lite maps, flows and architecture docs; check architectural drift."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

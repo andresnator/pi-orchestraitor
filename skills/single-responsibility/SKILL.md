@@ -1,6 +1,6 @@
 ---
 name: single-responsibility
-description: "Trigger: single responsibility, SRP, reasons to change. Detect classes or methods with multiple reasons to change."
+description: "Find SRP violations: classes/methods with multiple reasons to change."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

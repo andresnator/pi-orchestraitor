@@ -1,9 +1,6 @@
 ---
 name: summarize
-description: |
-  Expert in pedagogical book chapter synthesis. Use this skill WHENEVER the user wants to summarize a book chapter, analyze text or document content, study a chapter, extract key ideas from a reading, or when they mention words like "summary", "chapter", "book", "analyze this text", "summarize this", "cornell", "TL;DR" of long-form content. Also trigger when the user uploads a PDF, EPUB, or document and asks to understand or study it in parts.
-  Equivalent requests in the user's language also activate this skill.
-
+description: "Synthesize/study book chapters, readings and long documents; summarize/analyze text, extract ideas, Cornell/TL;DR notes, or understand PDF/EPUB content in parts. Equivalent requests in any language apply."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

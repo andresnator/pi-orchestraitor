@@ -1,6 +1,6 @@
 ---
 name: legacy-code-safety
-description: "Trigger: legacy code safety, safe refactor. Make untested code safe to change."
+description: "Make untested legacy code safe to refactor."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

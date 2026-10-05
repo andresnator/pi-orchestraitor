@@ -1,6 +1,6 @@
 ---
 name: design-patterns-pragmatic
-description: "Trigger: design patterns, GoF patterns, Java patterns, strategy, adapter, factory, builder, decorator, observer. Choose patterns only when they solve real design forces."
+description: "Choose GoF/design patterns (strategy, adapter, factory, builder, decorator, observer) only for real needs."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

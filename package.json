@@ -20,14 +20,7 @@
     "skills/",
     "scripts/",
     "docs/",
-    "licenses/",
-    "herdr/workbench/herdr-plugin.toml",
-    "herdr/workbench/actions.mjs",
-    "herdr/workbench/herdr-client.mjs",
-    "herdr/workbench/main.mjs",
-    "herdr/workbench/app.mjs",
-    "herdr/workbench/view.mjs",
-    "herdr/workbench/palette.mjs"
+    "licenses/"
   ],
   "pi": {
     "extensions": [
@@ -46,10 +39,15 @@
     "themes": []
   },
   "scripts": {
+    "bench": "node scripts/bench.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:mcp": "node --test tests/integration/mcp-live.test.mjs",
+    "test:pretty": "node tests/helpers/pretty-isolation.mjs",
     "install:pi": "node scripts/install-pi.mjs",
     "test:personality": "node scripts/check-personality.mjs"
+  },
+  "config": {
+    "piPretty": "npm:@heyhuynhgiabuu/pi-pretty@0.6.30"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",

@@ -107,3 +107,19 @@ test("shouldRecoverMissingOriginalRegistrationsWithoutDiscardingOtherPackages", 
 	// Then
 	assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")), { packages: [...before.packages, "npm:new"] });
 });
+
+for (const existingPretty of [undefined, "npm:@heyhuynhgiabuu/pi-pretty", { source: "npm:@heyhuynhgiabuu/pi-pretty@0.6.29", extensions: [] }]) {
+	test(`shouldRestoreHarnessAndPrettyRegistrationsWhenInstallationFailsWith${existingPretty === undefined ? "NoPretty" : typeof existingPretty === "string" ? "UnpinnedPretty" : "FilteredPretty"}`, async (t) => {
+		// Given
+		const root = await createWorkspace(t), settingsPath = join(root, "settings.json");
+		const harness = { source: packageRoot, skills: [] };
+		const unrelated = "npm:@casualjim/pi-pretty@0.7.7";
+		const before = { packages: [harness, ...(existingPretty ? [existingPretty] : []), unrelated], theme: "old" };
+		const current = { packages: [harness, "npm:@heyhuynhgiabuu/pi-pretty@0.6.30", unrelated, "npm:concurrent"], theme: "new" };
+		await writeFile(settingsPath, JSON.stringify(current));
+		// When
+		await restoreRegistration(settingsPath, JSON.stringify(before), packageRoot, ["npm:@heyhuynhgiabuu/pi-pretty@0.6.30"]);
+		// Then
+		assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")), { ...current, packages: [...before.packages, "npm:concurrent"] });
+	});
+}

@@ -1,6 +1,6 @@
 ---
 name: java-immutability-modeling
-description: "Trigger: Java immutability, records, value objects, defensive copies, mutable collections, DTO modeling. Model Java data safely and clearly."
+description: "Model immutable Java records, values and DTOs; review defensive copies and mutable collections."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

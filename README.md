@@ -13,7 +13,9 @@ npm run install:pi -- --dry-run
 npm run install:pi
 ```
 
-The preview lists every matching standalone skill, including multiple discovery aliases for the same source, and any blocking conflicts. Installation moves matching entries into a recoverable backup, registers this directory through native `pi install`, and verifies that all 61 skills resolve to the bundled adaptations. Restart Pi or run `/reload` afterward.
+The preview lists every matching standalone skill, including multiple discovery aliases for the same source, and any blocking conflicts. Installation moves matching entries into a recoverable backup, registers this directory through native `pi install`, and verifies that all 61 skills resolve to the bundled adaptations. It also installs `@heyhuynhgiabuu/pi-pretty@0.6.30` through native Pi package management in the same user/project scope. Restart Pi or run `/reload` afterward.
+
+Use `--without-pretty` to install only the harness; this leaves any existing pretty registration intact. `--dry-run` lists companion packages without installing or downloading them.
 
 For a project installation:
 
@@ -36,12 +38,14 @@ Another package's skills and source repository files require configuration chang
 
 Migration stays within each configured skill discovery root. It preserves configuration roots, checks the skill directory itself for repository ownership, and moves a configured symlink tree by its link. If the host cannot establish a discovery boundary, installation stops before moving files.
 
-A failed registration or effective-loading check rolls back the package declaration and the moved skills. Rollback recognizes Pi's local path forms, including `~/` sources, and restores the original registration and filters while preserving unrelated settings changes. If a new entry occupies an original path, rollback keeps it and reports the backup requiring attention. Repeated installation finds no further moves once conflicts are gone.
+A failed registration or skill-loading check rolls back both package declarations and the moved skills. Existing pretty versions and resource filters are restored; downloaded npm cache files may remain. Rollback recognizes Pi's local path forms, including `~/` sources, and restores the original registration and filters while preserving unrelated settings changes. If a new entry occupies an original path, rollback keeps it and reports the backup requiring attention. Repeated installation finds no further moves once conflicts are gone.
 
 To uninstall and recover:
 
 ```bash
 pi remove /absolute/path/to/pi-orchestraitor
+# Remove the companion separately if desired:
+pi remove npm:@heyhuynhgiabuu/pi-pretty
 # Add --local when removing a project installation.
 npm run install:pi -- --restore /absolute/path/to/backup --dry-run
 npm run install:pi -- --restore /absolute/path/to/backup
@@ -49,7 +53,7 @@ npm run install:pi -- --restore /absolute/path/to/backup
 
 Restoration refuses to overwrite existing entries. Restore multiple backups in reverse installation order. Re-enable the original compact extension if needed, then restart Pi. A stale migration lock is reported with its exact path; inspect any interrupted migration before removing that lock.
 
-Native `pi install /path/to/package` also discovers bundled skills, but does not perform this migration. Use `install:pi` for conflict removal and effective-loading verification.
+Native `pi install /path/to/package` also discovers bundled skills, but does not perform this migration or install the separate pretty companion. Use `install:pi` for conflict removal and effective-loading verification.
 
 ## First use
 
@@ -72,7 +76,8 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 
 | Resource | Purpose |
 | --- | --- |
-| `extensions/compact-tools.ts` | Compact read/bash/edit/write and native codemode presentation with original execution and tool selection. Expand to inspect arguments and results. |
+| `extensions/compact-tools.ts` | Compact edit/write/codemode presentation, plus read/bash fallbacks when no other extension owns them. Expand to inspect arguments and results. |
+| `@heyhuynhgiabuu/pi-pretty@0.6.30` | Separately installed companion: highlighted reads, bash presentation, FFF-backed find/grep, prompt editor and activity indicators. |
 | `extensions/instructions.ts` | Adds core, execution, and personality sections while preserving Pi and project instructions. |
 | `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. |
 | `extensions/subagents.ts` | One bounded launcher, child guards, native usage and optional progress observations. |
@@ -81,13 +86,13 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 | `prompts/` | `/orchestraitor`, `/plan`, `/review`, and `/absorb`, with explicit arguments. |
 | `scripts/install-pi.mjs` | Migration, native package registration, verification, and restoration. |
 
-The package preserves personal model, theme, editor, credentials, and MCP overrides. It provides bounded subagents through `subagent_run`. It does not implement independent verification, resumable SDD, dual review, TCR, or persistent Caveman. Its scope and personality instructions are behavioral rules; they are not a filesystem sandbox.
+The harness preserves personal model, theme, editor, credentials, and MCP overrides. The separately installed pretty companion supplies its own prompt-editor and activity presentation; see the [pretty integration guide](docs/pi-pretty.md). It provides bounded subagents through `subagent_run`. It does not implement independent verification, resumable SDD, dual review, TCR, or persistent Caveman. Its scope and personality instructions are behavioral rules; they are not a filesystem sandbox.
 
 ## Optional work UI
 
-Open `/orchestraitor:agents` or `/orchestraitor:tasks`; use `tasks expand|collapse` for detail and `/orchestraitor:ui hide|show` for passive chrome. The model-only task/question tools do not replace execution or permissions. Pi keeps its native editor/header/footer and counters. The separate optional Herdr workbench adds read-only Overview/Tasks/Agents/Usage; publishing starts by default in interactive Herdr terminals, can be disabled, and never installs a personal setting or global Pi shortcut.
+Open `/orchestraitor:agents` or `/orchestraitor:tasks`; use `tasks expand|collapse` for detail and `/orchestraitor:ui hide|show` for passive chrome. The model-only task/question tools do not replace execution or permissions. Pi keeps its native editor/header/footer and counters.
 
-See the [Herdr workbench guide](docs/herdr-workbench.md) for explicit publisher/plugin setup, optional Command-E, usage scope and safe disabling. See the [interactive UI guide](docs/interactive-ui.md) for schemas, task replay versus recovery, native keybindings, synthetic/live checks and limitations. Exclude `extensions/status-ui.ts` through `pi config` to disable all UI features without disabling the launcher. For one invocation, `--exclude-tools orchestraitor_tasks,orchestraitor_ask` persistently excludes just the model tools; `hide` only changes presentation.
+See the [interactive UI guide](docs/interactive-ui.md) for schemas, task replay versus recovery, native keybindings, synthetic/live checks and limitations. Exclude `extensions/status-ui.ts` through `pi config` to disable all UI features without disabling the launcher. For one invocation, `--exclude-tools orchestraitor_tasks,orchestraitor_ask` persistently excludes just the model tools; `hide` only changes presentation.
 
 ## MCP and memory
 
@@ -126,17 +131,21 @@ This changes only that invocation. Personal and project MCP settings still apply
 
 ## Verify
 
+The [efficiency guide](docs/performance.md) documents compact model-facing task/child handoffs, projection reuse and the offline benchmark. Run `npm run bench -- --samples 7 --output /tmp/pi-benchmark.json` from a checkout; it makes no model/MCP requests. Observed character reductions are distinct from measured provider-token savings.
+
 ```bash
 npm test
 npm run test:mcp
+npm run test:pretty
 npm run test:personality
 npm pack --dry-run --ignore-scripts
 ```
 
 - `npm test` checks native tool regressions, prompt and personality injection, packaged skill loading and resources, migration and recovery, and native installation in temporary configuration. It uses local synthetic providers for native UI/child integration, not live models or MCP services. Visible TUI acceptance remains a separate gate.
+- `test:pretty` exercises the actual installed companion on the native Pi SDK and CLI in temporary profiles, including both load orders, reload, preserved tool selection, read/bash execution and find/grep. It requires the pinned companion or `PI_PRETTY_PACKAGE_DIR` and makes no model/MCP requests; terminal screenshots are a separate check.
 - `test:mcp` calls Context7 and Engram through native `codemode`, with synthetic memories and a temporary database. It checks project separation and avoids personal memories.
 - `test:personality` makes bounded calls to the configured Pi model in isolated sessions. It writes synthetic transcripts for manual scoring; it uses the configured account and consumes model quota.
-- Packing includes extensions, instructions, skills, scripts, docs, licenses, and the exact optional `herdr/workbench/` runtime files. Tests, `.ai` reports, personal settings, credentials, and memory databases are excluded.
+- Packing includes extensions, instructions, skills, scripts, docs, and licenses. Tests, `.ai` reports, personal settings, credentials, and memory databases are excluded.
 
 Tests use the Pi executable on PATH. Set `PI_TEST_PACKAGE_DIR` to the installed npm package root if it cannot be located. The installer inventory adapter and some integration checks depend on host internals and need revalidation after a Pi upgrade. The adapter checks that its required host hooks exist before migration. Peers use `*` because Pi supplies them; the original baseline used Pi 1.0.0 and current deterministic/UI integration checks use Pi 1.0.2. Revalidate on upgrades. The UI guide documents native dynamic-selection versus persistent-exclusion behavior on reload. The established test convention is `node:test` with `node:assert`.
 

@@ -32,7 +32,7 @@ Evidence for nodes and edges:
 
 ## Inside the package
 
-These are logical components, **not separately deployed services**. Delegated children and the explicitly opened optional Herdr companion get separate processes; the companion is presentation only.
+These are logical components, **not separately deployed services**. Delegated children run in separate processes.
 
 ```mermaid
 flowchart TB
@@ -44,6 +44,8 @@ flowchart TB
   X -->|instructions.ts injects: H| I[core / orchestraitor / personality]
   I -->|system prompt sections: H| A
   X -->|compact-tools.ts decorates: I| T[Native tool presentation]
+  INS[install-pi.mjs] -->|registers pinned companion: I| PP[pi-pretty]
+  PP -->|read / bash / search / editor presentation: I| PUI[Pi native tool and UI APIs]
   X -->|mcp.ts registers: J| MCP[Context7 / Engram]
   X -->|subagents.ts registers: K| SR[subagent_run]
   A -->|optional delegation: K| SR
@@ -51,8 +53,6 @@ flowchart TB
   X -->|status-ui.ts owns: M| UI[Task widget / native footer / modal]
   SR -->|native observations: M| UI
   A -->|model-only tasks / questions: M| UI
-  UI -->|eligible Herdr private display snapshots: N| WB[Separate Herdr companion]
-  HA[User-invoked Herdr action] -->|verified owned pane lifecycle: N| WB
 ```
 
 | Evidence | Source |
@@ -61,12 +61,12 @@ flowchart TB
 | F | [prompts/plan.md:5–8](../../prompts/plan.md), [prompts/orchestraitor.md:5–6](../../prompts/orchestraitor.md), [prompts/review.md:5–8](../../prompts/review.md), [prompts/absorb.md:5–7](../../prompts/absorb.md). |
 | G | [README.md](../../README.md), [skills/implementation-skill-routing/SKILL.md:20–28](../../skills/implementation-skill-routing/SKILL.md): catalog selection, then body loading. |
 | H | [extensions/instructions.ts:4–19](../../extensions/instructions.ts): adds sections without replacing Pi/project context. |
-| I | [extensions/compact-tools.ts](../../extensions/compact-tools.ts): presentation, not a scheduler. |
+| I | [extensions/compact-tools.ts](../../extensions/compact-tools.ts): presentation, not a scheduler; yields read/bash to existing extension owners. The installer separately registers [pi-pretty](../pi-pretty.md). |
 | J | [extensions/mcp.ts:6–19](../../extensions/mcp.ts). |
 | K | [extensions/subagents.ts](../../extensions/subagents.ts), [instructions/orchestraitor.md](../../instructions/orchestraitor.md). |
 | L | [extensions/subagent/controller.mjs](../../extensions/subagent/controller.mjs), [extensions/subagent/child.mjs:18–28](../../extensions/subagent/child.mjs), [extensions/subagent/runtime.mjs:13–25](../../extensions/subagent/runtime.mjs). |
 
-**M:** [status-ui.ts](../../extensions/status-ui.ts) delegates to [agents](../../extensions/ui/agents.ts), [tasks](../../extensions/ui/tasks.ts) and [questions](../../extensions/ui/questions.ts). It uses native widgets/status/dialogs, not header/footer/editor factories. Task state comes only from successful active-branch native receipts; it cannot grant writes, accept child work or recover execution. See the [UI guide](../interactive-ui.md). **N:** [bridge](../../extensions/ui/workbench-bridge.mjs), [contract](../../extensions/ui/workbench-contract.mjs) and [plugin actions](../../herdr/workbench/actions.mjs) separate disposable display state from native receipt authority. The [workbench guide](../herdr-workbench.md) owns activation and failure instructions; no question/command channel points back from the companion.
+**M:** [status-ui.ts](../../extensions/status-ui.ts) delegates to [agents](../../extensions/ui/agents.ts), [tasks](../../extensions/ui/tasks.ts) and [questions](../../extensions/ui/questions.ts). It uses native widgets/status/dialogs, not header/footer/editor factories. Task state comes only from successful active-branch native receipts; it cannot grant writes, accept child work or recover execution. See the [UI guide](../interactive-ui.md).
 
 ## The distinctions that prevent confusion
 

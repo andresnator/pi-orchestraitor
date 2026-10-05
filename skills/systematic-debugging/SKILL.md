@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: "Trigger: debug, debugging, root cause, root-cause analysis, why does this fail, intermittent failure, shotgun fixes. Root-cause debugging loop: reproduce, gather evidence, one falsifiable hypothesis, minimal verified fix."
+description: "Debug failures, root causes and intermittent issues: reproduce, gather evidence, test one hypothesis, verify a minimal fix."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

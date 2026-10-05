@@ -1,6 +1,6 @@
 ---
 name: complexity-big-o
-description: "Trigger: complexity, Big O, cyclomatic, nested loops, queries in loops. Evaluate control and algorithmic complexity where it matters."
+description: "Evaluate Big O, cyclomatic complexity, nested loops and queries in loops."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

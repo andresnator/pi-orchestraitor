@@ -1,6 +1,6 @@
 ---
 name: service-boundary-analysis
-description: "Trigger: service boundary analysis, microservice inputs/outputs, API/consumer/output mapping. Map one backend boundary with evidence and confidence."
+description: "Map a backend service's APIs, consumers, inputs and outputs with evidence and confidence."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

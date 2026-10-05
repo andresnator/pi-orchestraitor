@@ -1,5 +1,6 @@
 import { sanitizeDisplay } from "./ui/display.ts";
 import { classifyAgent } from "./ui/agents.ts";
+import { fileURLToPath } from "node:url";
 import {
 	createBashToolDefinition,
 	createCodemodeExtension,
@@ -8,6 +9,7 @@ import {
 	createWriteToolDefinition,
 	keyHint,
 	type ExtensionAPI,
+	type ExtensionContext,
 	type Theme,
 	type ToolDefinition,
 } from "@earendil-works/pi-coding-agent";
@@ -25,16 +27,34 @@ const STATUS = {
 	error: "error",
 } as const;
 const EMPTY_COMPONENT: Component = { render: () => [], invalidate() {} };
+const EXTENSION_PATH = fileURLToPath(import.meta.url);
 
 type RenderContext = Parameters<NonNullable<ToolDefinition["renderCall"]>>[2];
 
 /** Compact presentation only; execution and model-facing results remain native. */
 export default function compactTools(pi: ExtensionAPI) {
+	let reportedConflict: string | undefined;
+	const checkBashOwner = (ctx: ExtensionContext) => {
+		const source = pi.getAllTools().find((tool) => tool.name === "bash")?.sourceInfo;
+		const conflict = source && source.path !== EXTENSION_PATH
+			? `Bash ownership conflict: ${source.path} retains bash. The harness must own bash to honor shellPath and shellCommandPrefix. Add "bash" to pi-pretty.json disableTools (and to PRETTY_DISABLE_TOOLS if set), or disable the conflicting extension's bash tool, then /reload. Bash calls are blocked until ownership is corrected.`
+			: undefined;
+		if (conflict && conflict !== reportedConflict) ctx.ui.notify(conflict, "error");
+		reportedConflict = conflict;
+		return conflict;
+	};
 	// Wait for the effective settings and trusted working directory to be available.
 	pi.on("session_start", (_event, ctx) => {
+		reportedConflict = undefined;
 		const settings = pi.getSettings();
+		const tools = pi.getAllTools();
 		const registerInactive = (tool: ToolDefinition) => pi.registerTool({ ...compactTool(tool), defaultActive: false });
-		registerInactive(createReadToolDefinition(ctx.cwd, {
+		// Preserve foreign read renderers; bash must use the effective shell settings.
+		const hasForeignOwner = (name: string) => {
+			const source = tools.find((tool) => tool.name === name)?.sourceInfo;
+			return source && source.source !== "builtin" && source.path !== EXTENSION_PATH;
+		};
+		if (!hasForeignOwner("read")) registerInactive(createReadToolDefinition(ctx.cwd, {
 			autoResizeImages: settings.images?.autoResize,
 		}));
 		registerInactive(createBashToolDefinition(ctx.cwd, {
@@ -54,6 +74,14 @@ export default function compactTools(pi: ExtensionAPI) {
 				if (tool.parameters === codemode.parameters) pi.registerTool(compactTool(tool));
 			},
 		});
+		checkBashOwner(ctx);
+	});
+	// Recheck after later session handlers and before each call, including codemode.
+	pi.on("before_agent_start", (_event, ctx) => { checkBashOwner(ctx); });
+	pi.on("tool_call", (event, ctx) => {
+		if (event.toolName !== "bash") return;
+		const reason = checkBashOwner(ctx);
+		if (reason) return { block: true, reason };
 	});
 }
 
@@ -68,7 +96,7 @@ export function compactTool<TParams extends TSchema, TDetails, TState>(
 		...original,
 		renderShell: "self",
 		renderCall(args, theme, context) {
-			if (context.expanded && original.name === "codemode" && original.renderCall) {
+			if (context.expanded && !context.isError && original.name === "codemode" && original.renderCall) {
 				return original.renderCall(args, theme, { ...context, lastComponent: undefined });
 			}
 			// Pi builds the call component before the result component. Read the
@@ -81,18 +109,25 @@ export function compactTool<TParams extends TSchema, TDetails, TState>(
 		},
 		renderResult(result, options, theme, context) {
 			const { expanded } = options;
-			const summary = summarizeResult(original.name, result.details);
+			const summary = summarizeResult(original.name, context.isError ? undefined : result.details);
 			summaries.set(context.state as object, summary);
-			if (expanded && original.name === "codemode" && original.renderResult) {
+			if (expanded && !context.isError && original.name === "codemode" && original.renderResult) {
 				return original.renderResult(result, options, theme, { ...context, lastComponent: undefined });
 			}
 			if (!expanded && !context.isError && !summary.failed) return EMPTY_COMPONENT;
 
-			const output = result.content
+			let output = result.content
 				.filter((block) => block.type === "text")
 				.map((block) => block.text)
 				.join("\n");
-			const diff = original.name === "edit" && result.details &&
+			if (expanded && !context.isError && result.details && typeof result.details === "object") {
+				if (original.name === "subagent_run" && "results" in result.details && Array.isArray(result.details.results)) {
+					output = JSON.stringify(result.details.results, null, 2);
+				} else if (original.name === "orchestraitor_tasks" && "state" in result.details) {
+					output = JSON.stringify(result.details, null, 2);
+				}
+			}
+			const diff = !context.isError && original.name === "edit" && result.details &&
 				typeof result.details === "object" && "diff" in result.details
 				? result.details.diff : undefined;
 			const errorOffset = output.lastIndexOf("\nScript error:");

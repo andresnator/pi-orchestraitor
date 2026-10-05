@@ -1,6 +1,6 @@
 ---
 name: cognitive-doc-design
-description: "Design docs that reduce cognitive load. Trigger: writing guides, READMEs, RFCs, onboarding, architecture, or review-facing docs."
+description: "Write guides, READMEs, RFCs, onboarding, architecture and review docs with low cognitive load."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

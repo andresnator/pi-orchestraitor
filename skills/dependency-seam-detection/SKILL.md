@@ -1,6 +1,6 @@
 ---
 name: dependency-seam-detection
-description: "Trigger: dependency seam detection, hard dependencies. Find seams that make legacy code testable."
+description: "Find test seams around hard dependencies in legacy code."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

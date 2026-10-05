@@ -1,6 +1,6 @@
 ---
 name: logging-observability
-description: "Trigger: logging, observability, metrics, traces. Evaluate operationally useful logging for safe refactors."
+description: "Review logging, metrics and traces for operationally useful refactor evidence."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

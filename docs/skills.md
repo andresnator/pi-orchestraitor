@@ -5,7 +5,7 @@ The package ships 61 unique skills from the non-learning domains of `agents-orch
 ## Pi adaptations
 
 - Every skill declares Pi compatibility and a separate `pi_adaptation` version. Original versions remain in provenance.
-- Skill routing uses Pi's native names and descriptions. Executors read the selected catalog path using available file tools.
+- Skill routing uses Pi's native names and concise descriptions; full skill bodies and resources are unchanged by catalog compaction. Executors read the selected catalog path using available file tools.
 - Closed questions use an available Pi UI choice mechanism, with ordinary chat as the fallback. No OpenCode question tool is assumed.
 - `execution-plan` and its template target sequential Orchestraitor execution, unchanged plans, and working-tree delivery. Unsupported SDD, TCR, and automatic Git delivery are reported as blockers.
 - `skill-creator` uses the Pi package layout and discovery checks, and includes an actual skill template. It has no source-installer or manual-catalog dependency.

@@ -8,4 +8,6 @@ This package adapts **agents-orchestrator**, revision `e90b11a4d5fb77bfebcf5f5c9
 - MIT terms are included in [licenses/MIT.txt](licenses/MIT.txt). Apache-2.0 terms are included in [licenses/Apache-2.0.txt](licenses/Apache-2.0.txt). Modified Apache files identify their Pi adaptation in frontmatter or a modification notice.
 - Upstream skill authors include andresnator, gentleman-programming, abdi, and the authors retained in individual frontmatter and resources. Their attribution is preserved; adaptation does not imply their endorsement.
 
+The installer also registers [@heyhuynhgiabuu/pi-pretty](https://github.com/heyhuynhgiabuu/pi-pretty), version 0.6.30, licensed MIT, through native Pi package management. Its source and dependencies remain in the separately installed upstream package; they are not redistributed in this tarball.
+
 No OpenCode runtime or plugin, personal credential, model store, session, or Engram database is distributed.

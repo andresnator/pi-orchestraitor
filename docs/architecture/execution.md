@@ -59,7 +59,7 @@ sequenceDiagram
 
 ## Presentation is not acceptance or recovery
 
-The optional [UI](../interactive-ui.md) observes this loop; it does not advance groups. Parent-issued task mutations carry revisions, exact-plan identity/path/hash/groups and evidence for done/reasons for reopening. Only successful native branch receipts are replayed. Child progress travels through native tool updates without adding usage again. Questions collect requirements/preferences, never native trust or destructive-action permission. Hiding chrome does not cancel execution or foreground questions. The manually opened [Herdr workbench](../herdr-workbench.md) receives bounded disposable display snapshots from a publisher enabled by default in eligible Herdr terminals, not executable receipts. Its pane actions control only independently verified owned presentation; neither visibility nor model attribution accepts work or resumes execution.
+The optional [UI](../interactive-ui.md) observes this loop; it does not advance groups. Parent-issued task mutations carry revisions, exact-plan identity/path/hash/groups and evidence for done/reasons for reopening. Only successful native branch receipts are replayed. Child progress travels through native tool updates without adding usage again. Questions collect requirements/preferences, never native trust or destructive-action permission. Hiding chrome does not cancel execution or foreground questions.
 
 ## One example, two ways to execute a group
 

@@ -1,8 +1,6 @@
 ---
 name: architecture-state
-description: >
-  Trigger: architecture review, project state, toolchain detection,
-  architecture style. Record verified architecture facts for downstream work.
+description: "Verify project architecture, style and toolchain; record facts for downstream work."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

@@ -1,6 +1,6 @@
 ---
 name: programming-practices-core
-description: "Trigger: programming best practices, clean code, DRY, KISS, YAGNI, readability, maintainability. Evaluate general code quality without depending on language-specific skills."
+description: "Review general clean-code quality, DRY, KISS, YAGNI, readability and maintainability."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

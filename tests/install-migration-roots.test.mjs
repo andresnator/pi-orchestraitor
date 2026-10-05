@@ -24,7 +24,8 @@ async function fixture(t, { linkedAgent = false, verificationFailure = false } =
 	const settingsPath = join(agentDir, "settings.json");
 	const saveSettings = () => writeFile(settingsPath, `${JSON.stringify(settings, null, 2)}\n`);
 	await saveSettings();
-	const run = (...args) => spawnSync(process.execPath, [join(packageRoot, "scripts/install-pi.mjs"), ...args], {
+	const run = (...args) => spawnSync(process.execPath, [join(packageRoot, "scripts/install-pi.mjs"), ...args,
+		...(args.includes("--restore") ? [] : ["--without-pretty"])], {
 		cwd, encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: agentDir },
 	});
 	return { root, cwd, agentDir, agentTarget, settings, settingsPath, saveSettings, run };

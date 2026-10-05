@@ -1,6 +1,6 @@
 ---
 name: null-safety
-description: "Trigger: null safety, nullability, Optional, NPE. Detect null hazards and conservative Java null-safety refactors."
+description: "Find nullability/Optional/NPE hazards and conservative Java null-safety fixes."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

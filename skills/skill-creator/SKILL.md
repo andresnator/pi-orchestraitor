@@ -1,8 +1,6 @@
 ---
 name: skill-creator
-description: >
-  Creates new AI agent skills following the Agent Skills spec.
-  Trigger: When user asks to create a new skill, add agent instructions, or document patterns for AI.
+description: "Create AI skills, agent instructions or reusable pattern guidance using the Agent Skills spec."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

@@ -1,6 +1,6 @@
 ---
 name: input-validation-preconditions
-description: "Trigger: input validation, preconditions, boundary validation. Detect missing or duplicated preconditions."
+description: "Find missing or repeated input validation and boundary preconditions."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

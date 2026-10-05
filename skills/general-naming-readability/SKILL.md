@@ -1,6 +1,6 @@
 ---
 name: general-naming-readability
-description: "Trigger: naming, readability, identifiers, intent, clarity. Evaluate naming and readability with language-neutral principles."
+description: "Review names, identifiers, intent and readability across languages."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

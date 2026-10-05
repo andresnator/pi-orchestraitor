@@ -1,6 +1,6 @@
 ---
 name: adr
-description: "Trigger: ADR, architecture decision record, technical decision. Create ADRs that document context, options, rationale, consequences, and trade-offs."
+description: "Create ADRs for technical decisions: context, alternatives, rationale, consequences and tradeoffs."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

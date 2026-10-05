@@ -1,6 +1,6 @@
 ---
 name: cognitive-output-refiner
-description: "Trigger: refine output, summarize output, compact logs, reduce cognitive load, remove duplicates. Refines heavy textual output into a concise, faithful, non-duplicative version."
+description: "Refine or summarize verbose output/logs; remove repetition while preserving meaning and evidence."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

@@ -1,6 +1,6 @@
 ---
 name: open-closed-principle
-description: "Trigger: open closed principle, OCP, strategy, policy, polymorphism. Detect extension pressure without speculative patterns."
+description: "Evaluate OCP, strategy/policy and polymorphism under real extension pressure."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

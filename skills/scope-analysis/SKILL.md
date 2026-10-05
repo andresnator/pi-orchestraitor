@@ -1,6 +1,6 @@
 ---
 name: scope-analysis
-description: "Trigger: scope analysis, target boundary discovery. Delimit class/package/module scope."
+description: "Identify target boundaries at class, package or module level."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

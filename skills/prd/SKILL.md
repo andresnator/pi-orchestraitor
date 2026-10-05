@@ -1,6 +1,6 @@
 ---
 name: prd
-description: "Trigger: PRD, product requirements, technical product spec. Create rigorous PRDs for high-stakes, cross-team, regulated, or security-sensitive work."
+description: "Create rigorous PRDs/technical product specs for high-stakes, cross-team, regulated or security-sensitive work."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:

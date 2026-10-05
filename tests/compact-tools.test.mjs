@@ -266,3 +266,41 @@ test("shouldBoundVisualErrorRowsAndPreserveExpansionWhenTerminalIsNarrow", () =>
 	assert.ok(expanded.some((line) => line.includes("first")));
 	assert.ok(expanded.some((line) => line.includes("last cause")));
 });
+
+for (const order of ["before", "after"]) {
+	test(`shouldPreserveForeignReadAndBashOwnersWhenTheirExtensionLoads${order === "before" ? "Before" : "After"}CompactTools`, async () => {
+		// Given
+		const foreignPath = join(cwd, `foreign-${order}.ts`);
+		await writeFile(foreignPath, `import { createReadToolDefinition, createBashToolDefinition } from "@earendil-works/pi-coding-agent";
+import { Text } from "@earendil-works/pi-tui";
+export default function(pi) {
+	for (const original of [createReadToolDefinition(${JSON.stringify(cwd)}), createBashToolDefinition(${JSON.stringify(cwd)})]) {
+		pi.registerTool({...original, defaultActive:false, renderCall:() => new Text("Foreign " + original.name,0,0)});
+	}
+}`);
+		const paths = order === "before" ? [foreignPath, extensionPath] : [extensionPath, foreignPath];
+		const resourceLoader = new pi.DefaultResourceLoader({ cwd, agentDir: join(cwd, "agent"),
+			settingsManager: pi.SettingsManager.inMemory(), noExtensions: true, additionalExtensionPaths: paths,
+			noSkills: true, noPromptTemplates: true, noThemes: true, noContextFiles: true });
+		await resourceLoader.reload();
+		const { session } = await pi.createAgentSession({ cwd, agentDir: join(cwd, "agent"),
+			settingsManager: resourceLoader.settingsManager, resourceLoader,
+			sessionManager: pi.SessionManager.inMemory(cwd), tools: ["read", "bash", "edit", "write"] });
+		const errors = [];
+		try {
+			// When
+			await session.bindExtensions({ onError: error => errors.push(error) });
+			for (let pass = 0; pass < 2; pass++) {
+				if (pass) await session.reload();
+				// Then
+				assert.deepEqual(session.getActiveToolNames(), ["read", "bash", "edit", "write"]);
+				for (const name of ["read", "bash"]) {
+					assert.equal(session.getAllTools().find(tool => tool.name === name).sourceInfo.path, foreignPath);
+					assert.match(session.getToolDefinition(name).renderCall({}, theme, toolContext({})).render(80).join("\n"), new RegExp(`Foreign ${name}`));
+				}
+				assert.equal(session.getAllTools().find(tool => tool.name === "edit").sourceInfo.path, extensionPath);
+			}
+			assert.deepEqual(errors, []);
+		} finally { await session.extensionRunner.emit({ type: "session_shutdown" }); session.dispose(); }
+	});
+}

@@ -1,8 +1,6 @@
 ---
 name: architecture-ideation
-description: >
-  Trigger: architecture refactor ideas, target architecture, modular monolith,
-  architecture patterns, restructure the system. Produce an ADR and one neutral execution plan.
+description: "Explore refactors, target architecture, patterns, modular monoliths and restructuring; produce an ADR and neutral plan."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
