@@ -22,7 +22,7 @@ const EXPECTED_FILES = [
 	"instructions/core.md", "instructions/orchestraitor.md", "instructions/personality.md",
 	"scripts/install-pi.mjs", "scripts/pi-host.mjs", "scripts/skill-migration.mjs", "scripts/check-personality.mjs", "scripts/bench.mjs",
 	"scripts/skill-inventory.mjs", "scripts/package-registration.mjs", "scripts/pretty-config.mjs",
-	"docs/skills.md", "docs/skills-provenance.json", "docs/verification.md", "docs/subagents.md", "docs/interactive-ui.md", "docs/performance.md", "docs/pi-pretty.md",
+	"docs/usage.md", "docs/skills.md", "docs/skills-provenance.json", "docs/verification.md", "docs/subagents.md", "docs/interactive-ui.md", "docs/performance.md", "docs/pi-pretty.md",
 	"docs/architecture/execution.md", "docs/architecture/flows.md", "docs/architecture/index.md",
 	"licenses/Apache-2.0.txt", "licenses/MIT.txt", "licenses/mattpocock-MIT.txt", "licenses/humanlayer-MIT.txt",
 	...PROVENANCE.skills.flatMap((skill) => skill.resources.map(({ path }) => `skills/${skill.name}/${path}`)),

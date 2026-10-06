@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Node ${{ matrix.node }} / Pi 1.0.4
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22.19.0", "24.20.0"]
+    env:
+      PI_OFFLINE: "1"
+      PI_TELEMETRY: "0"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install pinned Pi host
+        run: |
+          npm install --global @earendil-works/pi-coding-agent@1.0.4
+          echo "PI_TEST_PACKAGE_DIR=$(npm root --global)/@earendil-works/pi-coding-agent" >> "$GITHUB_ENV"
+          pi --version
+      - name: Run deterministic tests
+        run: npm test
+      - name: Check package inventory
+        run: npm pack --dry-run --ignore-scripts
+      - name: Check whitespace
+        run: git show --format= --check HEAD

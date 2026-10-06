@@ -82,7 +82,9 @@ test("shouldCompactRealCodemodeProgressAndRestoreNativeDetailsAndStoreOnExpansio
 	assert.ok(definition.constrainedSampling);
 	assert.equal(definition.defaultActive, false);
 	const loadout = definition.prepareLoadout({ declared: session.agent.state.tools, callable: [session.getToolDefinition("read")],
-		registered: session.getAllTools(), getNamespace: () => undefined, getExposure: (name) => session.getToolDefinition(name).exposure ?? "direct" });
+		registered: session.getAllTools(), getNamespace: () => undefined,
+		getPromptGuidelines: (name) => session.getToolDefinition(name).promptGuidelines ?? [],
+		getExposure: (name) => session.getToolDefinition(name).exposure ?? "direct" });
 	assert.ok(loadout.hiddenDeclarations.includes("read"));
 });
 

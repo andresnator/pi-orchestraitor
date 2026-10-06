@@ -1,6 +1,15 @@
 {
   "name": "pi-orchestraitor",
   "version": "0.1.0",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/andresnator/pi-orchestraitor.git"
+  },
+  "homepage": "https://github.com/andresnator/pi-orchestraitor#readme",
+  "bugs": {
+    "url": "https://github.com/andresnator/pi-orchestraitor/issues"
+  },
   "description": "Personal Pi harness with bundled development skills, compact tools, Context7, Engram, and Orchestraitor.",
   "type": "module",
   "license": "MIT",

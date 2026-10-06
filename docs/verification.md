@@ -10,6 +10,21 @@ The package targets Pi 1.0.0, Node 22.19+, and Engram 3.0.0. Run the commands be
 | `npm run install:pi -- --dry-run` | Complete lexical discovery inventory, including aliases hidden by native deduplication, and proposed standalone-skill moves, without migration or registration. |
 | `npm pack --dry-run --ignore-scripts` | Distributed resource inventory and exclusion of tests, local reports, and personal data. |
 
+## Private Git distribution and CI
+
+The package is distributed through the private `andresnator/pi-orchestraitor` GitHub repository. `private: true` prevents accidental npm publication; the explicit Pi manifest and host-provided peers remain unchanged.
+
+Fresh local checks on Pi 1.0.4 and Node 24.20.0:
+
+- Before the fixture repair: `npm test` passed 431/432; the synthetic codemode loadout omitted `getPromptGuidelines`.
+- After adding the callback from the real tool definition: the focused codemode suite passed 11/11 and `npm test` passed 432/432, with no skipped tests.
+- `npm pack --dry-run --ignore-scripts` includes 247 files, including `docs/usage.md`, and excludes tests, `.ai`, and `.github`.
+- `git diff --check` passed. Changes remain unstaged; no commit, push, publication, or personal Pi registration was performed.
+
+`.github/workflows/ci.yml` runs deterministic tests and package inventory checks on Ubuntu with Node 22.19.0 and 24.20.0, using pinned Pi 1.0.4. Live MCP, Pretty, real-model personality checks, and visible terminal acceptance are not CI gates. GitHub-hosted execution and the Node 22/Linux matrix have not yet been run; local success is not remote CI evidence. Historical failed-fixture receipts below remain unchanged.
+
+Official packaging reference: [Pi packages](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md). Installed Pi 1.0.4 documentation was the version-specific authority; Context7's indexed Pi versions did not include 1.0.4.
+
 ## Evidence boundaries
 
 Structural tests prove resource discovery, wiring, and regression behavior. They do not guarantee instruction compliance by every model. The bounded personality check evaluates concrete responses against language, tone, disagreement, and artifact-language criteria; slang is optional.
