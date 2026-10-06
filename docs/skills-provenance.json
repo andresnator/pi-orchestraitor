@@ -199,7 +199,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "e3d67992945d4901b75c65face3d71ac23e5d7e67770bc0ea91d7804a99279b6"
+          "sha256": "b0fd1eb1156a1d9ceef5f0039f5bd483f221c27b3976f37c7e60bc39c37991ab"
         },
         {
           "path": "assets/examples/OrderServiceTest.java",
@@ -256,26 +256,6 @@
       ]
     },
     {
-      "name": "jag-coupling",
-      "upstreamName": "cohesion-coupling",
-      "upstreamPaths": [
-        "domains/common/skills/cohesion-coupling/SKILL.md",
-        "domains/plan/skills/cohesion-coupling/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.0",
-      "license": "Apache-2.0",
-      "upstreamSha256": "82cc03d775b5be0a4f65022bcc4af546bb485e582aa096e3baceccdf3280c56f",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "c560a80e6ec9668e1269bc19422adef025b5573aaf5969e1436be3348ef867fc"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "jag-big-o",
       "upstreamName": "complexity-big-o",
       "upstreamPaths": [
@@ -289,26 +269,6 @@
         {
           "path": "SKILL.md",
           "sha256": "88db9b54ac905d0e5e36bd650081b560f07eeb91f575353d4e11b0ab3f70269c"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-dip",
-      "upstreamName": "dependency-inversion",
-      "upstreamPaths": [
-        "domains/common/skills/dependency-inversion/SKILL.md",
-        "domains/plan/skills/dependency-inversion/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.0",
-      "license": "Apache-2.0",
-      "upstreamSha256": "4a1147fe49c379b3a6e934fc9cfa710f7766960a013f3036fa7660a996e5a967",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "b3f37720d3b0680af08c5ac9606c8b6a52e888557e706cb038e5dc4679f4b44e"
         }
       ],
       "adaptations": [
@@ -376,7 +336,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "d795880b5f396a38e04768651a5d629103ab1fba58813d57456fc24bbbc8ec23"
+          "sha256": "bac603b23d27c4c24b5ea9fe46eebc5abcf981903639eb7e1a5f9b1c811d086f"
         },
         {
           "path": "references/pattern-forces.md",
@@ -385,10 +345,15 @@
         {
           "path": "references/pattern-selection.md",
           "sha256": "005adb3d4c2770045160b99efaa25e5240efb44cdd82e70cb2b0d7f6613d811a"
+        },
+        {
+          "path": "references/boundary-review.md",
+          "sha256": "e2cb431ad4962e306293bb63824b4988f79c040c7254197ceeb80f1155cefafd"
         }
       ],
       "adaptations": [
-        "SKILL.md"
+        "SKILL.md",
+        "references/boundary-review.md"
       ]
     },
     {
@@ -413,26 +378,6 @@
         {
           "path": "assets/CONTEXT-FORMAT.md",
           "sha256": "b8cc318f2a4285b530e908b6bc43901c3c5cd11100362636bbc4216639bef597"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-dry",
-      "upstreamName": "dry-business-knowledge",
-      "upstreamPaths": [
-        "domains/common/skills/dry-business-knowledge/SKILL.md",
-        "domains/plan/skills/dry-business-knowledge/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.0",
-      "license": "Apache-2.0",
-      "upstreamSha256": "53534dadffd9a077e33cdb1ef94365277f5c455fa5f4669afba0d0f0fecb8a24",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "d2ca5915ad8658f77744ee5677a89810724492de42977aafc47d572f3b12cd76"
         }
       ],
       "adaptations": [
@@ -495,46 +440,6 @@
       "adaptations": [
         "SKILL.md",
         "assets/plan-template.md"
-      ]
-    },
-    {
-      "name": "jag-naming",
-      "upstreamName": "general-naming-readability",
-      "upstreamPaths": [
-        "domains/common/skills/general-naming-readability/SKILL.md",
-        "domains/plan/skills/general-naming-readability/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.0",
-      "license": "Apache-2.0",
-      "upstreamSha256": "69388dbce565e5535f98de014cb460e81e450e2251978ebd4af202033ddd87a0",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "fee08da7dd1f2bdba57007b213b5ce8b040ab8efb847a71c7b1b09a51b39818f"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-god-object",
-      "upstreamName": "god-object-detection",
-      "upstreamPaths": [
-        "domains/common/skills/god-object-detection/SKILL.md",
-        "domains/plan/skills/god-object-detection/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.0",
-      "license": "Apache-2.0",
-      "upstreamSha256": "9f3a826a80ddfd2913201e6d68dfb939e7bc895b559183c0c7d55a70e167351a",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "3abfc14c795ab4481d3145c8ee33ce1f3c099f368b23135ff1e25e65a534ccc9"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
       ]
     },
     {
@@ -885,27 +790,6 @@
       ]
     },
     {
-      "name": "jag-kiss",
-      "upstreamName": "kiss-yagni",
-      "upstreamPaths": [
-        "domains/architecture/skills/kiss-yagni/SKILL.md",
-        "domains/common/skills/kiss-yagni/SKILL.md",
-        "domains/plan/skills/kiss-yagni/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.1",
-      "license": "Apache-2.0",
-      "upstreamSha256": "c8b3d8b2575e219a7b98c6713c3c95d59d895a9aafc59096d22e5b1333dfd8f2",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "c123e875190e689fa07a2c7e452a15dadfd9d78154d80a2f552414e9d94b3816"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "jag-legacy",
       "upstreamName": "legacy-code-safety",
       "upstreamPaths": [
@@ -958,26 +842,6 @@
         {
           "path": "SKILL.md",
           "sha256": "254b1c9dbbe8f90a0da5da58f46b7910c5fea169fbb55d37e90002c71e2506d1"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-ocp",
-      "upstreamName": "open-closed-principle",
-      "upstreamPaths": [
-        "domains/common/skills/open-closed-principle/SKILL.md",
-        "domains/plan/skills/open-closed-principle/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.0",
-      "license": "Apache-2.0",
-      "upstreamSha256": "a02427683557a40f3c9a9724451dfa150fdf286c30c2c2a75358061c42262b45",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "fbb89422f48cbaaf8e036cbd3a0af45958bc802bf9f60c96c5acc947dad12c38"
         }
       ],
       "adaptations": [
@@ -1043,15 +907,20 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "0109d7fd6803e84c5d36d325327d35ed3612217af4ea03628de057fc92b745b8"
+          "sha256": "d56a0ec9c33140986e3b54bc3aa341659fcb7bbdb1ffd2fdcaac99ffe9a8644b"
         },
         {
           "path": "references/principles.md",
           "sha256": "0964ed3a795736774e063a626844b5cbd0298da6220fc256ae21bc0f7810d539"
+        },
+        {
+          "path": "references/review-lenses.md",
+          "sha256": "e590205b6e2abdc8d485c71dc0e932ac5456f5a2103baf67892a2d0cb2d477a7"
         }
       ],
       "adaptations": [
-        "SKILL.md"
+        "SKILL.md",
+        "references/review-lenses.md"
       ]
     },
     {
@@ -1085,7 +954,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "08242046865cd30144d97d2e9e2d1b31c380976155fac45865aa9e848b2ef4ec"
+          "sha256": "9bd03ef5d358529eff630c0cf3df169e9f3ccc4fc80a3a5f8c15b4ac0cd593e8"
         },
         {
           "path": "references/java-notes.md",
@@ -1358,11 +1227,16 @@
         {
           "path": "techniques/62-replace-exception-with-test.md",
           "sha256": "85967ef0dc1da8ea5c9ec7ca547e1d0473827cbd8a90b8ea9c95a67b1c9fc2fc"
+        },
+        {
+          "path": "references/smell-lenses.md",
+          "sha256": "da56cfd622ae51bfe230141a75ec4b5a934f2a18d0441aa9d604b4ac31c68bd3"
         }
       ],
       "adaptations": [
         "SKILL.md",
-        "references/technique-to-pattern.md"
+        "references/technique-to-pattern.md",
+        "references/smell-lenses.md"
       ]
     },
     {
@@ -1470,26 +1344,6 @@
       ]
     },
     {
-      "name": "jag-srp",
-      "upstreamName": "single-responsibility",
-      "upstreamPaths": [
-        "domains/common/skills/single-responsibility/SKILL.md",
-        "domains/plan/skills/single-responsibility/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.0",
-      "license": "Apache-2.0",
-      "upstreamSha256": "bdede28ae7c46dfd69143714f934b45dbeba8d067ce5b5c47c88de1b3d537a36",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "181cce595914b6d953350f197be88ee8024c612a5b31f76edfe23994b49e685a"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "jag-skill",
       "upstreamName": "skill-creator",
       "upstreamPaths": [
@@ -1516,45 +1370,6 @@
         "SKILL.md",
         "assets/skill-template.md",
         "references/behavioral-evaluation.md"
-      ]
-    },
-    {
-      "name": "jag-functions",
-      "upstreamName": "small-functions",
-      "upstreamPaths": [
-        "domains/common/skills/small-functions/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.0",
-      "license": "Apache-2.0",
-      "upstreamSha256": "bdb0c43b735799605eb8df26a60ce1e5b11c8d9c2b1f25ceb5da6b6e34603a4e",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "e60e2ef51a6d06479ca5d7be68a8b1ce21c03be6be69d98f83aaaf7b2ceff853"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-spaghetti",
-      "upstreamName": "spaghetti-code-detection",
-      "upstreamPaths": [
-        "domains/common/skills/spaghetti-code-detection/SKILL.md",
-        "domains/plan/skills/spaghetti-code-detection/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.0",
-      "license": "Apache-2.0",
-      "upstreamSha256": "e4896f535c41382ca994fe146c70c759c7ea19167d746d9af79bc23a8b877842",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "c49f68f84420c5f31a57c707ee72c17d0d8c620d9934ad86b2e7d114c4d9d158"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
       ]
     },
     {
@@ -1687,6 +1502,208 @@
       "adaptations": [
         "SKILL.md"
       ]
+    }
+  ],
+  "consolidatedSkills": [
+    {
+      "name": "jag-coupling",
+      "upstreamName": "cohesion-coupling",
+      "upstreamPaths": [
+        "domains/common/skills/cohesion-coupling/SKILL.md",
+        "domains/plan/skills/cohesion-coupling/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "82cc03d775b5be0a4f65022bcc4af546bb485e582aa096e3baceccdf3280c56f",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "c560a80e6ec9668e1269bc19422adef025b5573aaf5969e1436be3348ef867fc",
+      "replacement": {
+        "skill": "jag-practices",
+        "path": "references/review-lenses.md",
+        "section": "cohesion-and-coupling"
+      }
+    },
+    {
+      "name": "jag-dip",
+      "upstreamName": "dependency-inversion",
+      "upstreamPaths": [
+        "domains/common/skills/dependency-inversion/SKILL.md",
+        "domains/plan/skills/dependency-inversion/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "4a1147fe49c379b3a6e934fc9cfa710f7766960a013f3036fa7660a996e5a967",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "b3f37720d3b0680af08c5ac9606c8b6a52e888557e706cb038e5dc4679f4b44e",
+      "replacement": {
+        "skill": "jag-patterns",
+        "path": "references/boundary-review.md",
+        "section": "dependency-inversion"
+      }
+    },
+    {
+      "name": "jag-dry",
+      "upstreamName": "dry-business-knowledge",
+      "upstreamPaths": [
+        "domains/common/skills/dry-business-knowledge/SKILL.md",
+        "domains/plan/skills/dry-business-knowledge/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "53534dadffd9a077e33cdb1ef94365277f5c455fa5f4669afba0d0f0fecb8a24",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "d2ca5915ad8658f77744ee5677a89810724492de42977aafc47d572f3b12cd76",
+      "replacement": {
+        "skill": "jag-practices",
+        "path": "references/review-lenses.md",
+        "section": "duplicated-knowledge"
+      }
+    },
+    {
+      "name": "jag-naming",
+      "upstreamName": "general-naming-readability",
+      "upstreamPaths": [
+        "domains/common/skills/general-naming-readability/SKILL.md",
+        "domains/plan/skills/general-naming-readability/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "69388dbce565e5535f98de014cb460e81e450e2251978ebd4af202033ddd87a0",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "fee08da7dd1f2bdba57007b213b5ce8b040ab8efb847a71c7b1b09a51b39818f",
+      "replacement": {
+        "skill": "jag-practices",
+        "path": "references/review-lenses.md",
+        "section": "naming"
+      }
+    },
+    {
+      "name": "jag-god-object",
+      "upstreamName": "god-object-detection",
+      "upstreamPaths": [
+        "domains/common/skills/god-object-detection/SKILL.md",
+        "domains/plan/skills/god-object-detection/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "9f3a826a80ddfd2913201e6d68dfb939e7bc895b559183c0c7d55a70e167351a",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "3abfc14c795ab4481d3145c8ee33ce1f3c099f368b23135ff1e25e65a534ccc9",
+      "replacement": {
+        "skill": "jag-refactor",
+        "path": "references/smell-lenses.md",
+        "section": "god-object"
+      }
+    },
+    {
+      "name": "jag-kiss",
+      "upstreamName": "kiss-yagni",
+      "upstreamPaths": [
+        "domains/architecture/skills/kiss-yagni/SKILL.md",
+        "domains/common/skills/kiss-yagni/SKILL.md",
+        "domains/plan/skills/kiss-yagni/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.1",
+      "license": "Apache-2.0",
+      "upstreamSha256": "c8b3d8b2575e219a7b98c6713c3c95d59d895a9aafc59096d22e5b1333dfd8f2",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "c123e875190e689fa07a2c7e452a15dadfd9d78154d80a2f552414e9d94b3816",
+      "replacement": {
+        "skill": "jag-practices",
+        "path": "references/review-lenses.md",
+        "section": "simplicity"
+      }
+    },
+    {
+      "name": "jag-ocp",
+      "upstreamName": "open-closed-principle",
+      "upstreamPaths": [
+        "domains/common/skills/open-closed-principle/SKILL.md",
+        "domains/plan/skills/open-closed-principle/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "a02427683557a40f3c9a9724451dfa150fdf286c30c2c2a75358061c42262b45",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "fbb89422f48cbaaf8e036cbd3a0af45958bc802bf9f60c96c5acc947dad12c38",
+      "replacement": {
+        "skill": "jag-patterns",
+        "path": "references/boundary-review.md",
+        "section": "open-closed-principle"
+      }
+    },
+    {
+      "name": "jag-srp",
+      "upstreamName": "single-responsibility",
+      "upstreamPaths": [
+        "domains/common/skills/single-responsibility/SKILL.md",
+        "domains/plan/skills/single-responsibility/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "bdede28ae7c46dfd69143714f934b45dbeba8d067ce5b5c47c88de1b3d537a36",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "181cce595914b6d953350f197be88ee8024c612a5b31f76edfe23994b49e685a",
+      "replacement": {
+        "skill": "jag-practices",
+        "path": "references/review-lenses.md",
+        "section": "single-responsibility"
+      }
+    },
+    {
+      "name": "jag-functions",
+      "upstreamName": "small-functions",
+      "upstreamPaths": [
+        "domains/common/skills/small-functions/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "bdb0c43b735799605eb8df26a60ce1e5b11c8d9c2b1f25ceb5da6b6e34603a4e",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "e60e2ef51a6d06479ca5d7be68a8b1ce21c03be6be69d98f83aaaf7b2ceff853",
+      "replacement": {
+        "skill": "jag-refactor",
+        "path": "references/smell-lenses.md",
+        "section": "small-functions"
+      }
+    },
+    {
+      "name": "jag-spaghetti",
+      "upstreamName": "spaghetti-code-detection",
+      "upstreamPaths": [
+        "domains/common/skills/spaghetti-code-detection/SKILL.md",
+        "domains/plan/skills/spaghetti-code-detection/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "e4896f535c41382ca994fe146c70c759c7ea19167d746d9af79bc23a8b877842",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "c49f68f84420c5f31a57c707ee72c17d0d8c620d9934ad86b2e7d114c4d9d158",
+      "replacement": {
+        "skill": "jag-refactor",
+        "path": "references/smell-lenses.md",
+        "section": "spaghetti-code"
+      }
     }
   ]
 }

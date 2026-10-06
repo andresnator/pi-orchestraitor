@@ -4,7 +4,7 @@ The package targets Pi 1.0.0, Node 22.19+, and Engram 3.0.0. Run the commands be
 
 | Command | Claim checked |
 | --- | --- |
-| `npm test` | Native tool regressions, instructions and personality injection, tarball resources and 61 skill names, prompt expansion, MCP overrides, migration, rollback, and restoration. |
+| `npm test` | Native tool regressions, instructions and personality injection, tarball resources and 51 active skill names, consolidated review criteria/discovery, prompt expansion, MCP overrides, migration, rollback, and restoration. |
 | `npm run test:mcp` | Real Context7 and Engram calls through native codemode, extension hooks, and project separation in temporary memory storage. |
 | `npm run test:personality` | Configured-model responses in fresh isolated sessions, with predefined criteria and synthetic receipts for manual scoring. |
 | `npm run install:pi -- --dry-run` | Complete lexical discovery inventory, including aliases hidden by native deduplication, and proposed standalone-skill moves, without migration or registration. |
@@ -15,6 +15,14 @@ The package targets Pi 1.0.0, Node 22.19+, and Engram 3.0.0. Run the commands be
 Structural tests prove resource discovery, wiring, and regression behavior. They do not guarantee instruction compliance by every model. The bounded personality check evaluates concrete responses against language, tone, disagreement, and artifact-language criteria; slang is optional.
 
 The package's established test convention is `node:test` and `node:assert`. That repository convention takes precedence over the skill's default fluent assertion preference.
+
+## Review-lens consolidation
+
+The current package consolidates ten standalone review skills into conditional references under `jag-practices`, `jag-refactor` and `jag-patterns` (51 active names). Fresh local checks passed 421/421 tests with no failures or skips, including native catalog diagnostics, twenty discovery queries, rejection of retired activation names, reference criteria/attribution/fingerprints, tarball loading and isolated installation/migration. Three new consolidation checks failed before implementation; an expanded discovery check also failed before missing routing terms were restored.
+
+Follow-up discovery correction: `tests/skill-consolidation.test.mjs` adds a separate regression case for `overengineering`, `identifiers`, `speculative`, `oversized`, `extraction`, `collaborators`, and `extension pressure`. All seven lookups failed before the description fix; afterward all 27 bounded discovery queries pass and a fresh local suite passes 422/422 with no failures or skips. Recipient metadata uses `pi_adaptation` 2.1.1 with matching resource fingerprints; registry search logic and conditional reference content are unchanged.
+
+The retired source records remain in `consolidatedSkills` with previous instruction hashes and replacement sections; active resources remain in `skills`. The Apache-2.0 references retain their original author/adaptation notices. Jira, PRD/USM and reading skills were not changed. Historical results below are preserved at their original counts. Interactive `/reload`, live MCP and real-model behavior were not rerun for this consolidation; structural tests do not establish equivalent model task quality or token savings.
 
 ## English audit
 

@@ -50,7 +50,7 @@ test("shouldMigrateAndLoadAllSkillsWhenNativeInstallationRunsInTemporaryConfigur
 		packageRegistered: nativeConfig.packages.some((entry) => resolve(dirname(join(cwd, ".pi", "settings.json")), typeof entry === "string" ? entry : entry.source) === resolve(packageRoot)),
 		previewRestorationDidNotMove: stillMoved, restored: await exists(projectSkill) && await exists(ancestorSkill),
 	}, {
-		previewMoves: [ancestorSkill, projectSkill].sort(), blockers: [], verified: 61, count: 61, diagnostics: [],
+		previewMoves: [ancestorSkill, projectSkill].sort(), blockers: [], verified: 51, count: 51, diagnostics: [],
 		packageRegistered: true, previewRestorationDidNotMove: true, restored: true,
 	});
 	assert.match(repeated, /"moves": \[\]/);
@@ -127,7 +127,7 @@ syncBuiltinESMExports();
 	// Then
 	assert.deepEqual(JSON.parse(await readFile(callsPath, "utf8")), [["install", "--local", "--approve", packageRoot], ["install", "--local", "--approve", source]]);
 	assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")).packages, [packageRoot, source]);
-	assert.equal(receipt.verifiedSkills, 61);
+	assert.equal(receipt.verifiedSkills, 51);
 	assert.deepEqual(receipt.companionPackages, [source]);
 	assert.deepEqual(JSON.parse(await readFile(join(agentDir, "pi-pretty.json"), "utf8")), { disableTools: ["bash"] });
 	const settingsBefore = await readFile(settingsPath, "utf8");

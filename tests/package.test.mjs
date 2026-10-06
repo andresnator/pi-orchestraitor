@@ -78,7 +78,7 @@ test("shouldLoadPromptsAndExtensionsWhenExplicitPackageBypassesDiscovery", async
 		skills: loader.getSkills().skills.length,
 	}, {
 		extensions: ["compact-tools.ts", "instructions.ts", "mcp.ts", "skill-registry.ts", "status-ui.ts", "subagents.ts"],
-		errors: [], prompts: EXPECTED_PROMPTS, skills: 61,
+		errors: [], prompts: EXPECTED_PROMPTS, skills: 51,
 	});
 });
 
@@ -139,7 +139,7 @@ test("shouldLoadOnlyPackagedResourcesWhenTarballIsExtractedElsewhere", async (t)
 	assert.match(childResult.diagnostic, /Model unavailable/);
 	assert.match(result.systemPromptOptions.sections.pi_orchestraitor_execution, /Orchestraitor/);
 	assert.match(result.systemPromptOptions.sections.pi_orchestraitor_personality, /Colombian software architect/);
-	assert.equal(PROVENANCE.skills.length, 61);
+	assert.equal(PROVENANCE.skills.length, 51);
 	for (const skill of PROVENANCE.skills) {
 		for (const resource of skill.resources) {
 			const bytes = await readFile(join(extracted, "skills", skill.name, resource.path));

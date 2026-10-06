@@ -1,14 +1,14 @@
 ---
 name: jag-refactor
-description: "Select Fowler/Shvets refactoring techniques across languages. Use for refactoring, code improvement, smells, SOLID, conditionals/classes/APIs or pasted code needing improvement; equivalent requests in any language apply."
+description: "Select Fowler/Shvets refactoring techniques across languages; diagnose long methods/oversized functions, small functions/extraction, God Object/Large Class with too many collaborators, spaghetti code, temporal coupling and hidden side effects. Use for smells, SOLID, conditionals/classes/APIs or pasted code needing improvement; equivalent requests in any language apply."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
-  pi_adaptation: "2.0.0"
+  pi_adaptation: "2.1.1"
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
   status: done
-  version: "1.3.0"
+  version: "1.4.1"
 ---
 
 # Refactoring Catalog (Multi-Language)
@@ -68,6 +68,10 @@ For detailed concept-to-language mappings, see `references/language-idioms.md`.
 6. **For Java**: Read `references/java-notes.md`, use Java OOP/Stream idioms, honor Java 8 versus Java 11+ API availability, and finish with the Java completion gate
 7. **For language idiom mapping**: See `references/language-idioms.md`
 8. **Apply incrementally**: Small steps; test after each change. Commit only when explicitly authorized by the user
+
+## Focused Diagnostic Review
+
+Read [references/smell-lenses.md](references/smell-lenses.md) only when diagnosing long methods, God Objects/Large Classes, or spaghetti code; apply only the matching sections. Preserve their evidence, characterization-test and incremental-change safeguards. A review-only request returns findings in the calling agent's output contract (or `no_findings`), not implementation; the application steps below require the user's change authorization.
 
 ## Technique Categories
 
@@ -193,5 +197,6 @@ These principles underpin every technique in the catalog:
 | `references/language-idioms.md` | Refactoring concept → {Python, TypeScript, Go, Rust} equivalents |
 | `references/language-applicability.md` | 62-technique × language applicability matrix with alternatives |
 | `references/java-notes.md` | Java-specific constraints, Java 8 vs 11+ notes, and the Java completion gate |
+| `references/smell-lenses.md` | Conditional small-function, God Object and spaghetti-code review criteria |
 | `references/selection-heuristics.md` | Ordered decision rules when several techniques compete: conditionals tree, smell directionality, falsifiable micro-tests, inheritance→delegation triggers |
 | `references/technique-to-pattern.md` | Which refactoring techniques land on which GoF pattern (Kerievsky bridge) |

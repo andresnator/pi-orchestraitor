@@ -4,11 +4,11 @@ description: "Apply Andres's production-code and test conventions: naming/assert
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
-  pi_adaptation: "2.0.0"
+  pi_adaptation: "2.0.1"
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
   status: in-progress
-  version: "2.0.1"
+  version: "2.0.2"
 ---
 
 # Code Conventions
@@ -28,7 +28,7 @@ These conventions are the default for new code and for repos without an establis
 - **No magic literals**: extract hardcoded numbers and strings into named constants placed where tests can reuse them. Tests reuse constants for fixtures and setup; when the constant itself IS the behavior under test, assert against the expected literal value to avoid tautological tests.
 - **Top-level DTOs**: DTOs and helper types are independent top-level classes/files — never inner or nested classes (Java), even when only one private method uses them. In TS, exported types in their own module following the repo layout.
 - **Stepdown order (soft)**: code reads top-down like a page; private methods appear in the order they are called. A preference for new or already-touched code, never a reason to churn diffs.
-- **Principles that carry weight**: Single Responsibility and Open-Closed. Introduce interfaces or dependency inversion only for real variation, test seams, or architectural boundaries — never as SOLID dogma (consistent with the `jag-dip` skill).
+- **Principles that carry weight**: Single Responsibility and Open-Closed. Introduce interfaces or dependency inversion only for real variation, test seams, or architectural boundaries — never as SOLID dogma. Keep stable internal classes direct unless a concrete testing or coupling problem justifies a boundary.
 
 ## Tests
 

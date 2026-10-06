@@ -1,14 +1,14 @@
 ---
 name: jag-practices
-description: "Review general clean-code quality, DRY, KISS, YAGNI, readability and maintainability."
+description: "Review clean-code quality, KISS/YAGNI, overengineering/speculative abstractions, DRY duplication, naming/identifiers/readability, maintainability, SRP/single responsibility, cohesion/coupling, circular dependencies and mixed layers across languages."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
-  pi_adaptation: "2.0.0"
+  pi_adaptation: "2.1.1"
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
   status: backlog
-  version: "1.0.4"
+  version: "1.1.1"
 ---
 
 # Skill: jag-practices
@@ -34,6 +34,7 @@ This skill teaches a bounded code-quality review workflow. It does not choose to
 
 - Keep this `SKILL.md` focused on the executable contract.
 - Use `references/principles.md` only when the request needs deeper tradeoff language.
+- Read [references/review-lenses.md](references/review-lenses.md) only when reviewing simplicity, duplicated knowledge, naming, single responsibility, or cohesion/coupling; apply only the matching sections.
 
 ## Hard Rules
 
@@ -64,7 +65,7 @@ This skill teaches a bounded code-quality review workflow. It does not choose to
 
 ## Output Contract
 
-Return:
+For a focused review inside another request, use the calling agent's output contract, cite evidence or mark hypotheses, and return `no_findings` when there is no material issue. Otherwise return:
 
 - Summary verdict: `healthy`, `needs_cleanup`, or `design_risk`.
 - Top issues, ordered by impact.

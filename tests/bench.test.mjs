@@ -18,12 +18,12 @@ test("shouldProduceIsolatedComparableReceiptsWithoutLiveUsageWhenBenchmarkRuns",
 	assert.match(report.treeSha256, /^[a-f0-9]{64}$/);
 	assert.ok(report.limitations.some(note => note.includes("No model or MCP requests")));
 	assert.deepEqual(report.modes.package.samples[0].unchangedHookReads, { branch: 0, usage: 0, invocations: 35 });
-	assert.equal(report.modes.package.samples[0].skills, 61);
+	assert.equal(report.modes.package.samples[0].skills, 51);
 	assert.equal(report.modes.native.samples[0].skills, 0);
 	assert.ok(report.modes.package.samples[0].subagentResponse.compact.characters < report.modes.package.samples[0].subagentResponse.fullReceipt.characters);
 	assert.ok(report.modes.package.summary.startupMs.median > 0);
 	assert.equal(report.version, 3);
-	assert.equal(report.modes["package-native"].samples[0].skills, 61);
+	assert.equal(report.modes["package-native"].samples[0].skills, 51);
 	assert.equal(report.modes.package.samples[0].skillWorkflow.matched, "jag-code");
 	assert.equal(report.modes.package.samples[0].skillWorkflow.refreshMs.samples.length, 5);
 	assert.ok(report.modes.package.samples[0].skillWorkflow.registrySnapshot.characters > 0);

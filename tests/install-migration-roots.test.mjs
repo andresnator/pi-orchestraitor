@@ -53,7 +53,7 @@ function install(context) {
 	const receiptStart = result.stdout.lastIndexOf('{\n  "installed"');
 	assert.notEqual(receiptStart, -1, result.stdout);
 	const receipt = JSON.parse(result.stdout.slice(receiptStart));
-	assert.equal(receipt.verifiedSkills, 61);
+	assert.equal(receipt.verifiedSkills, 51);
 	return receipt;
 }
 

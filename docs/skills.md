@@ -1,10 +1,33 @@
 # Bundled development skills
 
-The package ships 61 unique skills from the non-learning domains of `agents-orchestrator`, revision `e90b11a4d5fb77bfebcf5f5c96da9471014c17ab`. Public names use the short `jag-*` namespace (at most 15 characters). Original names are recorded in provenance; authors, licenses, and supporting resources are retained. All skill directories are materialized; none depends on a link to the source repository.
+The package ships 51 active skills from the non-learning domains of `agents-orchestrator`, revision `e90b11a4d5fb77bfebcf5f5c96da9471014c17ab`. Public names use the short `jag-*` namespace (at most 15 characters). Original names are recorded in provenance; authors, licenses, and supporting resources are retained. All skill directories are materialized; none depends on a link to the source repository. Ten former review lenses are retained as conditional reference material rather than standalone skills.
 
 ## Names and upgrades
 
 Directory basenames and frontmatter names match. Use the new identifiers in `/skill:<name>`, `skill_registry`, child selections and plan `Skills:` fields. This is a breaking rename without old-name aliases. Run native `/reload` after upgrading; refresh alone cannot authorize the new names. Update any explicit skill paths or package resource filters in your own configuration. Existing plans and historical reports are not rewritten automatically. Prompt commands (`/plan`, `/absorb`, `/review`, `/orchestraitor`) and artifact output paths remain unchanged.
+
+## Consolidated review lenses
+
+These ten names are no longer supplied as standalone skills or aliases by this package. Use the owning skill and request the named lens; it reads the matching reference only when relevant. Other native sources may still provide their own copies, which this package does not disable or move.
+
+| Retired name | Use instead | Preserved reference |
+| --- | --- | --- |
+| `jag-kiss` | `jag-practices` | [Simplicity](../skills/jag-practices/references/review-lenses.md#simplicity) |
+| `jag-dry` | `jag-practices` | [Duplicated Knowledge](../skills/jag-practices/references/review-lenses.md#duplicated-knowledge) |
+| `jag-naming` | `jag-practices` | [Naming](../skills/jag-practices/references/review-lenses.md#naming) |
+| `jag-srp` | `jag-practices` | [Single Responsibility](../skills/jag-practices/references/review-lenses.md#single-responsibility) |
+| `jag-coupling` | `jag-practices` | [Cohesion and Coupling](../skills/jag-practices/references/review-lenses.md#cohesion-and-coupling) |
+| `jag-functions` | `jag-refactor` | [Small Functions](../skills/jag-refactor/references/smell-lenses.md#small-functions) |
+| `jag-god-object` | `jag-refactor` | [God Object](../skills/jag-refactor/references/smell-lenses.md#god-object) |
+| `jag-spaghetti` | `jag-refactor` | [Spaghetti Code](../skills/jag-refactor/references/smell-lenses.md#spaghetti-code) |
+| `jag-ocp` | `jag-patterns` | [Open-Closed Principle](../skills/jag-patterns/references/boundary-review.md#open-closed-principle) |
+| `jag-dip` | `jag-patterns` | [Dependency Inversion](../skills/jag-patterns/references/boundary-review.md#dependency-inversion) |
+
+Run native `/reload` to remove stale package commands/catalog entries. Update explicit resource paths/filters and existing plan `Skills:` fields yourself; immutable plans and historical reports are not rewritten. A replacement name does not automatically satisfy an old plan's contract: check the assigned behavior and routing rules before changing it.
+
+The references retain evidence/confidence rules, caller-owned output, behavior preservation, validation/rollback, real-variation gates, temporal-coupling checks and characterization-test safeguards. They do not authorize code changes during a review. Jira, product/PRD/USM, reading, security, testing and legacy workflows are unchanged.
+
+The `skills` array in [provenance](skills-provenance.json) lists active resources. `consolidatedSkills` retains each retired source's original metadata, last instruction fingerprint and replacement skill/path/section. These derived references remain Apache-2.0 even under MIT skill bodies. Structural tests verify retention, discovery and search; they do not prove equivalent model behavior or provider savings.
 
 ## Lazy registry
 
@@ -68,7 +91,7 @@ See [offline savings and limitations](performance.md) and [child resolution](sub
 
 ## Pi adaptations
 
-- Every skill declares Pi compatibility and a separate `pi_adaptation` version (2.0.0 for the breaking namespace rename). Original versions remain in provenance.
+- Every skill declares Pi compatibility and a separate `pi_adaptation` version. The namespace rename baseline is 2.0.0; consolidation recipients use 2.1.1 after the discovery-vocabulary correction, with the `jag-code` pointer correction at 2.0.1. Original upstream versions remain in provenance.
 - Skill routing uses native-authorized names and descriptions via `skill_registry`, or the native catalog when unavailable. Catalog suppression does not rewrite source bodies/resources; executors load selected names. The routing adaptation is 2.0.0.
 - Closed questions use an available Pi UI choice mechanism, with ordinary chat as the fallback. No OpenCode question tool is assumed.
 - `jag-plan` and its template target sequential Orchestraitor execution, unchanged plans, and working-tree delivery. Unsupported SDD, TCR, and automatic Git delivery are reported as blockers.
@@ -93,7 +116,7 @@ Missing optional tooling limits that operation, without inventing tools or silen
 
 ## Catalog
 
-Each entry maps the shipped name to its original name, version and license. The [provenance file](skills-provenance.json) contains all domain paths, resource fingerprints, and changed resource names.
+Each entry maps the shipped name to its original name, version and SKILL.md license; consolidated reference licenses are noted above. The [provenance file](skills-provenance.json) contains all domain paths, resource fingerprints, and changed resource names.
 
 | Skill | Upstream name | Upstream version | License | Source domain(s) |
 | --- | --- | --- | --- | --- |
@@ -109,18 +132,13 @@ Each entry maps the shipped name to its original name, version and license. The 
 | [jag-code](../skills/jag-code/SKILL.md) | `code-conventions` | 2.0.1 | MIT | architecture, common, orchestration, plan, review |
 | [jag-docs](../skills/jag-docs/SKILL.md) | `cognitive-doc-design` | 1.0.2 | Apache-2.0 | docs, orchestration |
 | [jag-refine](../skills/jag-refine/SKILL.md) | `cognitive-output-refiner` | 2.0.0 | MIT | common |
-| [jag-coupling](../skills/jag-coupling/SKILL.md) | `cohesion-coupling` | 1.0.0 | Apache-2.0 | common, plan |
 | [jag-big-o](../skills/jag-big-o/SKILL.md) | `complexity-big-o` | 1.0.0 | Apache-2.0 | common, plan |
-| [jag-dip](../skills/jag-dip/SKILL.md) | `dependency-inversion` | 1.0.0 | Apache-2.0 | common, plan |
 | [jag-seams](../skills/jag-seams/SKILL.md) | `dependency-seam-detection` | 1.1.1 | Apache-2.0 | plan |
 | [jag-dep-audit](../skills/jag-dep-audit/SKILL.md) | `dependency-security-audit` | 2.1.2 | MIT | architecture |
 | [jag-patterns](../skills/jag-patterns/SKILL.md) | `design-patterns-pragmatic` | 1.1.0 | MIT | architecture, common, plan |
 | [jag-domain](../skills/jag-domain/SKILL.md) | `domain-modeling` | 1.0.4 | MIT | common, plan |
-| [jag-dry](../skills/jag-dry/SKILL.md) | `dry-business-knowledge` | 1.0.0 | Apache-2.0 | common, plan |
 | [jag-evidence](../skills/jag-evidence/SKILL.md) | `evidence-first-planning` | 5.0.0 | MIT | plan |
 | [jag-plan](../skills/jag-plan/SKILL.md) | `execution-plan` | 1.1.1 | MIT | architecture, common, plan |
-| [jag-naming](../skills/jag-naming/SKILL.md) | `general-naming-readability` | 1.0.0 | Apache-2.0 | common, plan |
-| [jag-god-object](../skills/jag-god-object/SKILL.md) | `god-object-detection` | 1.0.0 | Apache-2.0 | common, plan |
 | [jag-grill](../skills/jag-grill/SKILL.md) | `grilling` | 2.0.0 | MIT | common, plan |
 | [jag-routing](../skills/jag-routing/SKILL.md) | `implementation-skill-routing` | 3.0.0 | MIT | architecture, common, orchestration, plan |
 | [jag-validation](../skills/jag-validation/SKILL.md) | `input-validation-preconditions` | 1.0.0 | Apache-2.0 | common, plan |
@@ -133,11 +151,9 @@ Each entry maps the shipped name to its original name, version and license. The 
 | [jag-jira-spike](../skills/jag-jira-spike/SKILL.md) | `jira-spike` | 2.0.0 | MIT | docs |
 | [jag-jira-task](../skills/jag-jira-task/SKILL.md) | `jira-task` | 2.0.0 | MIT | docs |
 | [jag-jira-story](../skills/jag-jira-story/SKILL.md) | `jira-user-story` | 2.0.0 | MIT | docs |
-| [jag-kiss](../skills/jag-kiss/SKILL.md) | `kiss-yagni` | 1.0.1 | Apache-2.0 | architecture, common, plan |
 | [jag-legacy](../skills/jag-legacy/SKILL.md) | `legacy-code-safety` | 1.1.1 | Apache-2.0 | orchestration, plan |
 | [jag-logs](../skills/jag-logs/SKILL.md) | `logging-observability` | 1.0.0 | Apache-2.0 | common, plan |
 | [jag-nulls](../skills/jag-nulls/SKILL.md) | `null-safety` | 1.0.1 | Apache-2.0 | plan |
-| [jag-ocp](../skills/jag-ocp/SKILL.md) | `open-closed-principle` | 1.0.0 | Apache-2.0 | common, plan |
 | [jag-prd](../skills/jag-prd/SKILL.md) | `prd` | 2.0.0 | MIT | docs |
 | [jag-prd-lite](../skills/jag-prd-lite/SKILL.md) | `prd-light` | 2.0.0 | MIT | docs |
 | [jag-practices](../skills/jag-practices/SKILL.md) | `programming-practices-core` | 1.0.4 | MIT | common, review |
@@ -148,10 +164,7 @@ Each entry maps the shipped name to its original name, version and license. The 
 | [jag-risk](../skills/jag-risk/SKILL.md) | `risk-assessment` | 1.1.0 | Apache-2.0 | common, plan |
 | [jag-scope](../skills/jag-scope/SKILL.md) | `scope-analysis` | 1.0.2 | Apache-2.0 | plan |
 | [jag-boundaries](../skills/jag-boundaries/SKILL.md) | `service-boundary-analysis` | 2.0.0 | MIT | architecture |
-| [jag-srp](../skills/jag-srp/SKILL.md) | `single-responsibility` | 1.0.0 | Apache-2.0 | common, plan |
 | [jag-skill](../skills/jag-skill/SKILL.md) | `skill-creator` | 2.0.1 | Apache-2.0 | meta |
-| [jag-functions](../skills/jag-functions/SKILL.md) | `small-functions` | 1.0.0 | Apache-2.0 | common |
-| [jag-spaghetti](../skills/jag-spaghetti/SKILL.md) | `spaghetti-code-detection` | 1.0.0 | Apache-2.0 | common, plan |
 | [jag-summary](../skills/jag-summary/SKILL.md) | `summarize` | 1.0.3 | MIT | docs |
 | [jag-debug](../skills/jag-debug/SKILL.md) | `systematic-debugging` | 1.0.0 | MIT | common, orchestration |
 | [jag-tools](../skills/jag-tools/SKILL.md) | `tooling-audit` | 1.0.3 | Apache-2.0 | plan |

@@ -4,7 +4,7 @@ import { basename, dirname, join } from "node:path";
 import test from "node:test";
 import { packageRoot, pi } from "./helpers/pi-host.mjs";
 
-const BUNDLED_SKILL_COUNT = 61;
+const BUNDLED_SKILL_COUNT = 51;
 const MAX_SKILL_NAME_LENGTH = 15;
 
 test("shouldDiscoverShortNamesWithMatchingDirectoriesWhenBundledSkillsAreLoaded", async () => {

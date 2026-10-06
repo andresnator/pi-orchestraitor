@@ -1,14 +1,14 @@
 ---
 name: jag-patterns
-description: "Choose GoF/design patterns (strategy, adapter, factory, builder, decorator, observer) only for real needs."
+description: "Choose GoF/design patterns (strategy, policy, adapter, factory, builder, decorator, observer) only for real needs; review OCP/polymorphism under real extension pressure and DIP/dependency inversion, ports, interfaces and adapters at concrete boundaries."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
-  pi_adaptation: "2.0.0"
+  pi_adaptation: "2.1.1"
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
   status: testing
-  version: "1.1.0"
+  version: "1.2.1"
 ---
 
 # Skill: jag-patterns
@@ -17,7 +17,9 @@ metadata:
 
 Use this skill when asked whether to use a design pattern, how to apply a pattern, or how to compare pattern-based alternatives. Examples include Strategy, Factory, Builder, Adapter, Decorator, Template Method, Observer, Command, Repository, and Specification.
 
-Do **not** use this skill to add patterns for decoration, replace simple code without a change pressure, or perform full architecture design unrelated to a specific pattern choice.
+Also use for focused OCP/DIP reviews of extension pressure, repeated conditionals, ports, interfaces and dependency boundaries. Boundary review need not recommend a pattern.
+
+Do **not** use this skill to add patterns for decoration, replace simple code without a change pressure, or perform full architecture design.
 
 ## Responsibility
 
@@ -34,6 +36,7 @@ This skill teaches pragmatic pattern selection and application. It does not call
 
 - Keep this `SKILL.md` focused on selection workflow.
 - Use `references/pattern-selection.md` for the pattern decision table.
+- Read [references/boundary-review.md](references/boundary-review.md) only when reviewing extension pressure or dependency boundaries; apply only the matching sections.
 
 ## Hard Rules
 
@@ -67,7 +70,7 @@ This skill teaches pragmatic pattern selection and application. It does not call
 
 ## Output Contract
 
-Return:
+For a boundary-only review, use the calling agent's output contract with concrete evidence or marked hypotheses; return `no_findings` when there is no material issue. For pattern selection, return:
 
 - Pattern verdict: `no_pattern`, `pattern_candidate`, or `pattern_recommended`.
 - Design force.
