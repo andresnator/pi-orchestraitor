@@ -12,15 +12,15 @@ test("shouldMigrateAndLoadAllSkillsWhenNativeInstallationRunsInTemporaryConfigur
 	const root = await realpath(await createWorkspace(t));
 	const cwd = join(root, "consumer");
 	const agentDir = join(root, "agent");
-	const projectSkill = join(cwd, ".pi", "skills", "execution-plan");
-	const ancestorSkill = join(cwd, ".agents", "skills", "adr");
+	const projectSkill = join(cwd, ".pi", "skills", "jag-plan");
+	const ancestorSkill = join(cwd, ".agents", "skills", "jag-adr");
 	await mkdir(join(cwd, ".git"), { recursive: true });
 	await mkdir(agentDir);
 	const sharedRoot = join(process.env.HOME ?? homedir(), ".agents", "skills");
 	await writeFile(join(agentDir, "settings.json"), JSON.stringify({ skills: [`!${sharedRoot}/**`] }));
 	const prettyPath = join(agentDir, "pi-pretty.json"), prettyText = '{"theme":"retained"}';
 	await writeFile(prettyPath, prettyText);
-	for (const [path, name] of [[projectSkill, "execution-plan"], [ancestorSkill, "adr"]]) {
+	for (const [path, name] of [[projectSkill, "jag-plan"], [ancestorSkill, "jag-adr"]]) {
 		await mkdir(path, { recursive: true });
 		await writeFile(join(path, "SKILL.md"), `---\nname: ${name}\ndescription: Temporary original.\n---\nOriginal fixture.\n`);
 	}

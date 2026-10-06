@@ -78,11 +78,11 @@ async function worker(mode) {
 		if (mode === "package") {
 			const registryTool = session.getToolDefinition("skill_registry");
 			const searchArgs = { operation: "search", query: "code conventions", limit: 5 };
-			const loadArgs = { operation: "load", name: "code-conventions" };
+			const loadArgs = { operation: "load", name: "jag-code" };
 			const lookup = await registryTool.execute("search", searchArgs, undefined, undefined, skillCtx);
 			const loaded = await registryTool.execute("load", loadArgs, undefined, undefined, skillCtx);
 			const matches = JSON.parse(lookup.content[0].text).matches;
-			if (!matches.some(({ name }) => name === loadArgs.name)) throw new Error("Benchmark search missed code-conventions");
+			if (!matches.some(({ name }) => name === loadArgs.name)) throw new Error("Benchmark search missed jag-code");
 			result.skillWorkflow = { matched: loadArgs.name, search: size(lookup.content[0].text), load: size(loaded.content[0].text),
 				calls: size(JSON.stringify([{ name: registryTool.name, arguments: searchArgs }, { name: registryTool.name, arguments: loadArgs }])),
 				registrySnapshot: size(await readFile(join(temporary, ".ai/skills/registry.md"), "utf8")) };
@@ -90,7 +90,7 @@ async function worker(mode) {
 			result.skillWorkflow.searchMs = await timings(() => registryTool.execute("search", searchArgs, undefined, undefined, skillCtx), SKILL_TIMING_OPTIONS);
 			result.skillWorkflow.loadMs = await timings(() => registryTool.execute("load", loadArgs, undefined, undefined, skillCtx), SKILL_TIMING_OPTIONS);
 		} else {
-			const skill = loader.getSkills().skills.find(({ name }) => name === "code-conventions");
+			const skill = loader.getSkills().skills.find(({ name }) => name === "jag-code");
 			const readArgs = { path: skill.filePath };
 			const loaded = await session.getToolDefinition("read").execute("load", readArgs, undefined, undefined, skillCtx);
 			result.skillWorkflow = { load: size(loaded.content.map(block => block.text ?? "").join("")),
@@ -158,7 +158,7 @@ async function main(args) {
 	const host = await findHostRoot();
 	const report = { version: 3, recordedAt: new Date().toISOString(), node: process.version, pi: JSON.parse(await readFile(join(host, "package.json"), "utf8")).version,
 		platform: process.platform, revision: execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim(), treeSha256: fingerprint.digest("hex"),
-		limitations: ["No model or MCP requests; estimatedTokens uses characters/4, not a tokenizer.", "Startup and idle samples use print mode; first prompt preparation is measured separately.", "Hook samples use a simulated native Pi UI without terminal I/O and with 10,000 entries.", "Subagent response sizes use a synthetic controller receipt; no child is started.", "Skill workflow uses one deterministic English search and code-conventions; protocol wrappers, missed searches, caching and task quality are not modeled."], modes: {} };
+		limitations: ["No model or MCP requests; estimatedTokens uses characters/4, not a tokenizer.", "Startup and idle samples use print mode; first prompt preparation is measured separately.", "Hook samples use a simulated native Pi UI without terminal I/O and with 10,000 entries.", "Subagent response sizes use a synthetic controller receipt; no child is started.", "Skill workflow uses one deterministic English search and jag-code; protocol wrappers, missed searches, caching and task quality are not modeled."], modes: {} };
 	for (const mode of MODES) report.modes[mode] = { samples: [] };
 	for (let round = 0; round < options.samples; round++) for (const mode of MODES) {
 		const { stdout } = await runFile(process.execPath, [fileURLToPath(import.meta.url), "--worker", mode], { cwd: ROOT, timeout: 30000, maxBuffer: 1024 * 1024 });

@@ -2,7 +2,7 @@
 
 **One main agent plans and coordinates. Skills guide it; prompts start requests; extensions add executable behavior. There is no durable SDD engine.**
 
-Source: `7232484becc7895167d3b3d063765a8186b3541d` plus the authorized interactive-UI working tree, inspected on 2026-10-04 with Pi 1.0.2. This describes the candidate, not the commit alone or completed acceptance. Historical verification remains separate. User-authorized exception to architecture-map's usual exclusion of AI harnesses.
+Source: `7232484becc7895167d3b3d063765a8186b3541d` plus the authorized interactive-UI working tree, inspected on 2026-10-04 with Pi 1.0.2. This describes the candidate, not the commit alone or completed acceptance. Historical verification remains separate. User-authorized exception to jag-arch-map's usual exclusion of AI harnesses.
 
 ## Read only what you need
 
@@ -59,7 +59,7 @@ flowchart TB
 | --- | --- |
 | E | [package.json](../../package.json): extension, skill and prompt resource declarations. |
 | F | [prompts/plan.md:5–8](../../prompts/plan.md), [prompts/orchestraitor.md:5–6](../../prompts/orchestraitor.md), [prompts/review.md:5–8](../../prompts/review.md), [prompts/absorb.md:5–7](../../prompts/absorb.md). |
-| G | [README.md](../../README.md), [skills/implementation-skill-routing/SKILL.md:20–28](../../skills/implementation-skill-routing/SKILL.md): catalog selection, then body loading. |
+| G | [README.md](../../README.md), [skills/jag-routing/SKILL.md:20–28](../../skills/jag-routing/SKILL.md): catalog selection, then body loading. |
 | H | [extensions/instructions.ts:4–19](../../extensions/instructions.ts): adds sections without replacing Pi/project context. |
 | I | [extensions/compact-tools.ts](../../extensions/compact-tools.ts): presentation, not a scheduler; yields read/bash to existing extension owners. The installer separately registers [pi-pretty](../pi-pretty.md). |
 | J | [extensions/mcp.ts:6–19](../../extensions/mcp.ts). |
@@ -79,12 +79,12 @@ flowchart TB
 | Plan | A Markdown contract: behavior, ordered groups, exact files, skills and checks. Not an executable scheduler. |
 | `.ai/` | Planning/report artifacts; not a durable phase database. |
 
-Sources: [prompts/plan.md:5–8](../../prompts/plan.md), [instructions/orchestraitor.md](../../instructions/orchestraitor.md), [extensions/subagents.ts](../../extensions/subagents.ts), [plan template:1–62](../../skills/execution-plan/assets/plan-template.md), [evidence-first-planning:26–37](../../skills/evidence-first-planning/SKILL.md).
+Sources: [prompts/plan.md:5–8](../../prompts/plan.md), [instructions/orchestraitor.md](../../instructions/orchestraitor.md), [extensions/subagents.ts](../../extensions/subagents.ts), [plan template:1–62](../../skills/jag-plan/assets/plan-template.md), [jag-evidence:26–37](../../skills/jag-evidence/SKILL.md).
 
 ## Supporting pieces, not extra SDD stages
 
-- **Product inputs:** PRD, stories and buildable issues can clarify requirements. They do not automatically launch execution. Even `sdd-ready` is an issue label, not a running engine ([buildable-issue:27–49](../../skills/buildable-issue/SKILL.md)).
-- **Specialist skills:** architecture, debugging, refactoring and testing guidance are loaded when relevant; they are not a mandatory chain. Plans select at most three implementation skills per group ([implementation-skill-routing:20–39](../../skills/implementation-skill-routing/SKILL.md)).
+- **Product inputs:** PRD, stories and buildable issues can clarify requirements. They do not automatically launch execution. Even `sdd-ready` is an issue label, not a running engine ([jag-issue:27–49](../../skills/jag-issue/SKILL.md)).
+- **Specialist skills:** architecture, debugging, refactoring and testing guidance are loaded when relevant; they are not a mandatory chain. Plans select at most three implementation skills per group ([jag-routing:20–39](../../skills/jag-routing/SKILL.md)).
 - **`/review`:** read-only findings; fixes need separate authorization. **`/absorb`:** compares another harness; does not adopt it ([review:5–8](../../prompts/review.md), [absorb:5–7](../../prompts/absorb.md)).
 - **Installation and tests:** `scripts/install-pi.mjs` installs/migrates resources; package scripts expose verification. Neither is an SDD coordinator ([package.json](../../package.json), [README.md](../../README.md)).
 

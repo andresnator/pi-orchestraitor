@@ -4,7 +4,7 @@ This package adapts **agents-orchestrator**, revision `e90b11a4d5fb77bfebcf5f5c9
 
 - `extensions/compact-tools.ts` and its regression tests came from the user's existing Pi configuration. Native execution and the Node test/assert convention are preserved.
 - `instructions/` and `prompts/` adapt the source's global rules, Agent Personality, Orchestraitor, planning, review, and Absorb contracts.
-- The 61 bundled skills retain their original names, authors, upstream source metadata, and declared MIT or Apache-2.0 licenses. [The catalog](docs/skills.md) and [machine-readable provenance](docs/skills-provenance.json) identify each source path, revision, version, license, resource, and adaptation. Multi-domain copies are materialized once.
+- The 61 bundled skills expose short `jag-*` names. Their original names remain in provenance; authors, upstream source metadata, and declared MIT or Apache-2.0 licenses are retained. [The catalog](docs/skills.md) and [machine-readable provenance](docs/skills-provenance.json) identify each source path, revision, version, license, resource, and adaptation. Multi-domain copies are materialized once.
 - MIT terms are included in [licenses/MIT.txt](licenses/MIT.txt). Apache-2.0 terms are included in [licenses/Apache-2.0.txt](licenses/Apache-2.0.txt). Modified Apache files identify their Pi adaptation in frontmatter or a modification notice.
 - Upstream skill authors include andresnator, gentleman-programming, abdi, and the authors retained in individual frontmatter and resources. Their attribution is preserved; adaptation does not imply their endorsement.
 

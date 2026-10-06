@@ -1,8 +1,32 @@
 import assert from "node:assert/strict";
-import { access, readFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { access, readFile, readdir } from "node:fs/promises";
+import { basename, dirname, join } from "node:path";
 import test from "node:test";
-import { packageRoot } from "./helpers/pi-host.mjs";
+import { packageRoot, pi } from "./helpers/pi-host.mjs";
+
+const BUNDLED_SKILL_COUNT = 61;
+const MAX_SKILL_NAME_LENGTH = 15;
+
+test("shouldDiscoverShortNamesWithMatchingDirectoriesWhenBundledSkillsAreLoaded", async () => {
+	// Given
+	const skillRoot = join(packageRoot, "skills");
+	const provenance = JSON.parse(await readFile(join(packageRoot, "docs", "skills-provenance.json"), "utf8"));
+	const directories = (await readdir(skillRoot, { withFileTypes: true })).filter((entry) => entry.isDirectory()).map(({ name }) => name).sort();
+	// When
+	const { skills, diagnostics } = pi.loadSkillsFromDir({ dir: skillRoot, source: "package" });
+	const names = skills.map(({ name }) => name).sort();
+	const invalidNames = names.filter((name) => !/^jag-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name) || name.length > MAX_SKILL_NAME_LENGTH);
+	const mismatchedDirectories = skills.filter(({ name, filePath }) => name !== basename(dirname(filePath))).map(({ name }) => name);
+	// Then
+	assert.deepEqual({ count: names.length, unique: new Set(names).size, names, directories, diagnostics, invalidNames, mismatchedDirectories }, {
+		count: BUNDLED_SKILL_COUNT, unique: BUNDLED_SKILL_COUNT, names: provenance.skills.map(({ name }) => name).sort(),
+		directories: names, diagnostics: [], invalidNames: [], mismatchedDirectories: [],
+	});
+	for (const skill of provenance.skills) {
+		assert.ok(skill.upstreamName);
+		for (const path of skill.upstreamPaths) assert.equal(basename(dirname(path)), skill.upstreamName);
+	}
+});
 
 test("shouldResolveLocalReferencesWhenAllBundledSkillResourcesAreInspected", async () => {
 	// Given

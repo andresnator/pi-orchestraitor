@@ -1,6 +1,10 @@
 # Bundled development skills
 
-The package ships 61 unique skills from the non-learning domains of `agents-orchestrator`, revision `e90b11a4d5fb77bfebcf5f5c96da9471014c17ab`. Original names, authors, licenses, and supporting resources are retained. All skill directories are materialized; none depends on a link to the source repository.
+The package ships 61 unique skills from the non-learning domains of `agents-orchestrator`, revision `e90b11a4d5fb77bfebcf5f5c96da9471014c17ab`. Public names use the short `jag-*` namespace (at most 15 characters). Original names are recorded in provenance; authors, licenses, and supporting resources are retained. All skill directories are materialized; none depends on a link to the source repository.
+
+## Names and upgrades
+
+Directory basenames and frontmatter names match. Use the new identifiers in `/skill:<name>`, `skill_registry`, child selections and plan `Skills:` fields. This is a breaking rename without old-name aliases. Run native `/reload` after upgrading; refresh alone cannot authorize the new names. Update any explicit skill paths or package resource filters in your own configuration. Existing plans and historical reports are not rewritten automatically. Prompt commands (`/plan`, `/absorb`, `/review`, `/orchestraitor`) and artifact output paths remain unchanged.
 
 ## Lazy registry
 
@@ -19,7 +23,7 @@ Model tool examples:
 
 ```json
 {"operation":"search","query":"java testing","limit":5}
-{"operation":"load","name":"java-testing"}
+{"operation":"load","name":"jag-java-test"}
 ```
 
 Search uses English substring terms against names/descriptions, not embeddings or a model selector. The default is five matches, maximum twenty; queries are limited to 500 characters and returned descriptions to 512. No whole-index injection or automatic reading of the registry is needed. Search quality, extra turns and actual provider savings remain unmeasured.
@@ -64,11 +68,11 @@ See [offline savings and limitations](performance.md) and [child resolution](sub
 
 ## Pi adaptations
 
-- Every skill declares Pi compatibility and a separate `pi_adaptation` version. Original versions remain in provenance.
-- Skill routing uses native-authorized names and descriptions via `skill_registry`, or the native catalog when unavailable. Catalog suppression does not rewrite source bodies/resources; executors load selected names. The routing adaptation is 1.1.0.
+- Every skill declares Pi compatibility and a separate `pi_adaptation` version (2.0.0 for the breaking namespace rename). Original versions remain in provenance.
+- Skill routing uses native-authorized names and descriptions via `skill_registry`, or the native catalog when unavailable. Catalog suppression does not rewrite source bodies/resources; executors load selected names. The routing adaptation is 2.0.0.
 - Closed questions use an available Pi UI choice mechanism, with ordinary chat as the fallback. No OpenCode question tool is assumed.
-- `execution-plan` and its template target sequential Orchestraitor execution, unchanged plans, and working-tree delivery. Unsupported SDD, TCR, and automatic Git delivery are reported as blockers.
-- `skill-creator` uses the Pi package layout and discovery checks, and includes an actual skill template. It has no source-installer or manual-catalog dependency.
+- `jag-plan` and its template target sequential Orchestraitor execution, unchanged plans, and working-tree delivery. Unsupported SDD, TCR, and automatic Git delivery are reported as blockers.
+- `jag-skill` uses the Pi package layout and discovery checks, and includes an actual skill template. It has no source-installer or manual-catalog dependency.
 - Absorb compares the destination's actual runtime. Refactoring instructions require explicit authorization for commits.
 - Descriptions, references, and templates use English. Replies and explicitly requested artifact languages follow the user.
 
@@ -89,72 +93,72 @@ Missing optional tooling limits that operation, without inventing tools or silen
 
 ## Catalog
 
-Each entry links to the shipped skill and records its original version and license. The [provenance file](skills-provenance.json) contains all domain paths, resource fingerprints, and changed resource names.
+Each entry maps the shipped name to its original name, version and license. The [provenance file](skills-provenance.json) contains all domain paths, resource fingerprints, and changed resource names.
 
-| Skill | Upstream version | License | Source domain(s) |
-| --- | --- | --- | --- |
-| [absorb](../skills/absorb/SKILL.md) | 1.2.4 | MIT | meta |
-| [adr](../skills/adr/SKILL.md) | 2.0.0 | MIT | architecture, docs |
-| [architecture-ideation](../skills/architecture-ideation/SKILL.md) | 4.0.0 | MIT | architecture |
-| [architecture-impact-review](../skills/architecture-impact-review/SKILL.md) | 1.1.3 | Apache-2.0 | plan |
-| [architecture-map](../skills/architecture-map/SKILL.md) | 2.0.1 | MIT | architecture |
-| [architecture-state](../skills/architecture-state/SKILL.md) | 2.0.1 | MIT | architecture |
-| [behavior-characterization](../skills/behavior-characterization/SKILL.md) | 1.1.0 | Apache-2.0 | orchestration, plan |
-| [buildable-issue](../skills/buildable-issue/SKILL.md) | 2.1.3 | MIT | docs |
-| [characterization-test-scoping](../skills/characterization-test-scoping/SKILL.md) | 2.2.1 | Apache-2.0 | plan |
-| [code-conventions](../skills/code-conventions/SKILL.md) | 2.0.1 | MIT | architecture, common, orchestration, plan, review |
-| [cognitive-doc-design](../skills/cognitive-doc-design/SKILL.md) | 1.0.2 | Apache-2.0 | docs, orchestration |
-| [cognitive-output-refiner](../skills/cognitive-output-refiner/SKILL.md) | 2.0.0 | MIT | common |
-| [cohesion-coupling](../skills/cohesion-coupling/SKILL.md) | 1.0.0 | Apache-2.0 | common, plan |
-| [complexity-big-o](../skills/complexity-big-o/SKILL.md) | 1.0.0 | Apache-2.0 | common, plan |
-| [dependency-inversion](../skills/dependency-inversion/SKILL.md) | 1.0.0 | Apache-2.0 | common, plan |
-| [dependency-seam-detection](../skills/dependency-seam-detection/SKILL.md) | 1.1.1 | Apache-2.0 | plan |
-| [dependency-security-audit](../skills/dependency-security-audit/SKILL.md) | 2.1.2 | MIT | architecture |
-| [design-patterns-pragmatic](../skills/design-patterns-pragmatic/SKILL.md) | 1.1.0 | MIT | architecture, common, plan |
-| [domain-modeling](../skills/domain-modeling/SKILL.md) | 1.0.4 | MIT | common, plan |
-| [dry-business-knowledge](../skills/dry-business-knowledge/SKILL.md) | 1.0.0 | Apache-2.0 | common, plan |
-| [evidence-first-planning](../skills/evidence-first-planning/SKILL.md) | 5.0.0 | MIT | plan |
-| [execution-plan](../skills/execution-plan/SKILL.md) | 1.1.1 | MIT | architecture, common, plan |
-| [general-naming-readability](../skills/general-naming-readability/SKILL.md) | 1.0.0 | Apache-2.0 | common, plan |
-| [god-object-detection](../skills/god-object-detection/SKILL.md) | 1.0.0 | Apache-2.0 | common, plan |
-| [grilling](../skills/grilling/SKILL.md) | 2.0.0 | MIT | common, plan |
-| [implementation-skill-routing](../skills/implementation-skill-routing/SKILL.md) | 3.0.0 | MIT | architecture, common, orchestration, plan |
-| [input-validation-preconditions](../skills/input-validation-preconditions/SKILL.md) | 1.0.0 | Apache-2.0 | common, plan |
-| [java-api-design](../skills/java-api-design/SKILL.md) | 1.0.4 | MIT | plan |
-| [java-exception-robustness](../skills/java-exception-robustness/SKILL.md) | 1.0.4 | MIT | plan |
-| [java-immutability-modeling](../skills/java-immutability-modeling/SKILL.md) | 1.0.4 | MIT | plan |
-| [java-naming-readability](../skills/java-naming-readability/SKILL.md) | 1.0.1 | Apache-2.0 | plan |
-| [java-secure-coding](../skills/java-secure-coding/SKILL.md) | 1.0.4 | MIT | plan |
-| [java-testing](../skills/java-testing/SKILL.md) | 3.2.1 | MIT | architecture, orchestration, plan |
-| [jira-spike](../skills/jira-spike/SKILL.md) | 2.0.0 | MIT | docs |
-| [jira-task](../skills/jira-task/SKILL.md) | 2.0.0 | MIT | docs |
-| [jira-user-story](../skills/jira-user-story/SKILL.md) | 2.0.0 | MIT | docs |
-| [kiss-yagni](../skills/kiss-yagni/SKILL.md) | 1.0.1 | Apache-2.0 | architecture, common, plan |
-| [legacy-code-safety](../skills/legacy-code-safety/SKILL.md) | 1.1.1 | Apache-2.0 | orchestration, plan |
-| [logging-observability](../skills/logging-observability/SKILL.md) | 1.0.0 | Apache-2.0 | common, plan |
-| [null-safety](../skills/null-safety/SKILL.md) | 1.0.1 | Apache-2.0 | plan |
-| [open-closed-principle](../skills/open-closed-principle/SKILL.md) | 1.0.0 | Apache-2.0 | common, plan |
-| [prd](../skills/prd/SKILL.md) | 2.0.0 | MIT | docs |
-| [prd-light](../skills/prd-light/SKILL.md) | 2.0.0 | MIT | docs |
-| [programming-practices-core](../skills/programming-practices-core/SKILL.md) | 1.0.4 | MIT | common, review |
-| [prompt-structure-writer](../skills/prompt-structure-writer/SKILL.md) | 1.1.0 | MIT | meta |
-| [refactor](../skills/refactor/SKILL.md) | 1.3.0 | MIT | plan |
-| [repo-issues](../skills/repo-issues/SKILL.md) | 2.1.1 | MIT | architecture |
-| [rfc](../skills/rfc/SKILL.md) | 2.0.0 | MIT | docs |
-| [risk-assessment](../skills/risk-assessment/SKILL.md) | 1.1.0 | Apache-2.0 | common, plan |
-| [scope-analysis](../skills/scope-analysis/SKILL.md) | 1.0.2 | Apache-2.0 | plan |
-| [service-boundary-analysis](../skills/service-boundary-analysis/SKILL.md) | 2.0.0 | MIT | architecture |
-| [single-responsibility](../skills/single-responsibility/SKILL.md) | 1.0.0 | Apache-2.0 | common, plan |
-| [skill-creator](../skills/skill-creator/SKILL.md) | 2.0.1 | Apache-2.0 | meta |
-| [small-functions](../skills/small-functions/SKILL.md) | 1.0.0 | Apache-2.0 | common |
-| [spaghetti-code-detection](../skills/spaghetti-code-detection/SKILL.md) | 1.0.0 | Apache-2.0 | common, plan |
-| [summarize](../skills/summarize/SKILL.md) | 1.0.3 | MIT | docs |
-| [systematic-debugging](../skills/systematic-debugging/SKILL.md) | 1.0.0 | MIT | common, orchestration |
-| [tooling-audit](../skills/tooling-audit/SKILL.md) | 1.0.3 | Apache-2.0 | plan |
-| [tooling-compatibility-matrix](../skills/tooling-compatibility-matrix/SKILL.md) | 1.1.1 | Apache-2.0 | plan |
-| [type-contracts](../skills/type-contracts/SKILL.md) | 1.0.1 | Apache-2.0 | plan |
-| [usm](../skills/usm/SKILL.md) | 2.0.0 | MIT | docs |
+| Skill | Upstream name | Upstream version | License | Source domain(s) |
+| --- | --- | --- | --- | --- |
+| [jag-absorb](../skills/jag-absorb/SKILL.md) | `absorb` | 1.2.4 | MIT | meta |
+| [jag-adr](../skills/jag-adr/SKILL.md) | `adr` | 2.0.0 | MIT | architecture, docs |
+| [jag-arch-ideas](../skills/jag-arch-ideas/SKILL.md) | `architecture-ideation` | 4.0.0 | MIT | architecture |
+| [jag-arch-impact](../skills/jag-arch-impact/SKILL.md) | `architecture-impact-review` | 1.1.3 | Apache-2.0 | plan |
+| [jag-arch-map](../skills/jag-arch-map/SKILL.md) | `architecture-map` | 2.0.1 | MIT | architecture |
+| [jag-arch-state](../skills/jag-arch-state/SKILL.md) | `architecture-state` | 2.0.1 | MIT | architecture |
+| [jag-behavior](../skills/jag-behavior/SKILL.md) | `behavior-characterization` | 1.1.0 | Apache-2.0 | orchestration, plan |
+| [jag-issue](../skills/jag-issue/SKILL.md) | `buildable-issue` | 2.1.3 | MIT | docs |
+| [jag-test-scope](../skills/jag-test-scope/SKILL.md) | `characterization-test-scoping` | 2.2.1 | Apache-2.0 | plan |
+| [jag-code](../skills/jag-code/SKILL.md) | `code-conventions` | 2.0.1 | MIT | architecture, common, orchestration, plan, review |
+| [jag-docs](../skills/jag-docs/SKILL.md) | `cognitive-doc-design` | 1.0.2 | Apache-2.0 | docs, orchestration |
+| [jag-refine](../skills/jag-refine/SKILL.md) | `cognitive-output-refiner` | 2.0.0 | MIT | common |
+| [jag-coupling](../skills/jag-coupling/SKILL.md) | `cohesion-coupling` | 1.0.0 | Apache-2.0 | common, plan |
+| [jag-big-o](../skills/jag-big-o/SKILL.md) | `complexity-big-o` | 1.0.0 | Apache-2.0 | common, plan |
+| [jag-dip](../skills/jag-dip/SKILL.md) | `dependency-inversion` | 1.0.0 | Apache-2.0 | common, plan |
+| [jag-seams](../skills/jag-seams/SKILL.md) | `dependency-seam-detection` | 1.1.1 | Apache-2.0 | plan |
+| [jag-dep-audit](../skills/jag-dep-audit/SKILL.md) | `dependency-security-audit` | 2.1.2 | MIT | architecture |
+| [jag-patterns](../skills/jag-patterns/SKILL.md) | `design-patterns-pragmatic` | 1.1.0 | MIT | architecture, common, plan |
+| [jag-domain](../skills/jag-domain/SKILL.md) | `domain-modeling` | 1.0.4 | MIT | common, plan |
+| [jag-dry](../skills/jag-dry/SKILL.md) | `dry-business-knowledge` | 1.0.0 | Apache-2.0 | common, plan |
+| [jag-evidence](../skills/jag-evidence/SKILL.md) | `evidence-first-planning` | 5.0.0 | MIT | plan |
+| [jag-plan](../skills/jag-plan/SKILL.md) | `execution-plan` | 1.1.1 | MIT | architecture, common, plan |
+| [jag-naming](../skills/jag-naming/SKILL.md) | `general-naming-readability` | 1.0.0 | Apache-2.0 | common, plan |
+| [jag-god-object](../skills/jag-god-object/SKILL.md) | `god-object-detection` | 1.0.0 | Apache-2.0 | common, plan |
+| [jag-grill](../skills/jag-grill/SKILL.md) | `grilling` | 2.0.0 | MIT | common, plan |
+| [jag-routing](../skills/jag-routing/SKILL.md) | `implementation-skill-routing` | 3.0.0 | MIT | architecture, common, orchestration, plan |
+| [jag-validation](../skills/jag-validation/SKILL.md) | `input-validation-preconditions` | 1.0.0 | Apache-2.0 | common, plan |
+| [jag-java-api](../skills/jag-java-api/SKILL.md) | `java-api-design` | 1.0.4 | MIT | plan |
+| [jag-java-errors](../skills/jag-java-errors/SKILL.md) | `java-exception-robustness` | 1.0.4 | MIT | plan |
+| [jag-java-model](../skills/jag-java-model/SKILL.md) | `java-immutability-modeling` | 1.0.4 | MIT | plan |
+| [jag-java-naming](../skills/jag-java-naming/SKILL.md) | `java-naming-readability` | 1.0.1 | Apache-2.0 | plan |
+| [jag-java-secure](../skills/jag-java-secure/SKILL.md) | `java-secure-coding` | 1.0.4 | MIT | plan |
+| [jag-java-test](../skills/jag-java-test/SKILL.md) | `java-testing` | 3.2.1 | MIT | architecture, orchestration, plan |
+| [jag-jira-spike](../skills/jag-jira-spike/SKILL.md) | `jira-spike` | 2.0.0 | MIT | docs |
+| [jag-jira-task](../skills/jag-jira-task/SKILL.md) | `jira-task` | 2.0.0 | MIT | docs |
+| [jag-jira-story](../skills/jag-jira-story/SKILL.md) | `jira-user-story` | 2.0.0 | MIT | docs |
+| [jag-kiss](../skills/jag-kiss/SKILL.md) | `kiss-yagni` | 1.0.1 | Apache-2.0 | architecture, common, plan |
+| [jag-legacy](../skills/jag-legacy/SKILL.md) | `legacy-code-safety` | 1.1.1 | Apache-2.0 | orchestration, plan |
+| [jag-logs](../skills/jag-logs/SKILL.md) | `logging-observability` | 1.0.0 | Apache-2.0 | common, plan |
+| [jag-nulls](../skills/jag-nulls/SKILL.md) | `null-safety` | 1.0.1 | Apache-2.0 | plan |
+| [jag-ocp](../skills/jag-ocp/SKILL.md) | `open-closed-principle` | 1.0.0 | Apache-2.0 | common, plan |
+| [jag-prd](../skills/jag-prd/SKILL.md) | `prd` | 2.0.0 | MIT | docs |
+| [jag-prd-lite](../skills/jag-prd-lite/SKILL.md) | `prd-light` | 2.0.0 | MIT | docs |
+| [jag-practices](../skills/jag-practices/SKILL.md) | `programming-practices-core` | 1.0.4 | MIT | common, review |
+| [jag-prompts](../skills/jag-prompts/SKILL.md) | `prompt-structure-writer` | 1.1.0 | MIT | meta |
+| [jag-refactor](../skills/jag-refactor/SKILL.md) | `refactor` | 1.3.0 | MIT | plan |
+| [jag-repo-issues](../skills/jag-repo-issues/SKILL.md) | `repo-issues` | 2.1.1 | MIT | architecture |
+| [jag-rfc](../skills/jag-rfc/SKILL.md) | `rfc` | 2.0.0 | MIT | docs |
+| [jag-risk](../skills/jag-risk/SKILL.md) | `risk-assessment` | 1.1.0 | Apache-2.0 | common, plan |
+| [jag-scope](../skills/jag-scope/SKILL.md) | `scope-analysis` | 1.0.2 | Apache-2.0 | plan |
+| [jag-boundaries](../skills/jag-boundaries/SKILL.md) | `service-boundary-analysis` | 2.0.0 | MIT | architecture |
+| [jag-srp](../skills/jag-srp/SKILL.md) | `single-responsibility` | 1.0.0 | Apache-2.0 | common, plan |
+| [jag-skill](../skills/jag-skill/SKILL.md) | `skill-creator` | 2.0.1 | Apache-2.0 | meta |
+| [jag-functions](../skills/jag-functions/SKILL.md) | `small-functions` | 1.0.0 | Apache-2.0 | common |
+| [jag-spaghetti](../skills/jag-spaghetti/SKILL.md) | `spaghetti-code-detection` | 1.0.0 | Apache-2.0 | common, plan |
+| [jag-summary](../skills/jag-summary/SKILL.md) | `summarize` | 1.0.3 | MIT | docs |
+| [jag-debug](../skills/jag-debug/SKILL.md) | `systematic-debugging` | 1.0.0 | MIT | common, orchestration |
+| [jag-tools](../skills/jag-tools/SKILL.md) | `tooling-audit` | 1.0.3 | Apache-2.0 | plan |
+| [jag-tool-matrix](../skills/jag-tool-matrix/SKILL.md) | `tooling-compatibility-matrix` | 1.1.1 | Apache-2.0 | plan |
+| [jag-types](../skills/jag-types/SKILL.md) | `type-contracts` | 1.0.1 | Apache-2.0 | plan |
+| [jag-usm](../skills/jag-usm/SKILL.md) | `usm` | 2.0.0 | MIT | docs |
 
 ## Excluded capabilities
 
-Learning-domain skills and `graphify-cli`, `judgment-day`, `sdd-cold-verification`, `tcr`, `work-unit-commits`, `chained-pr`, `caveman`, `grill`, `slidev-retro-deck`, and `whisper-extract` are excluded from this delivery. `grilling` is a distinct, included design interview skill. Existing user copies of excluded names are left in place.
+Learning-domain skills and `graphify-cli`, `judgment-day`, `sdd-cold-verification`, `tcr`, `work-unit-commits`, `chained-pr`, `caveman`, `grill`, `slidev-retro-deck`, and `whisper-extract` are excluded from this delivery. `jag-grill` (upstream `grilling`) is a distinct, included design interview skill. Existing user copies of excluded names are left in place.

@@ -63,10 +63,12 @@ Native `pi install /path/to/package` also discovers bundled skills, but does not
 /orchestraitor execute the plan .ai/deep-planner/plans/change.md
 /review src/module.ts
 /absorb /path/to/another/harness
-/skill:systematic-debugging investigate this failure
+/skill:jag-debug investigate this failure
 ```
 
 Skills use **lazy discovery by default**: `skill_registry` searches native-authorized descriptions and loads only selected bodies. `.ai/skills/registry.md` is generated as a body-free diagnostic snapshot, not injected into the prompt. `/skill:<name>` remains an explicit native command. Use `/orchestraitor:skills status|refresh` to inspect/refresh, or `native` to restore native headers (`lazy` switches back).
+
+All bundled skill names begin with `jag-` and contain at most 15 characters. Original identifiers remain in provenance; old skill commands and plan Skills fields must use the new names. Reload Pi after upgrading, and update any explicit skill paths or resource filters in your own configuration. Prompt commands such as `/plan` and `/absorb` are unchanged.
 
 New sources/names require native Pi configuration and `/reload`; edits and removals of already authorized skills are checked on the next request or lookup. Claude/OpenCode directories are not silently enabled. See the [skill registry and catalog](docs/skills.md) for source configuration, limits and fallback.
 
@@ -85,7 +87,7 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 | `extensions/subagents.ts` | One bounded launcher, child guards, native usage and optional progress observations. |
 | `extensions/skill-registry.ts` | Bounded search/load, native snapshot refresh and atomic diagnostic publication; lazy/native exposure. |
 | `extensions/status-ui.ts` | One owner for agents/tasks panels, unified questions and compact work-header/native-footer chrome. |
-| `skills/` | 61 unique skills and their supporting resources, with original public names. |
+| `skills/` | 61 unique skills and their supporting resources, with short `jag-*` names. |
 | `prompts/` | `/orchestraitor`, `/plan`, `/review`, and `/absorb`, with explicit arguments. |
 | `scripts/install-pi.mjs` | Migration, native package registration, verification, and restoration. |
 

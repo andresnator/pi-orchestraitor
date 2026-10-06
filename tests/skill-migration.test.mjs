@@ -5,7 +5,7 @@ import test from "node:test";
 import { applyMigration, exists, planMigration, restoreBackup } from "../scripts/skill-migration.mjs";
 import { createWorkspace, pi } from "./helpers/pi-host.mjs";
 
-const CATALOG = [{ name: "execution-plan" }];
+const CATALOG = [{ name: "jag-plan" }];
 
 async function fixture(t) {
 	const root = await createWorkspace(t);
@@ -30,7 +30,7 @@ async function createSkill(root, name) {
 test("shouldMoveOnlyMatchingSkillsAndRestoreThemWhenInstallationSucceeds", async (t) => {
 	// Given
 	const context = await fixture(t);
-	const selected = await createSkill(join(context.skillRoot, "different-directory-name"), "execution-plan");
+	const selected = await createSkill(join(context.skillRoot, "different-directory-name"), "jag-plan");
 	const unrelated = await createSkill(join(context.skillRoot, "unrelated"), "unrelated");
 	const plan = await planMigration({ ...context, catalog: CATALOG, resources: [context.resource(context.skillRoot)] });
 	// When
@@ -40,15 +40,15 @@ test("shouldMoveOnlyMatchingSkillsAndRestoreThemWhenInstallationSucceeds", async
 	await restoreBackup(result.backup);
 	// Then
 	assert.deepEqual({ movedState, names: plan.moves[0].names, restored: await exists(selected) }, {
-		movedState: { registered: true, selectedExists: false, unrelatedExists: true }, names: ["execution-plan"], restored: true,
+		movedState: { registered: true, selectedExists: false, unrelatedExists: true }, names: ["jag-plan"], restored: true,
 	});
 });
 
 test("shouldMoveOnlyTheLinkWhenSkillDiscoveryUsesASymlink", async (t) => {
 	// Given
 	const context = await fixture(t);
-	const target = await createSkill(join(context.root, "source-repository", "execution-plan"), "execution-plan");
-	const link = join(context.skillRoot, "execution-plan");
+	const target = await createSkill(join(context.root, "source-repository", "jag-plan"), "jag-plan");
+	const link = join(context.skillRoot, "jag-plan");
 	await symlink(target, link);
 	const plan = await planMigration({ ...context, catalog: CATALOG, resources: [context.resource(link)] });
 	// When
@@ -64,7 +64,7 @@ for (const failureStage of ["registration", "verification"]) {
 	test(`shouldRestoreSkillsWhen${failureStage}Fails`, async (t) => {
 		// Given
 		const context = await fixture(t);
-		const selected = await createSkill(join(context.skillRoot, "execution-plan"), "execution-plan");
+		const selected = await createSkill(join(context.skillRoot, "jag-plan"), "jag-plan");
 		const plan = await planMigration({ ...context, catalog: CATALOG, resources: [context.resource(selected)] });
 		let rolledBack = false;
 		const fail = async () => { throw new Error("Fixture failure"); };
@@ -82,7 +82,7 @@ for (const failureStage of ["registration", "verification"]) {
 test("shouldLeaveNewEntriesUntouchedWhenRestorationWouldOverwriteThem", async (t) => {
 	// Given
 	const context = await fixture(t);
-	const selected = await createSkill(join(context.skillRoot, "execution-plan"), "execution-plan");
+	const selected = await createSkill(join(context.skillRoot, "jag-plan"), "jag-plan");
 	const plan = await planMigration({ ...context, catalog: CATALOG, resources: [context.resource(selected)] });
 	const result = await applyMigration({ plan, agentDir: context.agentDir, register: async () => {}, rollbackRegistration: async () => {}, verify: async () => {} });
 	await createSkill(selected, "replacement");
@@ -96,9 +96,9 @@ test("shouldLeaveNewEntriesUntouchedWhenRestorationWouldOverwriteThem", async (t
 test("shouldReportManagedConflictsBeforeMovingAnyStandaloneSkills", async (t) => {
 	// Given
 	const context = await fixture(t);
-	const standalone = await createSkill(join(context.skillRoot, "execution-plan"), "execution-plan");
+	const standalone = await createSkill(join(context.skillRoot, "jag-plan"), "jag-plan");
 	const managedRoot = join(context.root, "another-package");
-	const managed = await createSkill(join(managedRoot, "skills", "execution-plan"), "execution-plan");
+	const managed = await createSkill(join(managedRoot, "skills", "jag-plan"), "jag-plan");
 	const plan = await planMigration({ ...context, catalog: CATALOG, resources: [context.resource(standalone), context.resource(managed, { origin: "package", source: "npm:another-package", packageRoot: managedRoot })] });
 	// When
 	await assert.rejects(applyMigration({ plan, agentDir: context.agentDir }), /npm:another-package/);
@@ -109,8 +109,8 @@ test("shouldReportManagedConflictsBeforeMovingAnyStandaloneSkills", async (t) =>
 test("shouldFindNoFurtherMovesWhenInstallationIsRepeated", async (t) => {
 	// Given
 	const context = await fixture(t);
-	const selected = await createSkill(join(context.skillRoot, "execution-plan"), "execution-plan");
-	const bundled = await createSkill(join(context.packageRoot, "skills", "execution-plan"), "execution-plan");
+	const selected = await createSkill(join(context.skillRoot, "jag-plan"), "jag-plan");
+	const bundled = await createSkill(join(context.packageRoot, "skills", "jag-plan"), "jag-plan");
 	const plan = await planMigration({ ...context, catalog: CATALOG, resources: [context.resource(selected)] });
 	await applyMigration({ plan, agentDir: context.agentDir, register: async () => {}, rollbackRegistration: async () => {}, verify: async () => {} });
 	// When
@@ -124,7 +124,7 @@ test("shouldPreserveSourceRepositoriesWhenConfiguredSkillPathsPointIntoThem", as
 	const context = await fixture(t);
 	const source = join(context.root, "upstream");
 	await mkdir(join(source, ".git"), { recursive: true });
-	const selected = await createSkill(join(source, "skills", "execution-plan"), "execution-plan");
+	const selected = await createSkill(join(source, "skills", "jag-plan"), "jag-plan");
 	// When
 	const plan = await planMigration({ ...context, catalog: CATALOG, resources: [context.resource(selected, { source: "local" })] });
 	// Then
@@ -136,16 +136,16 @@ test("shouldMoveTheAncestorLinkWhenDiscoveryListsAFileInsideItsTarget", async (t
 	// Given
 	const context = await fixture(t);
 	const target = join(context.root, "source-tree");
-	await createSkill(join(target, "nested", "execution-plan"), "execution-plan");
+	await createSkill(join(target, "nested", "jag-plan"), "jag-plan");
 	const link = join(context.skillRoot, "linked-tree");
 	await symlink(target, link);
-	const file = join(link, "nested", "execution-plan", "SKILL.md");
+	const file = join(link, "nested", "jag-plan", "SKILL.md");
 	// When
 	const plan = await planMigration({ ...context, catalog: CATALOG, resources: [context.resource(file, { baseDir: context.agentDir })] });
 	const result = await applyMigration({ plan, agentDir: context.agentDir, register: async () => {}, rollbackRegistration: async () => {}, verify: async () => {} });
 	await restoreBackup(result.backup);
 	// Then
-	assert.deepEqual({ original: plan.moves[0].original, kind: plan.moves[0].kind, sourceExists: await exists(join(target, "nested", "execution-plan")), target: await readlink(link) },
+	assert.deepEqual({ original: plan.moves[0].original, kind: plan.moves[0].kind, sourceExists: await exists(join(target, "nested", "jag-plan")), target: await readlink(link) },
 		{ original: link, kind: "symlink", sourceExists: true, target });
 });
 
@@ -153,7 +153,7 @@ test("shouldPlanBothDeclaredNameConflictsWhenAConfiguredDirectoryContainsDuplica
 	// Given
 	const context = await fixture(t);
 	const originals = [];
-	for (const directory of ["first", "second"]) originals.push(await createSkill(join(context.skillRoot, directory), "execution-plan"));
+	for (const directory of ["first", "second"]) originals.push(await createSkill(join(context.skillRoot, directory), "jag-plan"));
 	// When
 	const plan = await planMigration({ ...context, catalog: CATALOG, resources: [context.resource(context.skillRoot)] });
 	// Then
@@ -164,7 +164,7 @@ test("shouldPreserveAnEntireLinkedTreeWhenItAlsoContainsUnrelatedSkills", async 
 	// Given
 	const context = await fixture(t);
 	const target = join(context.root, "mixed-source");
-	await createSkill(join(target, "selected"), "execution-plan");
+	await createSkill(join(target, "selected"), "jag-plan");
 	await createSkill(join(target, "unrelated"), "unrelated");
 	const link = join(context.skillRoot, "linked-tree");
 	await symlink(target, link);
@@ -182,7 +182,7 @@ test("shouldKeepTheAgentConfigurationLinkWhenPlanningAutomaticSkills", async (t)
 	const target = join(context.root, "actual-agent");
 	await rename(context.agentDir, target);
 	await symlink(target, context.agentDir);
-	const selected = await createSkill(join(context.skillRoot, "execution-plan"), "execution-plan");
+	const selected = await createSkill(join(context.skillRoot, "jag-plan"), "jag-plan");
 	// When
 	const plan = await planMigration({ ...context, catalog: CATALOG, resources: [context.resource(join(selected, "SKILL.md"), { baseDir: context.agentDir })] });
 	// Then
@@ -193,7 +193,7 @@ test("shouldKeepTheAgentConfigurationLinkWhenPlanningAutomaticSkills", async (t)
 test("shouldBlockAConfiguredSkillThatIsItselfARepositoryRoot", async (t) => {
 	// Given
 	const context = await fixture(t);
-	const selected = await createSkill(join(context.root, "standalone-checkout"), "execution-plan");
+	const selected = await createSkill(join(context.root, "standalone-checkout"), "jag-plan");
 	await mkdir(join(selected, ".git"));
 	// When
 	const plan = await planMigration({ ...context, catalog: CATALOG, resources: [context.resource(selected, { source: "local" })] });
@@ -206,11 +206,11 @@ test("shouldKeepTheConfiguredLinkWhenNativeDiscoveryEmitsNestedFiles", async (t)
 	// Given
 	const context = await fixture(t);
 	const target = join(context.root, "source-tree");
-	const source = await createSkill(join(target, "nested", "execution-plan"), "execution-plan");
+	const source = await createSkill(join(target, "nested", "jag-plan"), "jag-plan");
 	const link = join(context.root, "configured-tree");
 	await symlink(target, link);
 	// When
-	const plan = await planMigration({ ...context, catalog: CATALOG, resources: [context.resource(join(link, "nested", "execution-plan", "SKILL.md"), { source: "local", discoveryRoot: link })] });
+	const plan = await planMigration({ ...context, catalog: CATALOG, resources: [context.resource(join(link, "nested", "jag-plan", "SKILL.md"), { source: "local", discoveryRoot: link })] });
 	// Then
 	assert.deepEqual(plan.moves.map(({ original, kind }) => ({ original, kind })), [{ original: link, kind: "symlink" }]);
 	assert.equal(await exists(source), true);
@@ -223,7 +223,7 @@ for (const physicalPath of [false, true]) {
 		const target = join(context.root, "actual-agent");
 		await rename(context.agentDir, target);
 		await symlink(target, context.agentDir);
-		await createSkill(target, "execution-plan");
+		await createSkill(target, "jag-plan");
 		const original = physicalPath ? target : context.agentDir;
 		// When
 		const plan = await planMigration({ ...context, catalog: CATALOG, resources: [context.resource(original, { source: "local" })] });
@@ -240,7 +240,7 @@ for (const physicalPath of [false, true]) {
 test("shouldBlockMigrationWhenTheDiscoveryBoundaryIsUnknown", async (t) => {
 	// Given
 	const context = await fixture(t);
-	const selected = await createSkill(join(context.skillRoot, "execution-plan"), "execution-plan");
+	const selected = await createSkill(join(context.skillRoot, "jag-plan"), "jag-plan");
 	// When
 	const plan = await planMigration({ ...context, catalog: CATALOG, resources: [context.resource(selected, { discoveryRoot: undefined })] });
 	// Then
@@ -252,13 +252,13 @@ for (const linkedFile of [false, true]) {
 	test(`shouldMigrateOnlyTheConfiguredSkillFileWhenItIs${linkedFile ? "ASymlink" : "ARegularFile"}`, async (t) => {
 		// Given
 		const context = await fixture(t);
-		const directory = join(context.skillRoot, "execution-plan");
+		const directory = join(context.skillRoot, "jag-plan");
 		const file = join(directory, "SKILL.md");
-		const source = await createSkill(join(context.root, "source"), "execution-plan");
+		const source = await createSkill(join(context.root, "source"), "jag-plan");
 		if (linkedFile) {
 			await mkdir(directory);
 			await symlink(join(source, "SKILL.md"), file);
-		} else await createSkill(directory, "execution-plan");
+		} else await createSkill(directory, "jag-plan");
 		// When
 		const plan = await planMigration({ ...context, catalog: CATALOG, resources: [context.resource(file, { source: "local" })] });
 		assert.deepEqual(plan.moves.map(({ original, kind }) => ({ original, kind })), [{ original: file, kind: linkedFile ? "symlink" : "file" }]);

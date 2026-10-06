@@ -3,7 +3,8 @@
   "revision": "e90b11a4d5fb77bfebcf5f5c96da9471014c17ab",
   "skills": [
     {
-      "name": "absorb",
+      "name": "jag-absorb",
+      "upstreamName": "absorb",
       "upstreamPaths": [
         "domains/meta/skills/absorb/SKILL.md"
       ],
@@ -13,7 +14,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "333fde4779ce046f5258c83bf912577fe969c7e8c34c42c8d50e26557b6385fe"
+          "sha256": "05e03cd63b03adbd7fcd93dc4bc9a40526c762c865d7fdf366f1927c8c3374fb"
         }
       ],
       "adaptations": [
@@ -21,7 +22,8 @@
       ]
     },
     {
-      "name": "adr",
+      "name": "jag-adr",
+      "upstreamName": "adr",
       "upstreamPaths": [
         "domains/architecture/skills/adr/SKILL.md",
         "domains/docs/skills/adr/SKILL.md"
@@ -32,7 +34,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "6fd0bbb34d4e5c29acbbffd07800ae190ccb2f4548c99e20675f8bdc913082ca"
+          "sha256": "5901f421219add3f9809080463d1dc79092526730843f4429a2a06faf214d6a9"
         },
         {
           "path": "assets/template-markdown.md",
@@ -44,7 +46,8 @@
       ]
     },
     {
-      "name": "architecture-ideation",
+      "name": "jag-arch-ideas",
+      "upstreamName": "architecture-ideation",
       "upstreamPaths": [
         "domains/architecture/skills/architecture-ideation/SKILL.md"
       ],
@@ -54,7 +57,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "d7d2a010c1e300027b54196d5945da8d59a37137a6b05f9db484b5a8bae16343"
+          "sha256": "c98e09a9fddc3c41b2c5f111ab040c65e8bc464508050c637a770b7b3319430e"
         }
       ],
       "adaptations": [
@@ -62,7 +65,8 @@
       ]
     },
     {
-      "name": "architecture-impact-review",
+      "name": "jag-arch-impact",
+      "upstreamName": "architecture-impact-review",
       "upstreamPaths": [
         "domains/plan/skills/architecture-impact-review/SKILL.md"
       ],
@@ -72,7 +76,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "13f7c574180a11b0d83f6bf5f119802068a10bb387eb570f3b54a3342a30647b"
+          "sha256": "5898ead9bd566cbc27c21d0656dc262b493ad5035c05fd2bd6c365937b12176f"
         }
       ],
       "adaptations": [
@@ -80,7 +84,8 @@
       ]
     },
     {
-      "name": "architecture-map",
+      "name": "jag-arch-map",
+      "upstreamName": "architecture-map",
       "upstreamPaths": [
         "domains/architecture/skills/architecture-map/SKILL.md"
       ],
@@ -90,7 +95,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "acdccc533558492ce371a04d76589099339682dc642ca4e2d99fc28c064b9971"
+          "sha256": "91dafdad9860166d0ab4f4252228aaece83500dc32578b5adafb2c637c3aecbe"
         },
         {
           "path": "assets/architecture-doc-set.md",
@@ -102,7 +107,8 @@
       ]
     },
     {
-      "name": "architecture-state",
+      "name": "jag-arch-state",
+      "upstreamName": "architecture-state",
       "upstreamPaths": [
         "domains/architecture/skills/architecture-state/SKILL.md"
       ],
@@ -112,7 +118,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "e6512bfa6072c7423153f3d0611f4f7fa6a27f5181bff9a257956b9ec3112e2c"
+          "sha256": "b9115584186ae604e7400328ac63272684f1d301cea7e93038b08377a0a5499e"
         }
       ],
       "adaptations": [
@@ -120,7 +126,8 @@
       ]
     },
     {
-      "name": "behavior-characterization",
+      "name": "jag-behavior",
+      "upstreamName": "behavior-characterization",
       "upstreamPaths": [
         "domains/orchestration/skills/behavior-characterization/SKILL.md",
         "domains/plan/skills/behavior-characterization/SKILL.md"
@@ -131,7 +138,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "e079cd4c33b5db3f720059294cdb225df466375cadf366c1085799aa078d9c12"
+          "sha256": "4fbbef7a524f4dad5c80bbcc11896048947a690d5361bcb7afd87f4a5c6e30b9"
         }
       ],
       "adaptations": [
@@ -139,7 +146,8 @@
       ]
     },
     {
-      "name": "buildable-issue",
+      "name": "jag-issue",
+      "upstreamName": "buildable-issue",
       "upstreamPaths": [
         "domains/docs/skills/buildable-issue/SKILL.md"
       ],
@@ -149,7 +157,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "e137b2273a9ddd891bf3f9c0984eb9cf01d7ae474d5ba0c84bf69a357376c4ab"
+          "sha256": "2b92c63ea2a4073e0128cd0014da6c099fd95e5204c6ccd0a41c2c3c6344da28"
         }
       ],
       "adaptations": [
@@ -157,7 +165,8 @@
       ]
     },
     {
-      "name": "characterization-test-scoping",
+      "name": "jag-test-scope",
+      "upstreamName": "characterization-test-scoping",
       "upstreamPaths": [
         "domains/plan/skills/characterization-test-scoping/SKILL.md"
       ],
@@ -167,7 +176,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "c02cc26d8a0f34ad7ffb6c1ed52d05111af26885bef262e2cfbac54bc7f602ad"
+          "sha256": "46aaa55d3071d58eeb84839a3f4705cfaec895144a3958c125167b4a8b912f89"
         }
       ],
       "adaptations": [
@@ -175,7 +184,8 @@
       ]
     },
     {
-      "name": "code-conventions",
+      "name": "jag-code",
+      "upstreamName": "code-conventions",
       "upstreamPaths": [
         "domains/architecture/skills/code-conventions/SKILL.md",
         "domains/common/skills/code-conventions/SKILL.md",
@@ -189,23 +199,26 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "f3b368f5093b52584b3a81b14be7c4ad9083972138fe682777bc8e125c06e9e3"
+          "sha256": "e3d67992945d4901b75c65face3d71ac23e5d7e67770bc0ea91d7804a99279b6"
         },
         {
           "path": "assets/examples/OrderServiceTest.java",
-          "sha256": "24dbdb25e03fef04a18790f8896fa2e525f1e0880ade3679cb2288ce696b8ee0"
+          "sha256": "73c0df21ee5f4b5f2e346d0ac2dcbc7729f0be38e0ddc9b40781a7dbb34042f5"
         },
         {
           "path": "assets/examples/order-service.test.ts",
-          "sha256": "2bde9b35c79dba9a4d0127e19275e0c97f438f8c0a611d5b657a4957bb55929a"
+          "sha256": "5068793de24853d237475e9b23cb922484ef0cf1975ac2d4d9c3853672d00f31"
         }
       ],
       "adaptations": [
-        "SKILL.md"
+        "SKILL.md",
+        "assets/examples/OrderServiceTest.java",
+        "assets/examples/order-service.test.ts"
       ]
     },
     {
-      "name": "cognitive-doc-design",
+      "name": "jag-docs",
+      "upstreamName": "cognitive-doc-design",
       "upstreamPaths": [
         "domains/docs/skills/cognitive-doc-design/SKILL.md",
         "domains/orchestration/skills/cognitive-doc-design/SKILL.md"
@@ -216,7 +229,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "09fbac76be2c43d7b23cd0d5e9e865a8bb13f4b12b592b0168fb3b4b05ff72c1"
+          "sha256": "95fd174bbe1af72b30ba901971134987a531f967b168240878c94811b6ff7d40"
         }
       ],
       "adaptations": [
@@ -224,7 +237,8 @@
       ]
     },
     {
-      "name": "cognitive-output-refiner",
+      "name": "jag-refine",
+      "upstreamName": "cognitive-output-refiner",
       "upstreamPaths": [
         "domains/common/skills/cognitive-output-refiner/SKILL.md"
       ],
@@ -234,7 +248,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "504e951795d2dd8505842fb3cb26169e33b26bb8cff0dc9ce3693c2ce22943e1"
+          "sha256": "a50ae7897914b5a82454f49693927f277004abf02b5ae8790aae94b09a529318"
         }
       ],
       "adaptations": [
@@ -242,7 +256,8 @@
       ]
     },
     {
-      "name": "cohesion-coupling",
+      "name": "jag-coupling",
+      "upstreamName": "cohesion-coupling",
       "upstreamPaths": [
         "domains/common/skills/cohesion-coupling/SKILL.md",
         "domains/plan/skills/cohesion-coupling/SKILL.md"
@@ -253,7 +268,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "96af57778795233d1cee7690910715047c7f8f140e77cfea55360f59ab323878"
+          "sha256": "c560a80e6ec9668e1269bc19422adef025b5573aaf5969e1436be3348ef867fc"
         }
       ],
       "adaptations": [
@@ -261,7 +276,8 @@
       ]
     },
     {
-      "name": "complexity-big-o",
+      "name": "jag-big-o",
+      "upstreamName": "complexity-big-o",
       "upstreamPaths": [
         "domains/common/skills/complexity-big-o/SKILL.md",
         "domains/plan/skills/complexity-big-o/SKILL.md"
@@ -272,7 +288,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "2b7ed308e5109961dc87add4acf2a417d9f9a94d850db573ae7bff080099b7ee"
+          "sha256": "88db9b54ac905d0e5e36bd650081b560f07eeb91f575353d4e11b0ab3f70269c"
         }
       ],
       "adaptations": [
@@ -280,7 +296,8 @@
       ]
     },
     {
-      "name": "dependency-inversion",
+      "name": "jag-dip",
+      "upstreamName": "dependency-inversion",
       "upstreamPaths": [
         "domains/common/skills/dependency-inversion/SKILL.md",
         "domains/plan/skills/dependency-inversion/SKILL.md"
@@ -291,7 +308,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "199f093628d5951790e83e2c03d9982087cf863e3a7e1de82c4933c28d90d7b8"
+          "sha256": "b3f37720d3b0680af08c5ac9606c8b6a52e888557e706cb038e5dc4679f4b44e"
         }
       ],
       "adaptations": [
@@ -299,7 +316,8 @@
       ]
     },
     {
-      "name": "dependency-seam-detection",
+      "name": "jag-seams",
+      "upstreamName": "dependency-seam-detection",
       "upstreamPaths": [
         "domains/plan/skills/dependency-seam-detection/SKILL.md"
       ],
@@ -309,19 +327,21 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "8233500185c777e50446e0cf493de8deee89539ff1fe49bf337f2e74e4f29a38"
+          "sha256": "6c3d0a6cd206978dc2dc7ab72e59a09a35fc4fed7e1f482959f019ef1c90e6b4"
         },
         {
           "path": "references/dependency-breaking-catalog.md",
-          "sha256": "be42120eb566402ef9ccc76ce05eb1bb3352c0826c3e805f399de23057c7f674"
+          "sha256": "beb04b3d6d7f30ea76216f4b54ab7ecd0abdd877675a5dbfc85128eb7aba1b87"
         }
       ],
       "adaptations": [
-        "SKILL.md"
+        "SKILL.md",
+        "references/dependency-breaking-catalog.md"
       ]
     },
     {
-      "name": "dependency-security-audit",
+      "name": "jag-dep-audit",
+      "upstreamName": "dependency-security-audit",
       "upstreamPaths": [
         "domains/architecture/skills/dependency-security-audit/SKILL.md"
       ],
@@ -331,7 +351,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "63bc0c3ada0ab679318462ab755c915942247fe73a6c2160a9f9fd887d1d2c9e"
+          "sha256": "ce9192ad33b6b37360ef1edeec31613253bfb3bfa897cb328ba6d6e682a9a32f"
         },
         {
           "path": "references/ecosystem-commands.md",
@@ -343,7 +363,8 @@
       ]
     },
     {
-      "name": "design-patterns-pragmatic",
+      "name": "jag-patterns",
+      "upstreamName": "design-patterns-pragmatic",
       "upstreamPaths": [
         "domains/architecture/skills/design-patterns-pragmatic/SKILL.md",
         "domains/common/skills/design-patterns-pragmatic/SKILL.md",
@@ -355,7 +376,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "1d5b429809ddda714135e2665ac9724bc40bfb4d3205d604f8af4780cfa77f5a"
+          "sha256": "d795880b5f396a38e04768651a5d629103ab1fba58813d57456fc24bbbc8ec23"
         },
         {
           "path": "references/pattern-forces.md",
@@ -371,7 +392,8 @@
       ]
     },
     {
-      "name": "domain-modeling",
+      "name": "jag-domain",
+      "upstreamName": "domain-modeling",
       "upstreamPaths": [
         "domains/common/skills/domain-modeling/SKILL.md",
         "domains/plan/skills/domain-modeling/SKILL.md"
@@ -382,7 +404,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "950298384b387f271348d04558ad671d5f532b08f9eaab2e828edc77e7c2fd0e"
+          "sha256": "9cdc6865a77424aa37e65deff2980c84606ecd182493f5979ed405b8560758de"
         },
         {
           "path": "assets/ADR-FORMAT.md",
@@ -398,7 +420,8 @@
       ]
     },
     {
-      "name": "dry-business-knowledge",
+      "name": "jag-dry",
+      "upstreamName": "dry-business-knowledge",
       "upstreamPaths": [
         "domains/common/skills/dry-business-knowledge/SKILL.md",
         "domains/plan/skills/dry-business-knowledge/SKILL.md"
@@ -409,7 +432,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "a7fe2f4af57a137d6db237ba81deed062a605ddaf804b3c56fe9505c309243ad"
+          "sha256": "d2ca5915ad8658f77744ee5677a89810724492de42977aafc47d572f3b12cd76"
         }
       ],
       "adaptations": [
@@ -417,7 +440,8 @@
       ]
     },
     {
-      "name": "evidence-first-planning",
+      "name": "jag-evidence",
+      "upstreamName": "evidence-first-planning",
       "upstreamPaths": [
         "domains/plan/skills/evidence-first-planning/SKILL.md"
       ],
@@ -427,7 +451,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "61392e0e3f235127d2244bd7bb355b36e4328867e72f56cccad22da418963788"
+          "sha256": "f1edc859f5d516bda6d9965425ae841f17698c0454b7c0d04eff89374c24fbd8"
         },
         {
           "path": "assets/discovery-template.md",
@@ -448,7 +472,8 @@
       ]
     },
     {
-      "name": "execution-plan",
+      "name": "jag-plan",
+      "upstreamName": "execution-plan",
       "upstreamPaths": [
         "domains/architecture/skills/execution-plan/SKILL.md",
         "domains/common/skills/execution-plan/SKILL.md",
@@ -460,7 +485,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "ff284fe771ade6e05e48b7c3b61d5029559cc25b39c231354d8b8a0644c85c40"
+          "sha256": "dae6b009152fe51e8093be89738522e2dab569d7f30c3c0b37f48351bb89fcfc"
         },
         {
           "path": "assets/plan-template.md",
@@ -473,7 +498,8 @@
       ]
     },
     {
-      "name": "general-naming-readability",
+      "name": "jag-naming",
+      "upstreamName": "general-naming-readability",
       "upstreamPaths": [
         "domains/common/skills/general-naming-readability/SKILL.md",
         "domains/plan/skills/general-naming-readability/SKILL.md"
@@ -484,7 +510,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "c1e399e651fcc747e1ccb152ee3fe4e8a4398dbdf2c9ac11c1428437ebad03e1"
+          "sha256": "fee08da7dd1f2bdba57007b213b5ce8b040ab8efb847a71c7b1b09a51b39818f"
         }
       ],
       "adaptations": [
@@ -492,7 +518,8 @@
       ]
     },
     {
-      "name": "god-object-detection",
+      "name": "jag-god-object",
+      "upstreamName": "god-object-detection",
       "upstreamPaths": [
         "domains/common/skills/god-object-detection/SKILL.md",
         "domains/plan/skills/god-object-detection/SKILL.md"
@@ -503,7 +530,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "6e4e429344ad494f1d442f7e5e3bd008edf632838776db4a7ca9af5571a65e7e"
+          "sha256": "3abfc14c795ab4481d3145c8ee33ce1f3c099f368b23135ff1e25e65a534ccc9"
         }
       ],
       "adaptations": [
@@ -511,7 +538,8 @@
       ]
     },
     {
-      "name": "grilling",
+      "name": "jag-grill",
+      "upstreamName": "grilling",
       "upstreamPaths": [
         "domains/common/skills/grilling/SKILL.md",
         "domains/plan/skills/grilling/SKILL.md"
@@ -522,7 +550,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "423db6b24b9ecbb314075702d2e45b84d7208ed89d894d17545567e710fd2735"
+          "sha256": "606a7ceea97ad1b3508131bc2c1465bad188062f83aef841c35f08320e1a2a93"
         }
       ],
       "adaptations": [
@@ -530,7 +558,8 @@
       ]
     },
     {
-      "name": "implementation-skill-routing",
+      "name": "jag-routing",
+      "upstreamName": "implementation-skill-routing",
       "upstreamPaths": [
         "domains/architecture/skills/implementation-skill-routing/SKILL.md",
         "domains/common/skills/implementation-skill-routing/SKILL.md",
@@ -543,7 +572,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "b023112075c7783c8b66fa4f0dee9004a584c16866da332dd02a1617d4a43b4f"
+          "sha256": "88c452aff11b07c0239d6eaff1ecb0fc7f677fa16b435635de1129424e12c2d6"
         }
       ],
       "adaptations": [
@@ -551,7 +580,8 @@
       ]
     },
     {
-      "name": "input-validation-preconditions",
+      "name": "jag-validation",
+      "upstreamName": "input-validation-preconditions",
       "upstreamPaths": [
         "domains/common/skills/input-validation-preconditions/SKILL.md",
         "domains/plan/skills/input-validation-preconditions/SKILL.md"
@@ -562,7 +592,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "0f0e3639d6fca8474446082d165ed4c81395a9c7ec87ab5e638e415384383d76"
+          "sha256": "baf48d9af0fd2b8a8684d4fa8d653532eff59fe223d635a8514bc80432081fc1"
         }
       ],
       "adaptations": [
@@ -570,7 +600,8 @@
       ]
     },
     {
-      "name": "java-api-design",
+      "name": "jag-java-api",
+      "upstreamName": "java-api-design",
       "upstreamPaths": [
         "domains/plan/skills/java-api-design/SKILL.md"
       ],
@@ -580,7 +611,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "f4894e669cbcd21b34549d4f3d51a07dac5b9f12c0b161cfb705847339e36986"
+          "sha256": "d5fce642dbe0118e9796200b275bf8ea1a5179584f333368680e5a0dbe9660d7"
         },
         {
           "path": "references/java-api-boundaries.md",
@@ -592,7 +623,8 @@
       ]
     },
     {
-      "name": "java-exception-robustness",
+      "name": "jag-java-errors",
+      "upstreamName": "java-exception-robustness",
       "upstreamPaths": [
         "domains/plan/skills/java-exception-robustness/SKILL.md"
       ],
@@ -602,7 +634,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "593333ce7ce03999a7dd30078a11ac7443405bee1d76e210e8959644f45773ab"
+          "sha256": "c089ff59074d6878f46573ce1545c5500d5e0b49e473cce9862632a4427834eb"
         },
         {
           "path": "references/java-exception-guidance.md",
@@ -614,7 +646,8 @@
       ]
     },
     {
-      "name": "java-immutability-modeling",
+      "name": "jag-java-model",
+      "upstreamName": "java-immutability-modeling",
       "upstreamPaths": [
         "domains/plan/skills/java-immutability-modeling/SKILL.md"
       ],
@@ -624,7 +657,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "18b647ea5c08c394520dc760159c36d8c0c092f046799d9f08f870cda170f7ef"
+          "sha256": "216258206d067cd675eca7f3cb50d902a2129c61ab41d418e4bf002f259b3223"
         },
         {
           "path": "references/java-immutability.md",
@@ -636,7 +669,8 @@
       ]
     },
     {
-      "name": "java-naming-readability",
+      "name": "jag-java-naming",
+      "upstreamName": "java-naming-readability",
       "upstreamPaths": [
         "domains/plan/skills/java-naming-readability/SKILL.md"
       ],
@@ -646,7 +680,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "c4dc5057c272865d08583069b303dadbfae7bf8e701a7c34aa9a9a3d37ccab97"
+          "sha256": "a504d52ba51fce65f761f8250a915504e6007ee5ddaf41781ce29e2735cb813c"
         }
       ],
       "adaptations": [
@@ -654,7 +688,8 @@
       ]
     },
     {
-      "name": "java-secure-coding",
+      "name": "jag-java-secure",
+      "upstreamName": "java-secure-coding",
       "upstreamPaths": [
         "domains/plan/skills/java-secure-coding/SKILL.md"
       ],
@@ -664,7 +699,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "f8ff45a02da319784a98b60e3405cfcd46ffc967aed28478027422616098662d"
+          "sha256": "f58d2c8c0a95c9ab474c1c9e4422d20332abb75afb6abe2137509b656df34263"
         },
         {
           "path": "references/java-secure-coding-guidance.md",
@@ -676,7 +711,8 @@
       ]
     },
     {
-      "name": "java-testing",
+      "name": "jag-java-test",
+      "upstreamName": "java-testing",
       "upstreamPaths": [
         "domains/architecture/skills/java-testing/SKILL.md",
         "domains/orchestration/skills/java-testing/SKILL.md",
@@ -688,7 +724,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "d7c67097c511716d6f32dc59cf9c25454f0df93c35e533c2f6c523357e6be821"
+          "sha256": "0e09744f98d392f76dc0eb76ad73ba16ed615decbe2836fa8fd83dd3f606805b"
         },
         {
           "path": "assets/examples/ExampleCacheTest.java",
@@ -768,7 +804,8 @@
       ]
     },
     {
-      "name": "jira-spike",
+      "name": "jag-jira-spike",
+      "upstreamName": "jira-spike",
       "upstreamPaths": [
         "domains/docs/skills/jira-spike/SKILL.md"
       ],
@@ -778,7 +815,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "65ffe4c2ea5588063d50f97165ed95749dc270018161678e05c3ad02b8d4bb39"
+          "sha256": "4939be6c07c3ffcadcce93ff5c06edb96db085f1c4b25c9fd0ebf6dfd43e9be7"
         },
         {
           "path": "assets/quick-creation-template.md",
@@ -794,7 +831,8 @@
       ]
     },
     {
-      "name": "jira-task",
+      "name": "jag-jira-task",
+      "upstreamName": "jira-task",
       "upstreamPaths": [
         "domains/docs/skills/jira-task/SKILL.md"
       ],
@@ -804,7 +842,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "1f1b1d21953d4edc7aa5bd66823210e08a735b7e74e9377a936d8473a7e3c429"
+          "sha256": "52032697c810bb23b8da3bf3c432e0033f46eb7bc5a4001be296b48b281c6a4e"
         },
         {
           "path": "assets/quick-creation-template.md",
@@ -820,7 +858,8 @@
       ]
     },
     {
-      "name": "jira-user-story",
+      "name": "jag-jira-story",
+      "upstreamName": "jira-user-story",
       "upstreamPaths": [
         "domains/docs/skills/jira-user-story/SKILL.md"
       ],
@@ -830,7 +869,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "d886c32e98b71191ed7145d5db79f5af1e29848229f6f4a119711f5febaa410c"
+          "sha256": "7c7503fe71a64a0868ff42bb3fd15d712f58fb896ea104ae7184608df3c65a16"
         },
         {
           "path": "assets/quick-creation-template.md",
@@ -846,7 +885,8 @@
       ]
     },
     {
-      "name": "kiss-yagni",
+      "name": "jag-kiss",
+      "upstreamName": "kiss-yagni",
       "upstreamPaths": [
         "domains/architecture/skills/kiss-yagni/SKILL.md",
         "domains/common/skills/kiss-yagni/SKILL.md",
@@ -858,7 +898,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "abafcfe3c9be3f963009bf801d847af7f38310f714d61b71fcd166f48cac7acc"
+          "sha256": "c123e875190e689fa07a2c7e452a15dadfd9d78154d80a2f552414e9d94b3816"
         }
       ],
       "adaptations": [
@@ -866,7 +906,8 @@
       ]
     },
     {
-      "name": "legacy-code-safety",
+      "name": "jag-legacy",
+      "upstreamName": "legacy-code-safety",
       "upstreamPaths": [
         "domains/orchestration/skills/legacy-code-safety/SKILL.md",
         "domains/plan/skills/legacy-code-safety/SKILL.md"
@@ -877,7 +918,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "a94c2e183d64dd41912a69ad9cf0fe2ed665ca46569ab36a9d6c6d3a122134a6"
+          "sha256": "62cff9c47be3e8a18dbab23632b5e84d09ffed5ff4d611ea63ff110c20a2ddd9"
         }
       ],
       "adaptations": [
@@ -885,7 +926,8 @@
       ]
     },
     {
-      "name": "logging-observability",
+      "name": "jag-logs",
+      "upstreamName": "logging-observability",
       "upstreamPaths": [
         "domains/common/skills/logging-observability/SKILL.md",
         "domains/plan/skills/logging-observability/SKILL.md"
@@ -896,7 +938,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "4cab92cef4dc2c10afa5cb0ce9dd26267d906b0d5cd2e4debe04476f8b326c47"
+          "sha256": "fe86c33e8624444236d3386c0f6a6d239cbd86cb12bd0de7d256f946f3bd5c46"
         }
       ],
       "adaptations": [
@@ -904,7 +946,8 @@
       ]
     },
     {
-      "name": "null-safety",
+      "name": "jag-nulls",
+      "upstreamName": "null-safety",
       "upstreamPaths": [
         "domains/plan/skills/null-safety/SKILL.md"
       ],
@@ -914,7 +957,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "ec5461fb4be28ed75650efa0c8c8b24ec5a0093c88237e5b4460c164a98872c9"
+          "sha256": "254b1c9dbbe8f90a0da5da58f46b7910c5fea169fbb55d37e90002c71e2506d1"
         }
       ],
       "adaptations": [
@@ -922,7 +965,8 @@
       ]
     },
     {
-      "name": "open-closed-principle",
+      "name": "jag-ocp",
+      "upstreamName": "open-closed-principle",
       "upstreamPaths": [
         "domains/common/skills/open-closed-principle/SKILL.md",
         "domains/plan/skills/open-closed-principle/SKILL.md"
@@ -933,7 +977,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "ea31c1c72381f120c218dc971127284419acbd8d980bdc4e3bcda8d6f6c437f2"
+          "sha256": "fbb89422f48cbaaf8e036cbd3a0af45958bc802bf9f60c96c5acc947dad12c38"
         }
       ],
       "adaptations": [
@@ -941,7 +985,8 @@
       ]
     },
     {
-      "name": "prd",
+      "name": "jag-prd",
+      "upstreamName": "prd",
       "upstreamPaths": [
         "domains/docs/skills/prd/SKILL.md"
       ],
@@ -951,7 +996,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "ae65cc6b7172a6a3d481600bf1a5602ba70fe0accc540eca6cb208cf99d70b06"
+          "sha256": "c18642e9b18a76eb31d71b5d8f024e41f549776e6ab608b03ffb82bd1afb0b90"
         },
         {
           "path": "assets/prd-template.md",
@@ -963,7 +1008,8 @@
       ]
     },
     {
-      "name": "prd-light",
+      "name": "jag-prd-lite",
+      "upstreamName": "prd-light",
       "upstreamPaths": [
         "domains/docs/skills/prd-light/SKILL.md"
       ],
@@ -973,7 +1019,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "f7bd8c56d9e124ca2abf201a301e05096c2a2dc467451a96f0b4d8d31572e81f"
+          "sha256": "775cee1634aebe2e595657a4b605c53ab61e331e1f0e9fa7bd3213ad6589d51b"
         },
         {
           "path": "assets/prd-light-template.md",
@@ -985,7 +1031,8 @@
       ]
     },
     {
-      "name": "programming-practices-core",
+      "name": "jag-practices",
+      "upstreamName": "programming-practices-core",
       "upstreamPaths": [
         "domains/common/skills/programming-practices-core/SKILL.md",
         "domains/review/skills/programming-practices-core/SKILL.md"
@@ -996,7 +1043,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "e327dd711d35e2612e72d1ed9bd60e648047fb70464aad62bdaa0e8338812b4d"
+          "sha256": "0109d7fd6803e84c5d36d325327d35ed3612217af4ea03628de057fc92b745b8"
         },
         {
           "path": "references/principles.md",
@@ -1008,7 +1055,8 @@
       ]
     },
     {
-      "name": "prompt-structure-writer",
+      "name": "jag-prompts",
+      "upstreamName": "prompt-structure-writer",
       "upstreamPaths": [
         "domains/meta/skills/prompt-structure-writer/SKILL.md"
       ],
@@ -1018,7 +1066,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "4cc9c9d461a38d3beace2aa6dbb322d46bac41386d4c09582f304491b25e410d"
+          "sha256": "db190d0eaff4cc5d7ba450c98e788fbc394a49129937c660ebed2dda861f6a50"
         }
       ],
       "adaptations": [
@@ -1026,7 +1074,8 @@
       ]
     },
     {
-      "name": "refactor",
+      "name": "jag-refactor",
+      "upstreamName": "refactor",
       "upstreamPaths": [
         "domains/plan/skills/refactor/SKILL.md"
       ],
@@ -1036,7 +1085,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "5f7c9259f02d5cede30c1fbed21dc6da654190f2ca60da6a8f977f914a203912"
+          "sha256": "08242046865cd30144d97d2e9e2d1b31c380976155fac45865aa9e848b2ef4ec"
         },
         {
           "path": "references/java-notes.md",
@@ -1056,7 +1105,7 @@
         },
         {
           "path": "references/technique-to-pattern.md",
-          "sha256": "457a2c05bab52b42dadddea962a38ef2e96beb21536813c6ee6eca4d3cf565ef"
+          "sha256": "44a1c952b58f239ce651c9ebd0dc38c21d113390be6e189000f5be3db75f95b4"
         },
         {
           "path": "techniques/00-code-smells-diagnostic.md",
@@ -1312,11 +1361,13 @@
         }
       ],
       "adaptations": [
-        "SKILL.md"
+        "SKILL.md",
+        "references/technique-to-pattern.md"
       ]
     },
     {
-      "name": "repo-issues",
+      "name": "jag-repo-issues",
+      "upstreamName": "repo-issues",
       "upstreamPaths": [
         "domains/architecture/skills/repo-issues/SKILL.md"
       ],
@@ -1326,7 +1377,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "60035611d214836064f73eda449ea089178e98c0a4d79b896b9ebe8b7c79c03c"
+          "sha256": "3fd0db4daaca5378a1ab3947711946ed1f721f1b06b9501ee603724325fe3ade"
         },
         {
           "path": "references/fitness-functions.md",
@@ -1338,7 +1389,8 @@
       ]
     },
     {
-      "name": "rfc",
+      "name": "jag-rfc",
+      "upstreamName": "rfc",
       "upstreamPaths": [
         "domains/docs/skills/rfc/SKILL.md"
       ],
@@ -1348,7 +1400,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "915b5d50098257bf854cb7ee7d4e61db07908010a44d25b93254034286083be9"
+          "sha256": "b3555d99fa324a8b010c68da16b31c934b2273e352988ff493a1496c88268631"
         },
         {
           "path": "assets/template.md",
@@ -1360,7 +1412,8 @@
       ]
     },
     {
-      "name": "risk-assessment",
+      "name": "jag-risk",
+      "upstreamName": "risk-assessment",
       "upstreamPaths": [
         "domains/common/skills/risk-assessment/SKILL.md",
         "domains/plan/skills/risk-assessment/SKILL.md"
@@ -1371,7 +1424,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "77d149b73c7a75f581212192014065dada46a67900efa7f6ac90bafbf7ab9b41"
+          "sha256": "3c11976e664ac7a9249e3970b770ced1efa9d5d32be5c3381a5b9e62f1b9295c"
         }
       ],
       "adaptations": [
@@ -1379,7 +1432,8 @@
       ]
     },
     {
-      "name": "scope-analysis",
+      "name": "jag-scope",
+      "upstreamName": "scope-analysis",
       "upstreamPaths": [
         "domains/plan/skills/scope-analysis/SKILL.md"
       ],
@@ -1389,7 +1443,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "fa00a641b725f6c6adb76a3f3fb1542754a9ab93ddec73e150731f3e3f627ddc"
+          "sha256": "882b77a702d9d64ec9b7273a3533f6915d1192de3fd5c767fb70ad65ef209700"
         }
       ],
       "adaptations": [
@@ -1397,7 +1451,8 @@
       ]
     },
     {
-      "name": "service-boundary-analysis",
+      "name": "jag-boundaries",
+      "upstreamName": "service-boundary-analysis",
       "upstreamPaths": [
         "domains/architecture/skills/service-boundary-analysis/SKILL.md"
       ],
@@ -1407,7 +1462,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "3539b30826b284798a63f9ce6bf51d556b2a7c8933bbcb9f0649d7709770de70"
+          "sha256": "e5cde85100e6c11eee816042ecdfb351b9bec69ec9a714ed1165053b25c7f10e"
         }
       ],
       "adaptations": [
@@ -1415,7 +1470,8 @@
       ]
     },
     {
-      "name": "single-responsibility",
+      "name": "jag-srp",
+      "upstreamName": "single-responsibility",
       "upstreamPaths": [
         "domains/common/skills/single-responsibility/SKILL.md",
         "domains/plan/skills/single-responsibility/SKILL.md"
@@ -1426,7 +1482,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "cfae44e5f61cbc7f68b5fd1e226d787fb02a8a74ff1c953ac93282b910aeb727"
+          "sha256": "181cce595914b6d953350f197be88ee8024c612a5b31f76edfe23994b49e685a"
         }
       ],
       "adaptations": [
@@ -1434,7 +1490,8 @@
       ]
     },
     {
-      "name": "skill-creator",
+      "name": "jag-skill",
+      "upstreamName": "skill-creator",
       "upstreamPaths": [
         "domains/meta/skills/skill-creator/SKILL.md"
       ],
@@ -1444,7 +1501,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "bcedb70f007278b6c531f96dd22ecdedf29c1fa114afd0efc56689dad78dea32"
+          "sha256": "3c208e92f6c494b5ff38ecb9740e3bccb714e9eeb7b344305a308b70d76a01c4"
         },
         {
           "path": "assets/skill-template.md",
@@ -1462,7 +1519,8 @@
       ]
     },
     {
-      "name": "small-functions",
+      "name": "jag-functions",
+      "upstreamName": "small-functions",
       "upstreamPaths": [
         "domains/common/skills/small-functions/SKILL.md"
       ],
@@ -1472,7 +1530,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "e20902f1a6a03d748164ea772d7eea3588715b0e0da163b9756333379a663aee"
+          "sha256": "e60e2ef51a6d06479ca5d7be68a8b1ce21c03be6be69d98f83aaaf7b2ceff853"
         }
       ],
       "adaptations": [
@@ -1480,7 +1538,8 @@
       ]
     },
     {
-      "name": "spaghetti-code-detection",
+      "name": "jag-spaghetti",
+      "upstreamName": "spaghetti-code-detection",
       "upstreamPaths": [
         "domains/common/skills/spaghetti-code-detection/SKILL.md",
         "domains/plan/skills/spaghetti-code-detection/SKILL.md"
@@ -1491,7 +1550,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "ec1ab04a864d1d594e3d9c22a19fdb4e350fdb157afbf90e18fa5fdb3cdad708"
+          "sha256": "c49f68f84420c5f31a57c707ee72c17d0d8c620d9934ad86b2e7d114c4d9d158"
         }
       ],
       "adaptations": [
@@ -1499,7 +1558,8 @@
       ]
     },
     {
-      "name": "summarize",
+      "name": "jag-summary",
+      "upstreamName": "summarize",
       "upstreamPaths": [
         "domains/docs/skills/summarize/SKILL.md"
       ],
@@ -1509,7 +1569,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "2f4913fa49fbba5e6003db8ee6560a6885f7161e0af1bebf92d5e75303b1a322"
+          "sha256": "d47efbff9e139b2dc649067c45e29f9ed42ea7882b2b14edbb373883247c4b70"
         },
         {
           "path": "assets/chapter-summary-template.md",
@@ -1529,7 +1589,8 @@
       ]
     },
     {
-      "name": "systematic-debugging",
+      "name": "jag-debug",
+      "upstreamName": "systematic-debugging",
       "upstreamPaths": [
         "domains/common/skills/systematic-debugging/SKILL.md",
         "domains/orchestration/skills/systematic-debugging/SKILL.md"
@@ -1540,7 +1601,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "03eae55e379937d1e7da2de234fb921235f821cc2833e9f15f9e5622424aaa78"
+          "sha256": "95260fcfd92f8513dcefdd8105126d4af8df3c174712d213b203a22eb8298cbf"
         }
       ],
       "adaptations": [
@@ -1548,7 +1609,8 @@
       ]
     },
     {
-      "name": "tooling-audit",
+      "name": "jag-tools",
+      "upstreamName": "tooling-audit",
       "upstreamPaths": [
         "domains/plan/skills/tooling-audit/SKILL.md"
       ],
@@ -1558,7 +1620,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "dec9e7238ea8a7f9b9a683a5e64b2d0271442b07a94a9c5ccf66cb383404274b"
+          "sha256": "9aa93a12005a8120bdd37cc508830153afa87289b102af10643fef8faa3cf487"
         }
       ],
       "adaptations": [
@@ -1566,7 +1628,8 @@
       ]
     },
     {
-      "name": "tooling-compatibility-matrix",
+      "name": "jag-tool-matrix",
+      "upstreamName": "tooling-compatibility-matrix",
       "upstreamPaths": [
         "domains/plan/skills/tooling-compatibility-matrix/SKILL.md"
       ],
@@ -1576,7 +1639,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "8f4fdcbc3cd7085459756bd4a720ba462470868d83c2896b858be44f6c9d7ba3"
+          "sha256": "35d7821c0042312176eef92e1f41eb8e95699c9af4abde65402a2d48a1c66c98"
         }
       ],
       "adaptations": [
@@ -1584,7 +1647,8 @@
       ]
     },
     {
-      "name": "type-contracts",
+      "name": "jag-types",
+      "upstreamName": "type-contracts",
       "upstreamPaths": [
         "domains/plan/skills/type-contracts/SKILL.md"
       ],
@@ -1594,7 +1658,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "4018bc3e774706593b86e354eb2bed1036e20c1ae148647cbf2b520f8aabb467"
+          "sha256": "205c1bd7547a94f401c30ce01ed1badbc1f1948379a09556c4e8beeb348c0f38"
         }
       ],
       "adaptations": [
@@ -1602,7 +1666,8 @@
       ]
     },
     {
-      "name": "usm",
+      "name": "jag-usm",
+      "upstreamName": "usm",
       "upstreamPaths": [
         "domains/docs/skills/usm/SKILL.md"
       ],
@@ -1612,7 +1677,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "4d9a3de3efd8fd9f0a5878e370240fa7d242d65a75585189a2f24e66943b5379"
+          "sha256": "db7c86df6ce0a957faca8924c4653ca346433cfeba358e4d8e7f1ed0a5ef8f75"
         },
         {
           "path": "assets/usm-template.md",

@@ -24,7 +24,7 @@ test("shouldProduceIsolatedComparableReceiptsWithoutLiveUsageWhenBenchmarkRuns",
 	assert.ok(report.modes.package.summary.startupMs.median > 0);
 	assert.equal(report.version, 3);
 	assert.equal(report.modes["package-native"].samples[0].skills, 61);
-	assert.equal(report.modes.package.samples[0].skillWorkflow.matched, "code-conventions");
+	assert.equal(report.modes.package.samples[0].skillWorkflow.matched, "jag-code");
 	assert.equal(report.modes.package.samples[0].skillWorkflow.refreshMs.samples.length, 5);
 	assert.ok(report.modes.package.samples[0].skillWorkflow.registrySnapshot.characters > 0);
 	assert.ok(report.registryComparison.initialCharacters.reductionPercent > 0);

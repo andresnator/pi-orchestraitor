@@ -42,7 +42,7 @@ test("shouldRetainUnrelatedConcurrentChangesAndPackageOrderWhenRestoringNormaliz
 	// Given
 	const root = await createWorkspace(t);
 	const settingsPath = join(root, "settings.json");
-	const original = { source: `~/${relative(homeDirectory, packageRoot)}`, skills: ["execution-plan"], extensions: [] };
+	const original = { source: `~/${relative(homeDirectory, packageRoot)}`, skills: ["jag-plan"], extensions: [] };
 	const before = { packages: ["npm:before", original, "npm:after"], theme: "before" };
 	const current = { packages: ["npm:concurrent-first", "npm:before", { ...original, source: relative(root, packageRoot) }, "npm:after", "npm:concurrent-last"], theme: "after", customValue: true };
 	await writeFile(settingsPath, JSON.stringify(current));

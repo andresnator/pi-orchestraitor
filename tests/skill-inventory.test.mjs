@@ -7,7 +7,7 @@ import { inventorySkills } from "../scripts/skill-inventory.mjs";
 import { isWithin } from "../scripts/skill-migration.mjs";
 import { createWorkspace, pi } from "./helpers/pi-host.mjs";
 
-const SKILL_NAME = "execution-plan";
+const SKILL_NAME = "jag-plan";
 
 async function fixture(t) {
 	const root = await realpath(await createWorkspace(t));

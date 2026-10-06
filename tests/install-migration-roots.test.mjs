@@ -7,7 +7,7 @@ import test from "node:test";
 import { exists } from "../scripts/skill-migration.mjs";
 import { createWorkspace, packageRoot } from "./helpers/pi-host.mjs";
 
-const SKILL_NAME = "execution-plan";
+const SKILL_NAME = "jag-plan";
 const SKILL_TEXT = `---\nname: ${SKILL_NAME}\ndescription: Temporary migration fixture.\n---\nPreserve this original skill.\n`;
 
 async function fixture(t, { linkedAgent = false, verificationFailure = false } = {}) {
