@@ -4,7 +4,7 @@ The package targets Pi 1.0.0, Node 22.19+, and Engram 3.0.0. Run the commands be
 
 | Command | Claim checked |
 | --- | --- |
-| `npm test` | Native tool regressions, instructions and personality injection, tarball resources and 51 active skill names, consolidated review criteria/discovery, prompt expansion, MCP overrides, migration, rollback, and restoration. |
+| `npm test` | Native tool regressions, instructions and personality injection, tarball resources and 56 native / 54 automatic / two explicit-only skill names, adapted workflow contracts/credits, consolidated review criteria/discovery, prompt expansion, MCP overrides, migration, rollback, and restoration. |
 | `npm run test:mcp` | Real Context7 and Engram calls through native codemode, extension hooks, and project separation in temporary memory storage. |
 | `npm run test:personality` | Configured-model responses in fresh isolated sessions, with predefined criteria and synthetic receipts for manual scoring. |
 | `npm run install:pi -- --dry-run` | Complete lexical discovery inventory, including aliases hidden by native deduplication, and proposed standalone-skill moves, without migration or registration. |
@@ -16,13 +16,36 @@ Structural tests prove resource discovery, wiring, and regression behavior. They
 
 The package's established test convention is `node:test` and `node:assert`. That repository convention takes precedence over the skill's default fluent assertion preference.
 
-## Review-lens consolidation
+## Historical review-lens consolidation — 51-skill baseline
 
-The current package consolidates ten standalone review skills into conditional references under `jag-practices`, `jag-refactor` and `jag-patterns` (51 active names). Fresh local checks passed 421/421 tests with no failures or skips, including native catalog diagnostics, twenty discovery queries, rejection of retired activation names, reference criteria/attribution/fingerprints, tarball loading and isolated installation/migration. Three new consolidation checks failed before implementation; an expanded discovery check also failed before missing routing terms were restored.
+The earlier consolidation reduced the package to 51 active names, retaining ten standalone review skills as conditional references under `jag-practices`, `jag-refactor` and `jag-patterns`. Fresh local checks passed 421/421 tests with no failures or skips, including native catalog diagnostics, twenty discovery queries, rejection of retired activation names, reference criteria/attribution/fingerprints, tarball loading and isolated installation/migration. Three new consolidation checks failed before implementation; an expanded discovery check also failed before missing routing terms were restored.
 
 Follow-up discovery correction: `tests/skill-consolidation.test.mjs` adds a separate regression case for `overengineering`, `identifiers`, `speculative`, `oversized`, `extraction`, `collaborators`, and `extension pressure`. All seven lookups failed before the description fix; afterward all 27 bounded discovery queries pass and a fresh local suite passes 422/422 with no failures or skips. Recipient metadata uses `pi_adaptation` 2.1.1 with matching resource fingerprints; registry search logic and conditional reference content are unchanged.
 
 The retired source records remain in `consolidatedSkills` with previous instruction hashes and replacement sections; active resources remain in `skills`. The Apache-2.0 references retain their original author/adaptation notices. Jira, PRD/USM and reading skills were not changed. Historical results below are preserved at their original counts. Interactive `/reload`, live MCP and real-model behavior were not rerun for this consolidation; structural tests do not establish equivalent model task quality or token savings.
+
+## Matt Pocock workflow adaptations — 2026-10-06
+
+Executed `.ai/deep-planner/plans/mattpocock-skill-adaptations.md` against HEAD `a9a42fdb5316ed5ef88d71c59a7383e1aedd401e`, with Pi 1.0.4 and Node 24.20.0. The original plan/checkboxes remain unchanged, SHA-256 `3803feb20495cb62bc710667730bd32a894603947a35ed3033f1dd822e5048dd`. Changes are unstaged; no runtime, configuration, dependency, prompt command or Git delivery change is included.
+
+| Check | Observed result |
+| --- | --- |
+| Unchanged full-suite baseline | 421/422 passed; one pre-existing codemode fixture failure, zero skipped. |
+| Initial structural RED | Ten new tests failed before implementation: missing skills/licenses and unchanged domain, inventory/provenance and authoring-pointer contracts. |
+| Group checks | Agent-docs/authoring pointer 2/2; PR, handoff, research, domain and teaching targeted checks passed. Exact-path/metadata correction: three RED cases, then six contract checks GREEN. |
+| Bounded final readers | Two read-only reviewers terminated without writes. Parent confirmed three textual PR/handoff gaps, observed two targeted RED cases, and checked GREEN 2/2 after one correction pass. No independent/blind review claim. |
+| Final integration command | Exit 0: 29/29 passed, zero failures/skips; exact extracted tarball resources, all SHA-256 values, native discovery and explicit-only rejection. |
+| Final `npm test` | Exit 1: 431/432 passed, one unchanged baseline failure, zero skipped. |
+| Final package/diff/scope/hash | Dry-run exit 0: 246 files, including separate notices and all skill resources, excluding tests/`.ai`/personal state. Diff/changed-file whitespace checks passed; 16 modified tracked files and 22 new untracked files, zero staged. Original plan hash unchanged. |
+| Preservation and source comparison | All 17 freshly pinned files matched prior source caches. Historical root/consolidation records and 49 unrelated provenance entries are unchanged; original domain/skill-creator import identities retained. Runtime, prompts, installer/dependencies, original license notices, `jag-adr` and `jag-prompts` unchanged. |
+
+The only full-suite failure observed before and after implementation is `shouldCompactRealCodemodeProgressAndRestoreNativeDetailsAndStoreOnExpansion` in `tests/compact-orchestration.test.mjs:54,84`: the fixture omits `getPromptGuidelines`, required by installed Pi 1.0.4. This pre-existing host/fixture mismatch is outside the plan; it remains unchanged and the full suite is not described as passed.
+
+The package adds `jag-agent-docs`, `jag-pr`, explicit-only `jag-handoff`, parent-led `jag-research` and explicit-only `jag-teach`, updating `jag-domain` defaults/authorization while retaining its historical import identity. Complete pinned MIT notices and layered Dex Horthy/HumanLayer PR credit are preserved. Native catalog/registry checks verify 56 total, 54 automatic and two manual-only with no diagnostics; source-level contracts and template checks do not establish general model compliance or learning effectiveness.
+
+Seventeen source/license files were retrieved from the two pinned revisions for source/hash comparison. The conditional `jag-skill` pointer was authored with G2 rather than its G8 integration slot, then revalidated in G8; overall file authority was unchanged. Attribution/resource fingerprints and historical benchmark/consolidation identities remain intact. Detailed concise receipts are local at `.ai/verification/mattpocock-skill-adaptations/checks.md`, excluded from distribution.
+
+Live MCP/personality/model/browser/publication checks and interactive new-command activation were not run for this change. After delivery, the user runs `/reload`, then inspects `/skill:jag-handoff`, `/skill:jag-teach` and the other commands. New files or registry refresh alone do not authorize new names. Prior audits, plans and historical receipts are preserved; `jag-adr` and `jag-prompts` are unchanged.
 
 ## English audit
 

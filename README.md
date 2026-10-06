@@ -1,6 +1,6 @@
 # pi-orchestraitor
 
-A personal Pi package with **51 development skills**, a lazy native-authorized skill registry, compact tool output, optional interactive work UI, Context7, Engram, and Orchestraitor for scoped changes and sequential plan execution. It automatically loads the source harness's Colombian architect personality: direct answers, practical explanations, respectful disagreement, and occasional Colombian expressions when the conversation supports them.
+A personal Pi package with **56 development/workflow skills** (54 automatic, two explicit-only), a lazy native-authorized skill registry, compact tool output, optional interactive work UI, Context7, Engram, and Orchestraitor for scoped changes and sequential plan execution. It automatically loads the source harness's Colombian architect personality: direct answers, practical explanations, respectful disagreement, and occasional Colombian expressions when the conversation supports them.
 
 ## Install
 
@@ -13,7 +13,7 @@ npm run install:pi -- --dry-run
 npm run install:pi
 ```
 
-The preview lists every matching standalone skill, including multiple discovery aliases for the same source, and any blocking conflicts. Installation moves matching entries into a recoverable backup, registers this directory through native `pi install`, and verifies that all 51 skills resolve to the bundled adaptations. It also installs `@heyhuynhgiabuu/pi-pretty@0.6.30` through native Pi package management in the same user/project scope. Restart Pi or run `/reload` afterward.
+The preview lists every matching standalone skill, including multiple discovery aliases for the same source, and any blocking conflicts. Installation moves matching entries into a recoverable backup, registers this directory through native `pi install`, and verifies that all 56 skills resolve to the bundled adaptations. It also installs `@heyhuynhgiabuu/pi-pretty@0.6.30` through native Pi package management in the same user/project scope. Restart Pi or run `/reload` afterward.
 
 The installer adds `bash` to Pretty's `disableTools`, preserving other preferences, so the harness honors `shellPath` and `shellCommandPrefix`. It uses `PRETTY_CONFIG_DIR` or Pretty's default `$HOME/.pi/agent/`, independently of installation scope. A nonempty `PRETTY_DISABLE_TOOLS` list must include `bash`; an incompatible override stops installation before file changes. Use `--without-pretty` to install only the harness; this leaves any existing Pretty registration and configuration intact. `--dry-run` lists companion packages and the planned configuration path/adjustment without writes or downloads.
 
@@ -68,6 +68,8 @@ Native `pi install /path/to/package` also discovers bundled skills, but does not
 
 Skills use **lazy discovery by default**: `skill_registry` searches native-authorized descriptions and loads only selected bodies. `.ai/skills/registry.md` is generated as a body-free diagnostic snapshot, not injected into the prompt. `/skill:<name>` remains an explicit native command. Use `/orchestraitor:skills status|refresh` to inspect/refresh, or `native` to restore native headers (`lazy` switches back).
 
+The Matt Pocock adaptations include `jag-pr`, `jag-research`, `jag-agent-docs`, and the updated `jag-domain`. `jag-handoff` and `jag-teach` require explicit user commands (`/skill:jag-handoff <next task>` and `/skill:jag-teach <topic>`); automatic lookup/delegation rejects them. Generated workflow documents default to `.ai/`; teaching uses topic-scoped Markdown, not browser widgets. Existing domain documents are never migrated automatically. See [adapted workflows](docs/skills.md#adapted-workflows).
+
 Ten former micro-review skills are consolidated into conditional references under `jag-practices`, `jag-refactor`, and `jag-patterns`; see the [replacement map](docs/skills.md#consolidated-review-lenses). Their criteria remain available, but this package no longer supplies their standalone commands.
 
 All bundled skill names begin with `jag-` and contain at most 15 characters. Original identifiers remain in provenance; old skill commands and plan Skills fields must use the new names. Reload Pi after upgrading, and update any explicit skill paths or resource filters in your own configuration. Prompt commands such as `/plan` and `/absorb` are unchanged.
@@ -89,7 +91,7 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 | `extensions/subagents.ts` | One bounded launcher, child guards, native usage and optional progress observations. |
 | `extensions/skill-registry.ts` | Bounded search/load, native snapshot refresh and atomic diagnostic publication; lazy/native exposure. |
 | `extensions/status-ui.ts` | One owner for agents/tasks panels, unified questions and compact work-header/native-footer chrome. |
-| `skills/` | 51 unique skills and their supporting resources, with short `jag-*` names. |
+| `skills/` | 56 unique skills and their supporting resources, with short `jag-*` names. |
 | `prompts/` | `/orchestraitor`, `/plan`, `/review`, and `/absorb`, with explicit arguments. |
 | `scripts/install-pi.mjs` | Migration, native package registration, verification, and restoration. |
 
@@ -154,7 +156,7 @@ npm pack --dry-run --ignore-scripts
 - `test:personality` makes bounded calls to the configured Pi model in isolated sessions. It writes synthetic transcripts for manual scoring; it uses the configured account and consumes model quota.
 - Packing includes extensions, instructions, skills, scripts, docs, and licenses. Tests, `.ai` reports, personal settings, credentials, and memory databases are excluded.
 
-Tests use the Pi executable on PATH. Set `PI_TEST_PACKAGE_DIR` to the installed npm package root if it cannot be located. The installer inventory adapter and some integration checks depend on host internals and need revalidation after a Pi upgrade. The adapter checks that its required host hooks exist before migration. Peers use `*` because Pi supplies them; the original baseline used Pi 1.0.0 and current deterministic checks use Pi 1.0.3. Historical live UI evidence retains its recorded host version. Revalidate on upgrades. The UI guide documents native dynamic-selection versus persistent-exclusion behavior on reload. The established test convention is `node:test` with `node:assert`.
+Tests use the Pi executable on PATH. Set `PI_TEST_PACKAGE_DIR` to the installed npm package root if it cannot be located. The installer inventory adapter and some integration checks depend on host internals and need revalidation after a Pi upgrade. The adapter checks that its required host hooks exist before migration. Peers use `*` because Pi supplies them; the original baseline used Pi 1.0.0 and current deterministic checks run on Pi 1.0.4, with the pre-existing codemode fixture failure disclosed in the verification evidence. Historical live UI evidence retains its recorded host version. Revalidate on upgrades. The UI guide documents native dynamic-selection versus persistent-exclusion behavior on reload. The established test convention is `node:test` with `node:assert`.
 
 See [verification evidence](docs/verification.md) and [attribution](THIRD_PARTY_NOTICES.md).
 

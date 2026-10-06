@@ -24,7 +24,7 @@ const EXPECTED_FILES = [
 	"scripts/skill-inventory.mjs", "scripts/package-registration.mjs", "scripts/pretty-config.mjs",
 	"docs/skills.md", "docs/skills-provenance.json", "docs/verification.md", "docs/subagents.md", "docs/interactive-ui.md", "docs/performance.md", "docs/pi-pretty.md",
 	"docs/architecture/execution.md", "docs/architecture/flows.md", "docs/architecture/index.md",
-	"licenses/Apache-2.0.txt", "licenses/MIT.txt",
+	"licenses/Apache-2.0.txt", "licenses/MIT.txt", "licenses/mattpocock-MIT.txt", "licenses/humanlayer-MIT.txt",
 	...PROVENANCE.skills.flatMap((skill) => skill.resources.map(({ path }) => `skills/${skill.name}/${path}`)),
 	...EXPECTED_PROMPTS.map((name) => `prompts/${name}.md`),
 ].sort();
@@ -78,7 +78,7 @@ test("shouldLoadPromptsAndExtensionsWhenExplicitPackageBypassesDiscovery", async
 		skills: loader.getSkills().skills.length,
 	}, {
 		extensions: ["compact-tools.ts", "instructions.ts", "mcp.ts", "skill-registry.ts", "status-ui.ts", "subagents.ts"],
-		errors: [], prompts: EXPECTED_PROMPTS, skills: 51,
+		errors: [], prompts: EXPECTED_PROMPTS, skills: 56,
 	});
 });
 
@@ -139,7 +139,7 @@ test("shouldLoadOnlyPackagedResourcesWhenTarballIsExtractedElsewhere", async (t)
 	assert.match(childResult.diagnostic, /Model unavailable/);
 	assert.match(result.systemPromptOptions.sections.pi_orchestraitor_execution, /Orchestraitor/);
 	assert.match(result.systemPromptOptions.sections.pi_orchestraitor_personality, /Colombian software architect/);
-	assert.equal(PROVENANCE.skills.length, 51);
+	assert.equal(PROVENANCE.skills.length, 56);
 	for (const skill of PROVENANCE.skills) {
 		for (const resource of skill.resources) {
 			const bytes = await readFile(join(extracted, "skills", skill.name, resource.path));

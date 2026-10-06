@@ -9,7 +9,7 @@ metadata:
   author: gentleman-programming
   adapted_by: andresnator
   source: gentleman-programming/sdd-agent-team
-  version: "2.0.1"
+  version: "2.0.2"
   status: in-progress
 ---
 
@@ -124,6 +124,10 @@ Need edge cases?            → references/
 | `metadata.status` | Yes | `backlog`, `in-progress`, `testing`, or `done` |
 
 ---
+
+## Shared Agent-writing Guidance (Conditional)
+
+When authoring agent-consumed steps, context pointers or shared references, use `jag-agent-docs` when available through native skill discovery: search descriptions and load it with `skill_registry`. If it is unavailable, keep this skill's local guidance; do not install it or assume a newly written definition is authorized. This is a conditional reference, not a runtime dependency. Audit requests do not authorize editing.
 
 ## Content Guidelines
 

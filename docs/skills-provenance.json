@@ -369,19 +369,42 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "9cdc6865a77424aa37e65deff2980c84606ecd182493f5979ed405b8560758de"
+          "sha256": "a4942cb7832b9d3d4bec95bb5daf14a19073b5f71d19411a6294b545b4f366e2"
         },
         {
           "path": "assets/ADR-FORMAT.md",
-          "sha256": "f1f36cd3f8d3b6474ddd5855da4e233bfc4ae1a1c5024909ccf11871819a41b2"
+          "sha256": "5ee62c92f5f1a1efb2e3caced3a5dd1d7e0d87b38e67c9bed60ea0e8174900b5"
         },
         {
           "path": "assets/CONTEXT-FORMAT.md",
-          "sha256": "b8cc318f2a4285b530e908b6bc43901c3c5cd11100362636bbc4216639bef597"
+          "sha256": "31ffa458528ccf7eb626a4a4624a605408ddaa17936a4cf9ed1a7f40daed9d48"
         }
       ],
       "adaptations": [
-        "SKILL.md"
+        "SKILL.md",
+        "assets/ADR-FORMAT.md",
+        "assets/CONTEXT-FORMAT.md"
+      ],
+      "sourceConsultations": [
+        {
+          "upstreamRepository": "https://github.com/mattpocock/skills",
+          "upstreamRevision": "6fd947921b935b7e1e69293a200400f0fdd5c15f",
+          "purpose": "Consulted for the output/authorization update; original import identity retained.",
+          "resources": [
+            {
+              "path": "skills/engineering/domain-modeling/SKILL.md",
+              "sha256": "7b925d7b1e341a2eeae33ad68a8a8c0ab889a38ddd22a7598e4c240e5a7556a3"
+            },
+            {
+              "path": "skills/engineering/domain-modeling/ADR-FORMAT.md",
+              "sha256": "944c92aa790e8fbdc9199640b170979abb8a34ba8d0fe18c2a01a63bce140ca0"
+            },
+            {
+              "path": "skills/engineering/domain-modeling/GLOSSARY-FORMAT.md",
+              "sha256": "21dcc40cdec8e151a829b98ab1517c1867bc444e3665134a98c6983411996801"
+            }
+          ]
+        }
       ]
     },
     {
@@ -1355,7 +1378,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "3c208e92f6c494b5ff38ecb9740e3bccb714e9eeb7b344305a308b70d76a01c4"
+          "sha256": "02614d570a8fec0723c46dd4fbef13a224286f29c36ce66492d4ba5dc34b5c14"
         },
         {
           "path": "assets/skill-template.md",
@@ -1501,6 +1524,261 @@
       ],
       "adaptations": [
         "SKILL.md"
+      ]
+    },
+    {
+      "name": "jag-agent-docs",
+      "upstreamName": "writing-for-agents",
+      "upstreamPaths": [
+        "skills/productivity/writing-for-agents/SKILL.md"
+      ],
+      "upstreamVersion": null,
+      "license": "MIT",
+      "author": "Matt Pocock",
+      "adaptedBy": "pi-orchestraitor",
+      "upstreamRepository": "https://github.com/mattpocock/skills",
+      "upstreamRevision": "6fd947921b935b7e1e69293a200400f0fdd5c15f",
+      "upstreamSha256": "551adca942227b44192edba88acd4e8db911f0121ce58ad16944ccf6a896a74a",
+      "upstreamResources": [
+        {
+          "path": "skills/productivity/writing-for-agents/SKILL.md",
+          "sha256": "551adca942227b44192edba88acd4e8db911f0121ce58ad16944ccf6a896a74a"
+        },
+        {
+          "path": "skills/productivity/writing-for-agents/SKILL-MECHANICS.md",
+          "sha256": "c768e6307c7c10728c401c213f2c4ba71c542127eeb7ad2956aabd15a0fa0059"
+        }
+      ],
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "e096a1b622aa69e7c7b31954fe1f409e73e4d8443ce6031dfbd280390c556635"
+        },
+        {
+          "path": "assets/audit-template.md",
+          "sha256": "58ba340e0f2ea92534c678cab502ac2cb531151f0c088258eedb0b8efb4c4f81"
+        },
+        {
+          "path": "references/agent-writing.md",
+          "sha256": "bd268d65f3c393a19d2bfe52cd51ed521a26d2827a6b30d857748ddc5149d12d"
+        },
+        {
+          "path": "references/pi-mechanics.md",
+          "sha256": "a295e1260cb73a28da544438edcb8c6a7feb84bde786c349d832209db814d7b7"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md",
+        "assets/audit-template.md",
+        "references/agent-writing.md",
+        "references/pi-mechanics.md"
+      ]
+    },
+    {
+      "name": "jag-pr",
+      "upstreamName": "pr",
+      "upstreamPaths": [
+        "skills/engineering/pr/SKILL.md"
+      ],
+      "upstreamVersion": null,
+      "license": "MIT",
+      "author": "Matt Pocock",
+      "adaptedBy": "pi-orchestraitor",
+      "upstreamRepository": "https://github.com/mattpocock/skills",
+      "upstreamRevision": "6fd947921b935b7e1e69293a200400f0fdd5c15f",
+      "upstreamSha256": "ab63f1cf78647389edcd386c9427c5dfca27ed2836930c24773ffee834c19bcd",
+      "upstreamResources": [
+        {
+          "path": "skills/engineering/pr/SKILL.md",
+          "sha256": "ab63f1cf78647389edcd386c9427c5dfca27ed2836930c24773ffee834c19bcd"
+        },
+        {
+          "path": "skills/engineering/pr/CREDITS.md",
+          "sha256": "a7a087127665d7298a72280ef6e19c41ad8404523712a788c8dc3ab414bc2497"
+        }
+      ],
+      "resources": [
+        {
+          "path": "CREDITS.md",
+          "sha256": "2e505d6e89cb627e9e4e77efb35c179c00317b0183e0ca526fcd7030e355cbf8"
+        },
+        {
+          "path": "SKILL.md",
+          "sha256": "a80e3147a7c931f92771250a44032ef0b798987e24fab5e809f38c2ab86ff852"
+        },
+        {
+          "path": "assets/pr-template.md",
+          "sha256": "31a9f0c09aed3500295ac134241d4a6e957fd60d45f2bba699a87286aee8f5e7"
+        },
+        {
+          "path": "references/visuals.md",
+          "sha256": "3ceace5c83b6c7610789fe59b65084511c42895ffe134f0c7147207418b41c2c"
+        }
+      ],
+      "adaptations": [
+        "CREDITS.md",
+        "SKILL.md",
+        "assets/pr-template.md",
+        "references/visuals.md"
+      ],
+      "additionalSources": [
+        {
+          "author": "Dex Horthy",
+          "organisation": "HumanLayer",
+          "upstreamRepository": "https://github.com/humanlayer/skills",
+          "upstreamRevision": "ca7c8088db69e315a8b2deea43820270457f8f3c",
+          "license": "MIT",
+          "licenseNotice": "licenses/humanlayer-MIT.txt",
+          "resources": [
+            {
+              "path": "plugins/show-me/skills/show-me/SKILL.md",
+              "sha256": "434a2346cc95e313b0d367d477dda2e23ba642dd2181757415a09500664af100"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "jag-handoff",
+      "upstreamName": "handoff",
+      "upstreamPaths": [
+        "skills/productivity/handoff/SKILL.md"
+      ],
+      "upstreamVersion": null,
+      "license": "MIT",
+      "author": "Matt Pocock",
+      "adaptedBy": "pi-orchestraitor",
+      "upstreamRepository": "https://github.com/mattpocock/skills",
+      "upstreamRevision": "6fd947921b935b7e1e69293a200400f0fdd5c15f",
+      "upstreamSha256": "4cbb043950dad2ffd3662ff1a5a0b51ae676004b5cae10e3787e8ee7a4ee69d3",
+      "upstreamResources": [
+        {
+          "path": "skills/productivity/handoff/SKILL.md",
+          "sha256": "4cbb043950dad2ffd3662ff1a5a0b51ae676004b5cae10e3787e8ee7a4ee69d3"
+        }
+      ],
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "6e76ab3b72d428e0fce308bc5aa85b59ac29fe71b49bb1e95190ae1120860915"
+        },
+        {
+          "path": "assets/handoff-template.md",
+          "sha256": "903f1281323f0afcd81073b9210da90ab757e0439465ffc53e86b90b9a79475b"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md",
+        "assets/handoff-template.md"
+      ]
+    },
+    {
+      "name": "jag-research",
+      "upstreamName": "research",
+      "upstreamPaths": [
+        "skills/engineering/research/SKILL.md"
+      ],
+      "upstreamVersion": null,
+      "license": "MIT",
+      "author": "Matt Pocock",
+      "adaptedBy": "pi-orchestraitor",
+      "upstreamRepository": "https://github.com/mattpocock/skills",
+      "upstreamRevision": "6fd947921b935b7e1e69293a200400f0fdd5c15f",
+      "upstreamSha256": "985569f15739c713d6784887c3d186d4ef9ac85bec5ad9c068d25bf0739928e4",
+      "upstreamResources": [
+        {
+          "path": "skills/engineering/research/SKILL.md",
+          "sha256": "985569f15739c713d6784887c3d186d4ef9ac85bec5ad9c068d25bf0739928e4"
+        }
+      ],
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "de49cd649d3b61ff9c877e6b9e852a7d39c4c3ee7bf66cece1c0331d85f25d0c"
+        },
+        {
+          "path": "assets/research-template.md",
+          "sha256": "d4ddfb29fbe305150936905ff2ab5cc99e2699776fe106f3f76a93ff3bcad68e"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md",
+        "assets/research-template.md"
+      ]
+    },
+    {
+      "name": "jag-teach",
+      "upstreamName": "teach",
+      "upstreamPaths": [
+        "skills/productivity/teach/SKILL.md"
+      ],
+      "upstreamVersion": null,
+      "license": "MIT",
+      "author": "Matt Pocock",
+      "adaptedBy": "pi-orchestraitor",
+      "upstreamRepository": "https://github.com/mattpocock/skills",
+      "upstreamRevision": "6fd947921b935b7e1e69293a200400f0fdd5c15f",
+      "upstreamSha256": "a32df9dcdfc0c4fdc1c98e1ed3940c5f56b84c1aa90ff60346f32b8b53915b43",
+      "upstreamResources": [
+        {
+          "path": "skills/productivity/teach/SKILL.md",
+          "sha256": "a32df9dcdfc0c4fdc1c98e1ed3940c5f56b84c1aa90ff60346f32b8b53915b43"
+        },
+        {
+          "path": "skills/productivity/teach/MISSION-FORMAT.md",
+          "sha256": "8cacbb3c0644d3ae0ea4965564797099401a6930a23f7cf462918576587f2418"
+        },
+        {
+          "path": "skills/productivity/teach/RESOURCES-FORMAT.md",
+          "sha256": "e9cacf34026e11a8d1c8f9de88abe5bcbf654f4ebdb25cae8c0de0d5f48f44ec"
+        },
+        {
+          "path": "skills/productivity/teach/LEARNING-RECORD-FORMAT.md",
+          "sha256": "701fa34b6748aa89e6c960ffb815257f481a7d77fb2900f9028f7edf3fdd6052"
+        },
+        {
+          "path": "skills/productivity/teach/GLOSSARY-FORMAT.md",
+          "sha256": "9b99859ec28437668130d8f2ce5a342938970f8a1ed4fd38c3eab4f4b5fff210"
+        }
+      ],
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "e5978c8383adf87cc9c5ff772f467258fad599ca314f961d913a87e7ae28bbe9"
+        },
+        {
+          "path": "assets/glossary-template.md",
+          "sha256": "f0492843237eb317b403150ba02f02f525dabebcfde0b0b55d0d9b9b393c8994"
+        },
+        {
+          "path": "assets/learning-record-template.md",
+          "sha256": "4cd88c9aced8360185b27854123f4ee2ac7c15c1f473110d8786467b158db3a2"
+        },
+        {
+          "path": "assets/lesson-template.md",
+          "sha256": "0bfc08cf75d462440f23fb1fd0eaf1a53c96e401e2db2695342ad28a4bf4c311"
+        },
+        {
+          "path": "assets/mission-template.md",
+          "sha256": "7adce007a6026501be17b45981714b407b8cae671a6bc4f2cfd81def8334fce1"
+        },
+        {
+          "path": "assets/reference-template.md",
+          "sha256": "c652bd37aabc53fbf1c53873346142d9e2261289baefff53937cd21327e62bf2"
+        },
+        {
+          "path": "assets/resources-template.md",
+          "sha256": "94110bd531dbd31d76694f2c749cd5e5a4138eca7a7a1c89738f12f489d71f1d"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md",
+        "assets/glossary-template.md",
+        "assets/learning-record-template.md",
+        "assets/lesson-template.md",
+        "assets/mission-template.md",
+        "assets/reference-template.md",
+        "assets/resources-template.md"
       ]
     }
   ],

@@ -1,8 +1,10 @@
+<!-- Original workflow by Matt Pocock; modified for Pi by pi-orchestraitor. -->
+
 # ADR Format
 
-ADRs live in `docs/adr/` and use sequential numbering: `0001-slug.md`, `0002-slug.md`, etc.
+New ADRs default to `.ai/adr/NNNN-<slug>.md`, using sequential numbering: `0001-slug.md`, `0002-slug.md`, etc. Inspect existing authoritative ADR conventions first and ask about conflicts; never move/delete existing decisions or create a competing destination automatically.
 
-Create the `docs/adr/` directory lazily — only when the first ADR is needed.
+Create `.ai/adr/` lazily — only when a qualifying ADR and documentation writes are authorized. Read-only requests return the proposal inline. Keep decisions separate from vocabulary; identify the relevant context explicitly.
 
 ## Template
 
@@ -24,7 +26,7 @@ Only include these when they add genuine value. Most ADRs won't need them.
 
 ## Numbering
 
-Scan `docs/adr/` for the highest existing number and increment by one.
+Scan the canonical ADR destination (default `.ai/adr/`) for the highest existing number and increment by one. Preserve existing numbers/statuses; never overwrite implicitly.
 
 ## When to offer an ADR
 

@@ -5,7 +5,9 @@ import test from "node:test";
 import { createSkillRegistry, DEFAULT_SEARCH_LIMIT } from "../extensions/skills/registry.mjs";
 import { createWorkspace, packageRoot, pi } from "./helpers/pi-host.mjs";
 
-const ACTIVE_SKILL_COUNT = 51;
+const NATIVE_SKILL_COUNT = 56;
+const AUTOMATIC_SKILL_COUNT = 54;
+const MANUAL_ONLY_NAMES = ["jag-handoff", "jag-teach"];
 const QUALITY_REFERENCE = "references/review-lenses.md";
 const SMELL_REFERENCE = "references/smell-lenses.md";
 const BOUNDARY_REFERENCE = "references/boundary-review.md";
@@ -61,7 +63,7 @@ test("shouldExposeOnlyRemainingSkillsWhenNativeCatalogIsLoaded", async () => {
 	const names = skills.map(({ name }) => name);
 	// Then
 	assert.deepEqual({ count: names.length, retired: names.filter((name) => LENSES.some((lens) => lens.name === name)), diagnostics }, {
-		count: ACTIVE_SKILL_COUNT, retired: [], diagnostics: [],
+		count: NATIVE_SKILL_COUNT, retired: [], diagnostics: [],
 	});
 	for (const { name } of LENSES) await assert.rejects(access(join(packageRoot, "skills", name)), { code: "ENOENT" });
 });
@@ -105,7 +107,10 @@ test("shouldResolveConsolidatedSignalsAndRejectRetiredNamesWhenRegistryUsesCurre
 	// When
 	const selected = await registry.resolveNames([...new Set(LENSES.map(({ skill }) => skill))], ctx);
 	// Then
-	assert.equal(registry.status().available, ACTIVE_SKILL_COUNT);
+	assert.deepEqual({ automatic: registry.status().available, manual: registry.status().manualOnly }, {
+		automatic: AUTOMATIC_SKILL_COUNT, manual: MANUAL_ONLY_NAMES.length,
+	});
+	for (const name of MANUAL_ONLY_NAMES) await assert.rejects(registry.resolveNames([name], ctx), /manual-only|explicit.*skill/i);
 	assert.equal(selected.length, new Set(LENSES.map(({ skill }) => skill)).size);
 	for (const lens of LENSES) {
 		const search = await registry.search(lens.query, 5, ctx);

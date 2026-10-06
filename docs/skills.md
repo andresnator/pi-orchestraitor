@@ -1,10 +1,29 @@
 # Bundled development skills
 
-The package ships 51 active skills from the non-learning domains of `agents-orchestrator`, revision `e90b11a4d5fb77bfebcf5f5c96da9471014c17ab`. Public names use the short `jag-*` namespace (at most 15 characters). Original names are recorded in provenance; authors, licenses, and supporting resources are retained. All skill directories are materialized; none depends on a link to the source repository. Ten former review lenses are retained as conditional reference material rather than standalone skills.
+The package ships 56 unique native skills: 54 automatically selectable and two explicit-only in an isolated package profile. The historical 51-skill base comes from non-learning domains of `agents-orchestrator`, revision `e90b11a4d5fb77bfebcf5f5c96da9471014c17ab`; five direct Matt Pocock adaptations are added, including the explicitly requested teaching exception. Other native sources and configuration filters may change an effective catalog. Public names use the short `jag-*` namespace (at most 15 characters). Original names are recorded in provenance; authors, licenses, and supporting resources are retained. All skill directories are materialized; none depends on a link to the source repository. Ten former review lenses are retained as conditional reference material rather than standalone skills.
 
 ## Names and upgrades
 
-Directory basenames and frontmatter names match. Use the new identifiers in `/skill:<name>`, `skill_registry`, child selections and plan `Skills:` fields. This is a breaking rename without old-name aliases. Run native `/reload` after upgrading; refresh alone cannot authorize the new names. Update any explicit skill paths or package resource filters in your own configuration. Existing plans and historical reports are not rewritten automatically. Prompt commands (`/plan`, `/absorb`, `/review`, `/orchestraitor`) and artifact output paths remain unchanged.
+Directory basenames and frontmatter names match. Use the new identifiers in `/skill:<name>`, `skill_registry`, child selections and plan `Skills:` fields. This is a breaking rename without old-name aliases. Run native `/reload` after upgrading; refresh alone cannot authorize the new names. Update any explicit skill paths or package resource filters in your own configuration. Existing plans and historical reports are not rewritten automatically. Prompt commands (`/plan`, `/absorb`, `/review`, `/orchestraitor`) are unchanged. The later domain-default change below is separate from the namespace rename and never relocates existing artifacts.
+
+## Adapted workflows
+
+Matt Pocock is credited in the YAML metadata of all six workflows. The five new skills use local version 1.0.0 and direct-source revision `6fd947921b935b7e1e69293a200400f0fdd5c15f`; their upstream individual versions are absent, not invented. `jag-domain` retains its original 1.0.4 import identity in provenance, with local version 2.0.0 / adaptation 3.0.0 for the changed output/authorization contract. PR visual guidance additionally retains Dex Horthy/HumanLayer credits and both complete MIT notices.
+
+| Skill | Invocation | Default generated output |
+| --- | --- | --- |
+| `jag-agent-docs` | Automatic or explicit; audit is not editing permission | Authorized audit/draft: `.ai/agent-docs/YYYY-MM-DD-<slug>.md` |
+| `jag-pr` | Automatic or explicit; drafting only | Inline, or requested `.ai/pr/<slug>.md` |
+| `jag-handoff` | User `/skill:jag-handoff <next task>` only | `.ai/handoffs/YYYY-MM-DD-<slug>.md` |
+| `jag-research` | Automatic or explicit; parent-led | Authorized report: `.ai/research/YYYY-MM-DD-<slug>.md` |
+| `jag-domain` | Automatic or explicit; writes require authorization | `.ai/domain/CONTEXT.md`, multi-context map/contexts, and separate `.ai/adr/` |
+| `jag-teach` | User `/skill:jag-teach <topic>` only | Markdown mission/resources/glossary, lessons, records and references under `.ai/learning/<topic>/` |
+
+Manual-only entries are rejected by automatic lookup and child selection; native explicit commands remain available after user `/reload`. Existing canonical documents and collisions are checked before writes. Read-only requests remain inline; no relocation, dependency installation, background researcher, browser launch or publication is implied. Handoffs provide context, not durable execution recovery or permission.
+
+Teaching is one concrete confirmed mission per topic, trusted sources and conversational retrieval/practice feedback. Records distinguish demonstrated understanding, self-reported knowledge and exposure; attendance is not mastery or measured retention. Optional notes retain only useful non-sensitive preferences. HTML/JS widgets, remote assets, telemetry and community posting are outside this first version.
+
+Generated documents under `.ai/` remain local ignored artifacts, not packaged definitions. These source-level contracts, native checks and packaging tests do not demonstrate general model reliability or educational effectiveness.
 
 ## Consolidated review lenses
 
@@ -95,7 +114,7 @@ See [offline savings and limitations](performance.md) and [child resolution](sub
 - Skill routing uses native-authorized names and descriptions via `skill_registry`, or the native catalog when unavailable. Catalog suppression does not rewrite source bodies/resources; executors load selected names. The routing adaptation is 2.0.0.
 - Closed questions use an available Pi UI choice mechanism, with ordinary chat as the fallback. No OpenCode question tool is assumed.
 - `jag-plan` and its template target sequential Orchestraitor execution, unchanged plans, and working-tree delivery. Unsupported SDD, TCR, and automatic Git delivery are reported as blockers.
-- `jag-skill` uses the Pi package layout and discovery checks, and includes an actual skill template. It has no source-installer or manual-catalog dependency.
+- `jag-skill` uses the Pi package layout/discovery checks and a bundled template. Its conditional `jag-agent-docs` pointer loads shared writing guidance only when natively available; it creates no runtime, installer or manual-catalog dependency. `jag-prompts` keeps its no-tool evaluation contract.
 - Absorb compares the destination's actual runtime. Refactoring instructions require explicit authorization for commits.
 - Descriptions, references, and templates use English. Replies and explicitly requested artifact languages follow the user.
 
@@ -171,7 +190,12 @@ Each entry maps the shipped name to its original name, version and SKILL.md lice
 | [jag-tool-matrix](../skills/jag-tool-matrix/SKILL.md) | `tooling-compatibility-matrix` | 1.1.1 | Apache-2.0 | plan |
 | [jag-types](../skills/jag-types/SKILL.md) | `type-contracts` | 1.0.1 | Apache-2.0 | plan |
 | [jag-usm](../skills/jag-usm/SKILL.md) | `usm` | 2.0.0 | MIT | docs |
+| [jag-agent-docs](../skills/jag-agent-docs/SKILL.md) | `writing-for-agents` | unversioned | MIT | Matt Pocock: productivity |
+| [jag-pr](../skills/jag-pr/SKILL.md) | `pr` | unversioned | MIT | Matt Pocock: engineering; HumanLayer visual credit |
+| [jag-handoff](../skills/jag-handoff/SKILL.md) | `handoff` | unversioned | MIT | Matt Pocock: productivity |
+| [jag-research](../skills/jag-research/SKILL.md) | `research` | unversioned | MIT | Matt Pocock: engineering |
+| [jag-teach](../skills/jag-teach/SKILL.md) | `teach` | unversioned | MIT | Matt Pocock: productivity |
 
 ## Excluded capabilities
 
-Learning-domain skills and `graphify-cli`, `judgment-day`, `sdd-cold-verification`, `tcr`, `work-unit-commits`, `chained-pr`, `caveman`, `grill`, `slidev-retro-deck`, and `whisper-extract` are excluded from this delivery. `jag-grill` (upstream `grilling`) is a distinct, included design interview skill. Existing user copies of excluded names are left in place.
+The historical source's learning-domain skills remain excluded; the direct, explicit-only `jag-teach` addition above is the user-selected exception. `ask-matt`, `jag-guide`, and the external navigation map are not adopted. `graphify-cli`, `judgment-day`, `sdd-cold-verification`, `tcr`, `work-unit-commits`, `chained-pr`, `caveman`, `grill`, `slidev-retro-deck`, and `whisper-extract` are excluded from this delivery. `jag-grill` (upstream `grilling`) is a distinct, included design interview skill. Existing user copies of excluded names are left in place.

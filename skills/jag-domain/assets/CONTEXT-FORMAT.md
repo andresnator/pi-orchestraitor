@@ -1,3 +1,5 @@
+<!-- Original workflow by Matt Pocock; modified for Pi by pi-orchestraitor. -->
+
 # CONTEXT.md Format
 
 ## Structure
@@ -31,18 +33,18 @@ _Avoid_: Client, buyer, account
 
 ## Single vs multi-context repos
 
-**Single context (most repos):** One `CONTEXT.md` at the repo root.
+**Single context (most repos):** Default to `.ai/domain/CONTEXT.md` only when documentation writes are authorized and no conflicting canonical vocabulary exists.
 
-**Multiple contexts:** A `CONTEXT-MAP.md` at the repo root lists the contexts, where they live, and how they relate to each other:
+**Multiple contexts:** Default to `.ai/domain/CONTEXT-MAP.md` with each vocabulary at `.ai/domain/contexts/<context>/CONTEXT.md`. The map lists the contexts, locations and relationships:
 
 ```md
 # Context Map
 
 ## Contexts
 
-- [Ordering](./src/ordering/CONTEXT.md) — receives and tracks customer orders
-- [Billing](./src/billing/CONTEXT.md) — generates invoices and processes payments
-- [Fulfillment](./src/fulfillment/CONTEXT.md) — manages warehouse picking and shipping
+- [Ordering](./contexts/ordering/CONTEXT.md) — receives and tracks customer orders
+- [Billing](./contexts/billing/CONTEXT.md) — generates invoices and processes payments
+- [Fulfillment](./contexts/fulfillment/CONTEXT.md) — manages warehouse picking and shipping
 
 ## Relationships
 
@@ -51,10 +53,6 @@ _Avoid_: Client, buyer, account
 - **Ordering ↔ Billing**: Shared types for `CustomerId` and `Money`
 ```
 
-The skill infers which structure applies:
+Inspect authoritative root/context documents and existing maps before choosing a default. Read a canonical map to find contexts wherever it lives. If authority or location conflicts, ask before writing; never migrate/delete documents or create a competing glossary automatically.
 
-- If `CONTEXT-MAP.md` exists, read it to find contexts
-- If only a root `CONTEXT.md` exists, single context
-- If neither exists, create a root `CONTEXT.md` lazily when the first term is resolved
-
-When multiple contexts exist, infer which one the current topic relates to. If unclear, ask.
+If no canonical vocabulary exists, create the applicable default lazily after the first resolved term and write authorization. Read-only requests return definitions inline. When the relevant context is unclear, ask. Keep ADRs outside vocabulary files.
