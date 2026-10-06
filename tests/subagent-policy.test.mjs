@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir, writeFile, symlink, link, realpath } from "node:fs/promises";
 import { join, win32 } from "node:path";
 import test from "node:test";
-import { createWorkspace } from "./helpers/pi-host.mjs";
+import { createWorkspace, pi } from "./helpers/pi-host.mjs";
 import { validateBatch, validatePath, selectModel, concreteFile, protectedPath, projectRelativePath } from "../extensions/subagent/policy.mjs";
 
 test("shouldRejectMixedAndUnboundedTasksWhenValidatingBatch", () => {
@@ -52,6 +52,31 @@ test("shouldProtectCaseAliasesWhenFilesystemMayBeCaseInsensitive", () => {
 });
 
 
+test("shouldAllowOnlySelectedProjectSkillDirectoriesWhenHarnessMetadataIsProtected", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const baseDir = join(cwd, ".agents", "skills", "selected");
+	await mkdir(join(baseDir, "references"), { recursive: true });
+	await mkdir(join(baseDir, ".git"));
+	const filePath = join(baseDir, "SKILL.md");
+	const resource = join(baseDir, "references", "guide.md");
+	await writeFile(filePath, "Selected native instructions.");
+	await writeFile(resource, "Selected native resource.");
+	await symlink(cwd, join(baseDir, "references", "escape"));
+	const manifest = { cwd, role: "implement", files: ["output.txt"], skills: [{ baseDir, filePath }] };
+	// When / Then
+	assert.equal(await validatePath(manifest, filePath), filePath);
+	assert.equal(await validatePath(manifest, resource), resource);
+	for (const path of [".agents/settings.json", ".pi/settings.json", ".agents/skills/other/SKILL.md", join(baseDir, ".git/config"), join(baseDir, "references/escape")]) {
+		await assert.rejects(validatePath(manifest, path));
+	}
+	await assert.rejects(validatePath(manifest, filePath, true));
+	const metadata = join(cwd, ".agents", "settings.json");
+	await writeFile(metadata, "Synthetic protected configuration.");
+	const broad = { ...manifest, skills: [{ baseDir: join(cwd, ".agents"), filePath: join(cwd, ".agents", "SKILL.md") }] };
+	await assert.rejects(validatePath(broad, metadata), /Protected/);
+});
+
 function windowsFilesystem() {
 	const entries = new Map([
 		["C:\\repo\\src", "directory"], ["C:\\repo\\target", "file"], ["C:\\repo\\src\\target", "file"],
@@ -67,6 +92,30 @@ function windowsFilesystem() {
 		},
 	};
 }
+
+for (const host of [".agents", ".pi", ".codex"]) {
+	test(`shouldNotExemptThe${host}CollectionWhenAStandaloneNativeSkillIsSelected`, async (t) => {
+		const cwd = await realpath(await createWorkspace(t)), collection = join(cwd, host, "skills");
+		await mkdir(join(collection, "other"), { recursive: true });
+		const filePath = join(collection, "selected.md"), sibling = join(collection, "other", "SKILL.md");
+		await writeFile(filePath, "---\nname: selected\ndescription: Selected standalone fixture.\n---\nSelected instructions.\n");
+		await writeFile(sibling, "Unselected skill instructions.");
+		const { skills } = pi.loadSkills({ cwd, skillPaths: [filePath], includeDefaults: false });
+		assert.equal(skills.length, 1);
+		assert.equal(skills[0].baseDir, collection);
+		const manifest = { cwd, role: "explore", skills };
+		for (const path of [sibling, collection, filePath]) await assert.rejects(validatePath(manifest, path), /Protected/);
+	});
+}
+
+test("shouldRequireAConcreteSkillDirectoryForWindowsProtectedRootExemptions", async () => {
+	const filesystem = { paths: win32, realpath: async (path) => path,
+		lstat: async () => ({ isSymbolicLink: () => false, isDirectory: () => true, isFile: () => false }) };
+	const collection = "C:\\repo\\.agents\\skills", baseDir = win32.join(collection, "chosen");
+	const manifest = { cwd: "C:\\repo", role: "explore", skills: [{ baseDir: collection }] };
+	await assert.rejects(validatePath(manifest, win32.join(collection, "other", "SKILL.md"), false, filesystem), /Protected/);
+	assert.equal(await validatePath({ ...manifest, skills: [{ baseDir }] }, win32.join(baseDir, "SKILL.md"), false, filesystem), win32.join(baseDir, "SKILL.md"));
+});
 
 test("shouldAcceptNativeWindowsPathsAndMatchNestedAssignmentsWhenGuardValidatesCallbacks", async () => {
 	// Given

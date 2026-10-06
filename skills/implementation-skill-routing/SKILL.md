@@ -4,7 +4,7 @@ description: "Select minimal implementation skills for plan groups and Skills fi
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
-  pi_adaptation: "1.0.0"
+  pi_adaptation: "1.1.0"
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
   version: "3.0.0"
@@ -23,9 +23,9 @@ Planners select names without loading implementation skill bodies. Executors loa
 
 ## Source
 
-Use Pi's native skill catalog from the current session. Match the published descriptions and return only the declared skill names. Planners do not load implementation bodies. Executors read a selected `SKILL.md` at the catalog-provided path with Pi's available file tools, resolving relative resources from that directory.
+Use `skill_registry` search when available; it exposes only the current native-authorized names and descriptions. Otherwise use Pi's native catalog. Match descriptions and return only declared names. Planners do not load implementation bodies. Executors use `skill_registry` load for selected names, or read the native catalog path when the tool is absent, resolving relative resources from the skill directory.
 
-A skill missing from the current catalog blocks its assigned work. Never invent names or use an external registry as proof of availability.
+A skill missing from the current resolver blocks its assigned work. Never invent names or use `.ai/skills/registry.md` or an external registry as proof of availability. Newly configured sources and names require native `/reload`; manual-only skills require an explicit native command.
 
 ## Selection
 

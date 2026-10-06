@@ -16,6 +16,7 @@ const PROVENANCE = JSON.parse(await readFile(join(packageRoot, "docs/skills-prov
 const EXPECTED_FILES = [
 	"LICENSE", "README.md", "THIRD_PARTY_NOTICES.md", "package.json",
 	"extensions/compact-tools.ts", "extensions/instructions.ts", "extensions/mcp.ts", "extensions/subagents.ts",
+	"extensions/skill-registry.ts", "extensions/skills/sources.mjs", "extensions/skills/registry.mjs", "extensions/skills/store.mjs", "extensions/skills/types.ts",
 	"extensions/status-ui.ts", "extensions/ui/display.ts", "extensions/ui/agents.ts", "extensions/ui/tasks.ts", "extensions/ui/questions.ts",
 	"extensions/subagent/child.mjs", "extensions/subagent/controller.mjs", "extensions/subagent/guard.mjs", "extensions/subagent/policy.mjs", "extensions/subagent/runtime.mjs",
 	"instructions/core.md", "instructions/orchestraitor.md", "instructions/personality.md",
@@ -76,7 +77,7 @@ test("shouldLoadPromptsAndExtensionsWhenExplicitPackageBypassesDiscovery", async
 		prompts: loader.getPrompts().prompts.map(({ name }) => name).sort(),
 		skills: loader.getSkills().skills.length,
 	}, {
-		extensions: ["compact-tools.ts", "instructions.ts", "mcp.ts", "status-ui.ts", "subagents.ts"],
+		extensions: ["compact-tools.ts", "instructions.ts", "mcp.ts", "skill-registry.ts", "status-ui.ts", "subagents.ts"],
 		errors: [], prompts: EXPECTED_PROMPTS, skills: 61,
 	});
 });
@@ -120,7 +121,7 @@ test("shouldLoadOnlyPackagedResourcesWhenTarballIsExtractedElsewhere", async (t)
 	}, {
 		files: EXPECTED_FILES, errors: [], prompts: EXPECTED_PROMPTS,
 		skills: PROVENANCE.skills.map(({ name }) => name).sort(), skillDiagnostics: [],
-		active: ["read", "bash", "edit", "write", "subagent_run", "orchestraitor_tasks", "orchestraitor_ask"], prefix: "Host instructions",
+		active: ["read", "bash", "edit", "write", "subagent_run", "orchestraitor_tasks", "orchestraitor_ask", "skill_registry"], prefix: "Host instructions",
 		preservedSection: "Project-specific instructions", theme: "system", dependencies: undefined,
 		peers: { "@earendil-works/pi-coding-agent": "*", "@earendil-works/pi-tui": "*", typebox: "*" },
 	});
@@ -173,6 +174,6 @@ test("shouldAvoidDoubleRegistrationWhenOriginalGlobalExtensionIsExcluded", async
 		errors,
 	}, {
 		compactPaths: [join(packageRoot, "extensions/compact-tools.ts")],
-		tools: ["bash", "edit", "orchestraitor_ask", "orchestraitor_tasks", "read", "subagent_run", "write"], errors: [],
+		tools: ["bash", "edit", "orchestraitor_ask", "orchestraitor_tasks", "read", "skill_registry", "subagent_run", "write"], errors: [],
 	});
 });

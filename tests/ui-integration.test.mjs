@@ -6,8 +6,8 @@ import { mkdir, readFile, realpath } from "node:fs/promises";
 import test from "node:test";
 import { createPackageUISession, createWorkspace, packageRoot } from "./helpers/ui-harness.mjs";
 
-const EXTENSIONS = ["compact-tools.ts", "instructions.ts", "mcp.ts", "status-ui.ts", "subagents.ts"];
-const ACTIVE = ["read", "bash", "edit", "write", "subagent_run", "orchestraitor_tasks", "orchestraitor_ask"];
+const EXTENSIONS = ["compact-tools.ts", "instructions.ts", "mcp.ts", "skill-registry.ts", "status-ui.ts", "subagents.ts"];
+const ACTIVE = ["read", "bash", "edit", "write", "subagent_run", "orchestraitor_tasks", "orchestraitor_ask", "skill_registry"];
 const run = promisify(execFile);
 
 for (const mode of ["tui", "rpc", "json", "print"]) {
@@ -39,7 +39,7 @@ for (const mode of ["tui", "rpc", "json", "print"]) for (const selection of [
 	test(`shouldPreserveExactPersistentSelectionAcrossReloadWhenModeIs${mode}AndSelectionIs${JSON.stringify(selection)}`, async (t) => {
 		// Given
 		const { session, resources, widgets, statuses, errors } = await createPackageUISession(t, mode, { selection });
-		const selected = selection.tools ?? ["read", "bash", "edit", "write", "subagent_run"];
+		const selected = selection.tools ?? ["read", "bash", "edit", "write", "subagent_run", "skill_registry"];
 		const before = session.getActiveToolNames();
 		// When
 		await session.reload();
@@ -57,7 +57,7 @@ test("shouldDisableUiWithoutChangingLauncherOrInstructionsWhenUiEntrypointIsExcl
 	const result = await session.extensionRunner.emitBeforeAgentStart("inspect", undefined, { cwd: session.sessionManager.getCwd(), selectedTools: session.getActiveToolNames(), skills: [], contextFiles: [], sections: { foreign: "Keep this" } });
 	// Then
 	assert.deepEqual({ active: session.getActiveToolNames(), ui: resources.loader.getExtensions().extensions.some(({ path }) => basename(path) === "status-ui.ts"), errors, calls },
-		{ active: ["read", "bash", "edit", "write", "subagent_run"], ui: false, errors: [], calls: [] });
+		{ active: ["read", "bash", "edit", "write", "subagent_run", "skill_registry"], ui: false, errors: [], calls: [] });
 	assert.equal(result.systemPromptOptions.sections.foreign, "Keep this");
 	assert.equal(result.systemPromptOptions.sections.pi_orchestraitor_execution, await readFile(join(packageRoot, "instructions/orchestraitor.md"), "utf8"));
 });

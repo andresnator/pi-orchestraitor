@@ -1,6 +1,6 @@
 # pi-orchestraitor
 
-A personal Pi package with **61 development skills**, compact tool output, optional interactive work UI, Context7, Engram, and Orchestraitor for scoped changes and sequential plan execution. It automatically loads the source harness's Colombian architect personality: direct answers, practical explanations, respectful disagreement, and occasional Colombian expressions when the conversation supports them.
+A personal Pi package with **61 development skills**, a lazy native-authorized skill registry, compact tool output, optional interactive work UI, Context7, Engram, and Orchestraitor for scoped changes and sequential plan execution. It automatically loads the source harness's Colombian architect personality: direct answers, practical explanations, respectful disagreement, and occasional Colombian expressions when the conversation supports them.
 
 ## Install
 
@@ -66,7 +66,9 @@ Native `pi install /path/to/package` also discovers bundled skills, but does not
 /skill:systematic-debugging investigate this failure
 ```
 
-Pi advertises the bundled names and descriptions, and loads skill bodies when relevant. `/skill:<name>` explicitly loads one. The [skill catalog](docs/skills.md) lists every adaptation and external prerequisite.
+Skills use **lazy discovery by default**: `skill_registry` searches native-authorized descriptions and loads only selected bodies. `.ai/skills/registry.md` is generated as a body-free diagnostic snapshot, not injected into the prompt. `/skill:<name>` remains an explicit native command. Use `/orchestraitor:skills status|refresh` to inspect/refresh, or `native` to restore native headers (`lazy` switches back).
+
+New sources/names require native Pi configuration and `/reload`; edits and removals of already authorized skills are checked on the next request or lookup. Claude/OpenCode directories are not silently enabled. See the [skill registry and catalog](docs/skills.md) for source configuration, limits and fallback.
 
 Orchestraitor is the execution contract in the main session. It supports direct changes and ordered work groups in a supplied plan. It checks the original plan's SHA-256, preserves the plan, and runs its assigned checks. Planning and review requests keep their own scope. Delivery defaults to unstaged working-tree changes; commits require an explicit current user instruction.
 
@@ -81,6 +83,7 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 | `extensions/instructions.ts` | Adds core, execution, and personality sections while preserving Pi and project instructions. |
 | `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. |
 | `extensions/subagents.ts` | One bounded launcher, child guards, native usage and optional progress observations. |
+| `extensions/skill-registry.ts` | Bounded search/load, native snapshot refresh and atomic diagnostic publication; lazy/native exposure. |
 | `extensions/status-ui.ts` | One owner for agents/tasks panels, unified questions and compact work-header/native-footer chrome. |
 | `skills/` | 61 unique skills and their supporting resources, with original public names. |
 | `prompts/` | `/orchestraitor`, `/plan`, `/review`, and `/absorb`, with explicit arguments. |
@@ -147,7 +150,7 @@ npm pack --dry-run --ignore-scripts
 - `test:personality` makes bounded calls to the configured Pi model in isolated sessions. It writes synthetic transcripts for manual scoring; it uses the configured account and consumes model quota.
 - Packing includes extensions, instructions, skills, scripts, docs, and licenses. Tests, `.ai` reports, personal settings, credentials, and memory databases are excluded.
 
-Tests use the Pi executable on PATH. Set `PI_TEST_PACKAGE_DIR` to the installed npm package root if it cannot be located. The installer inventory adapter and some integration checks depend on host internals and need revalidation after a Pi upgrade. The adapter checks that its required host hooks exist before migration. Peers use `*` because Pi supplies them; the original baseline used Pi 1.0.0 and current deterministic/UI integration checks use Pi 1.0.2. Revalidate on upgrades. The UI guide documents native dynamic-selection versus persistent-exclusion behavior on reload. The established test convention is `node:test` with `node:assert`.
+Tests use the Pi executable on PATH. Set `PI_TEST_PACKAGE_DIR` to the installed npm package root if it cannot be located. The installer inventory adapter and some integration checks depend on host internals and need revalidation after a Pi upgrade. The adapter checks that its required host hooks exist before migration. Peers use `*` because Pi supplies them; the original baseline used Pi 1.0.0 and current deterministic checks use Pi 1.0.3. Historical live UI evidence retains its recorded host version. Revalidate on upgrades. The UI guide documents native dynamic-selection versus persistent-exclusion behavior on reload. The established test convention is `node:test` with `node:assert`.
 
 See [verification evidence](docs/verification.md) and [attribution](THIRD_PARTY_NOTICES.md).
 

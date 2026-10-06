@@ -5,6 +5,8 @@ import { getAgentDir, getPackageDir, type ExtensionAPI } from "@earendil-works/p
 import { Type } from "typebox";
 import { compactTool } from "./compact-tools.ts";
 import { BatchController, mergeUsage } from "./subagent/controller.mjs";
+import { REGISTRY_RESOLVE_EVENT } from "./skills/registry.mjs";
+import type { SkillResolutionRequest } from "./skills/types.ts";
 import { READ_TOOLS, WRITE_TOOLS, THINKING_LEVELS, selectModel, validateBatch, validatePath, within, concreteFile } from "./subagent/policy.mjs";
 
 const CONTROLLER_KEY = Symbol.for("pi-orchestraitor.subagent-controller");
@@ -55,16 +57,26 @@ export default function subagents(pi: ExtensionAPI) {
 			}
 			const cwd = await realpath(ctx.cwd);
 			const manifests = [];
+			const resolvedBodies = new Map<string, string>();
 			for (const task of args.tasks) {
 				const model = selectModel(task.model, ctx.model, ctx.modelRegistry.getAvailable());
 				if (ctx.scopedModels?.length && !ctx.scopedModels.some((entry) => entry.model.provider === model.provider && entry.model.id === model.id)) {
 					throw new Error(`Model outside the parent's enabled model scope: ${model.provider}/${model.id}`);
 				}
 				const skills = [];
-				for (const name of new Set(task.skills ?? [])) {
-					const selected = snapshot.skills.filter((skill) => skill.name === name);
+				const names = [...new Set(task.skills ?? [])];
+				const request: SkillResolutionRequest = { context: { ...ctx, signal }, names };
+				if (names.length) pi.events.emit(REGISTRY_RESOLVE_EVENT, request);
+				// A live resolver rejection is authoritative; never fall back around it.
+				const resolved = request.result ? await request.result : undefined;
+				for (const name of names) {
+					const selected = resolved ? resolved.filter(({ skill }) => skill.name === name).map(({ skill }) => skill)
+						: snapshot.skills.filter((skill) => skill.name === name);
 					if (selected.length !== 1) throw new Error(`Selected skill is missing or ambiguous: ${name}`);
+					if (selected[0].disableModelInvocation) throw new Error(`Selected skill is manual-only: ${name}; use an explicit /skill command`);
 					const filePath = await realpath(selected[0].filePath);
+					const body = resolved?.find(({ skill }) => skill.name === name)?.body;
+					if (body !== undefined) resolvedBodies.set(filePath, body);
 					skills.push({ ...selected[0], filePath, baseDir: dirname(filePath) });
 				}
 				const manifest = { role: task.role, instruction: task.instruction, context: task.context ?? "", id: randomUUID(), cwd, files: (task.files ?? []).map((file) => concreteFile(file)), skills,
@@ -100,7 +112,7 @@ export default function subagents(pi: ExtensionAPI) {
 			for (const manifest of manifests) {
 				const bodies = await Promise.all(manifest.skills.map(async (skill) => {
 					await validatePath(manifest, skill.filePath);
-					return `Selected skill ${skill.name}:\n${await readFile(skill.filePath, "utf8")}`;
+					return `Selected skill ${skill.name}:\n${resolvedBodies.get(skill.filePath) ?? await readFile(skill.filePath, "utf8")}`;
 				}));
 				const scope = manifest.role === "implement"
 					? `Editable files (exact project-relative paths):\n${JSON.stringify(manifest.files, null, 2)}\nEdit only these files.`

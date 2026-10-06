@@ -8,6 +8,7 @@ export const WRITE_TOOLS = [...READ_TOOLS, "edit", "write"];
 export const THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh"];
 const PROTECTED_PARTS = new Set([".git", ".pi", ".codex", ".agents", "node_modules"]);
 const PROTECTED_FILES = new Set(["agents.md", "system.md", "append_system.md"]);
+const PROJECT_SKILL_HOSTS = new Set([".pi", ".agents", ".codex"]);
 const HARNESS_DIRS = new Set(["extensions", "instructions", "skills", "prompts"]);
 
 /** Keep model-facing file names portable while accepting native Windows operation paths. */
@@ -70,7 +71,11 @@ export async function validatePath(manifest, input, writing = false, filesystem 
 	const project = within(manifest.cwd, target, paths);
 	const skill = !writing && manifest.skills?.find(({ baseDir }) => within(baseDir, target, paths));
 	if (!project && !skill) throw new Error("Path outside project and selected skills");
-	const root = project ? manifest.cwd : skill.baseDir;
+	// Allow selected project skill subdirectories, never the enclosing harness metadata root.
+	const selectedParts = skill && project ? projectRelativePath(manifest.cwd, skill.baseDir, paths).toLowerCase().split("/") : [];
+	const readableSkill = skill && selectedParts.every((part, index) => !PROTECTED_PARTS.has(part) ||
+		(PROJECT_SKILL_HOSTS.has(part) && selectedParts[index + 1] === "skills" && index + 2 < selectedParts.length));
+	const root = readableSkill ? skill.baseDir : manifest.cwd;
 	const rel = projectRelativePath(root, target, paths);
 	if (protectedPath(rel, writing)) throw new Error("Protected harness or Git path");
 	const assigned = writing && manifest.files.some((file) => concreteFile(file, paths) === projectRelativePath(manifest.cwd, target, paths));

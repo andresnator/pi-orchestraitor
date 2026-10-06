@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, readlink, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
@@ -80,6 +80,7 @@ if (index < 0) settings.packages.push(source);
 else { const entry = settings.packages[index]; settings.packages[index] = typeof entry === "string" ? source : {...entry,source}; }
 if (process.env.PRETTY_TEST_CONCURRENT === "1" && source.startsWith("npm:")) {
   settings.theme = "concurrent"; settings.packages.push("npm:unrelated-concurrent");
+  settings.packages = settings.packages.map(entry => identity(entry) === "neighbor" ? {...entry,source:"npm:neighbor@2",extensions:["concurrent"]} : entry);
   const prettyPath = path.join(process.env.PRETTY_CONFIG_DIR,"pi-pretty.json");
   const config = JSON.parse(fs.readFileSync(prettyPath,"utf8"));
   fs.writeFileSync(prettyPath,JSON.stringify({...config,theme:"concurrent",disableTools:[...config.disableTools,"grep"]}));
@@ -89,8 +90,28 @@ const calls = fs.existsSync(callsPath) ? JSON.parse(fs.readFileSync(callsPath,"u
 fs.writeFileSync(callsPath, JSON.stringify([...calls,args]));
 if (process.env.PRETTY_TEST_FAIL === "1" && source.startsWith("npm:")) process.exit(1);
 `, { mode: 0o755 });
+	const faultModule = join(root, "config-fault.mjs");
+	await writeFile(faultModule, `
+import fs from "node:fs/promises";
+import { basename, dirname } from "node:path";
+import { syncBuiltinESMExports } from "node:module";
+const fault = process.env.PRETTY_TEST_CONFIG_FAULT;
+const method = fault.endsWith("partial-write") ? "writeFile" : "rename";
+const original = fs[method];
+let seen = 0;
+fs[method] = async (path, ...args) => {
+  if (dirname(path) === process.env.PRETTY_CONFIG_DIR && basename(path).startsWith("pi-pretty.json")) {
+    if (++seen === (fault.startsWith("recovery-") ? 2 : 1)) {
+      if (method === "writeFile") await original(path, args[0].slice(0, 8), ...args.slice(1));
+      throw Object.assign(new Error("Fixture " + fault), {code:method === "writeFile" ? "ENOSPC" : "EACCES"});
+    }
+  }
+  return original(path, ...args);
+};
+syncBuiltinESMExports();
+`);
 	let failPretty = false;
-	const runWithEnv = (env, ...args) => execFileSync(process.execPath, [join(packageRoot, "scripts/install-pi.mjs"), "--local", ...args], {
+	const runWithEnv = (env, ...args) => execFileSync(process.execPath, [...(env.PRETTY_TEST_CONFIG_FAULT ? ["--import", faultModule] : []), join(packageRoot, "scripts/install-pi.mjs"), "--local", ...args], {
 		cwd, encoding: "utf8", stdio: "pipe", env: { ...process.env, PI_CODING_AGENT_DIR: agentDir, PI_TEST_PACKAGE_DIR: hostRoot,
 			PATH: `${bin}:${process.env.PATH}`, PRETTY_TEST_FAIL: failPretty ? "1" : "0", PRETTY_CONFIG_DIR: agentDir, PRETTY_DISABLE_TOOLS: "", ...env },
 	});
@@ -137,5 +158,64 @@ if (process.env.PRETTY_TEST_FAIL === "1" && source.startsWith("npm:")) process.e
 	assert.equal(await readFile(prettyPath, "utf8"), originalPrettyText);
 	assert.throws(() => runWithEnv({ PRETTY_TEST_CONCURRENT: "1" }), /Migration rolled back/);
 	assert.deepEqual(JSON.parse(await readFile(prettyPath, "utf8")), { ...originalPretty, theme: "concurrent", disableTools: ["ls", "grep"] });
+	// Dotfile-managed configuration retains its lexical link through both a
+	// successful install and rollback of a later failed registration.
+	const dotfiles = join(root, "dotfiles"), managedPretty = join(dotfiles, "pi-pretty.json");
+	await mkdir(dotfiles);
+	await writeFile(managedPretty, originalPrettyText);
+	await rm(prettyPath);
+	await symlink("../dotfiles/pi-pretty.json", prettyPath);
+	await writeFile(settingsPath, settingsBefore);
+	failPretty = false;
+	run();
+	assert.equal(await readlink(prettyPath), "../dotfiles/pi-pretty.json");
+	assert.deepEqual(JSON.parse(await readFile(managedPretty, "utf8")), { ...originalPretty, disableTools: ["ls", "bash"] });
+	await writeFile(managedPretty, originalPrettyText);
+	failPretty = true;
+	assert.throws(() => runWithEnv({ PRETTY_TEST_CONCURRENT: "1" }), /Migration rolled back/);
+	assert.equal(await readlink(prettyPath), "../dotfiles/pi-pretty.json");
+	assert.deepEqual(JSON.parse(await readFile(managedPretty, "utf8")), { ...originalPretty, theme: "concurrent", disableTools: ["ls", "grep"] });
+	assert.deepEqual(await readdir(dotfiles), ["pi-pretty.json"]);
+	// Restore the ordinary fixture before the remaining registration cases.
+	await rm(prettyPath);
+	await writeFile(prettyPath, JSON.stringify({ ...originalPretty, theme: "concurrent", disableTools: ["ls", "grep"] }));
 	assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")), { packages: [packageRoot, source, "npm:unrelated-concurrent"], theme: "concurrent" });
+	// Exercise the actual installer transaction, including staging failures
+	// before registration and failures while recovering after registration.
+	for (const existing of [false, true]) {
+		for (const failure of ["partial-write", "publication"]) {
+			await writeFile(settingsPath, settingsBefore);
+			if (existing) await writeFile(prettyPath, originalPrettyText);
+			else await rm(prettyPath, { force: true });
+			const callsBefore = await readFile(callsPath, "utf8");
+			assert.throws(() => runWithEnv({ PRETTY_TEST_CONFIG_FAULT: `apply-${failure}` }), /Fixture apply-[\s\S]*Migration rolled back/);
+			assert.equal(await readFile(settingsPath, "utf8"), settingsBefore);
+			assert.equal(await readFile(callsPath, "utf8"), callsBefore);
+			if (existing) assert.equal(await readFile(prettyPath, "utf8"), originalPrettyText);
+			else assert.equal(await exists(prettyPath), false);
+			assert.deepEqual((await readdir(agentDir)).filter((name) => name.startsWith("pi-pretty.json")), existing ? ["pi-pretty.json"] : []);
+		}
+	}
+	for (const concurrent of [false, true]) {
+		for (const failure of ["partial-write", "publication"]) {
+			await writeFile(settingsPath, settingsBefore);
+			await writeFile(prettyPath, originalPrettyText);
+			assert.throws(() => runWithEnv({ PRETTY_TEST_CONFIG_FAULT: `recovery-${failure}`, PRETTY_TEST_CONCURRENT: concurrent ? "1" : "0" }), /Rollback needs attention: Fixture recovery-/);
+			assert.deepEqual(JSON.parse(await readFile(prettyPath, "utf8")), {
+				...originalPretty, ...(concurrent ? { theme: "concurrent" } : {}), disableTools: ["ls", "bash", ...(concurrent ? ["grep"] : [])],
+			});
+			if (concurrent) assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")), { packages: [packageRoot, source, "npm:unrelated-concurrent"], theme: "concurrent" });
+			else assert.equal(await readFile(settingsPath, "utf8"), settingsBefore);
+			assert.deepEqual((await readdir(agentDir)).filter((name) => name.startsWith("pi-pretty.json")), ["pi-pretty.json"]);
+		}
+	}
+	const neighbor = { source: "npm:neighbor@1", extensions: ["original"], skills: [] };
+	const oldPretty = { source: "npm:@heyhuynhgiabuu/pi-pretty@0.6.29", extensions: [] };
+	await writeFile(settingsPath, JSON.stringify({ packages: [packageRoot, "npm:anchor", neighbor, oldPretty, "npm:next"], theme: "original" }));
+	await writeFile(prettyPath, originalPrettyText);
+	assert.throws(() => runWithEnv({ PRETTY_TEST_CONCURRENT: "1" }), /Migration rolled back/);
+	assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")), {
+		packages: [packageRoot, "npm:anchor", { ...neighbor, source: "npm:neighbor@2", extensions: ["concurrent"] }, oldPretty, "npm:next", "npm:unrelated-concurrent"], theme: "concurrent",
+	});
+	assert.deepEqual(JSON.parse(await readFile(prettyPath, "utf8")), { ...originalPretty, theme: "concurrent", disableTools: ["ls", "grep"] });
 });

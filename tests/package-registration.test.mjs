@@ -149,3 +149,116 @@ test("shouldRestoreExactPositionBetweenDuplicateUnrelatedAnchorsWhenNoConcurrent
 	await restoreRegistration(settingsPath, beforeText, packageRoot, ["npm:@heyhuynhgiabuu/pi-pretty@0.6.30"]);
 	assert.equal(await readFile(settingsPath, "utf8"), beforeText);
 });
+
+const prettySource = "npm:@heyhuynhgiabuu/pi-pretty@0.6.30";
+const originalPretty = { source: "npm:@heyhuynhgiabuu/pi-pretty@0.6.29", extensions: [], themes: ["*.json"] };
+
+for (const present of [false, true]) {
+	for (const insertions of [false, true]) {
+		test(`shouldRestorePositionAroundEditedNeighborWithRegistrationPresent${present}AndConcurrentInsertions${insertions}`, async (t) => {
+			const root = await createWorkspace(t), settingsPath = join(root, "settings.json");
+			const neighbor = { source: "npm:neighbor@1", extensions: ["old"], skills: [] };
+			const edited = { ...neighbor, source: "npm:neighbor@2", extensions: ["new"], prompts: ["*.md"] };
+			const before = { packages: ["npm:anchor", neighbor, originalPretty, "npm:next"], theme: "original" };
+			const leading = insertions ? ["npm:concurrent-first"] : [];
+			const adjacent = insertions ? ["npm:concurrent-adjacent"] : [];
+			const trailing = insertions ? ["npm:concurrent-last"] : [];
+			const current = { packages: [...leading, "npm:anchor", edited, ...adjacent, ...(present ? [prettySource] : []), "npm:next", ...trailing], theme: "concurrent", custom: true };
+			await writeFile(settingsPath, JSON.stringify(current));
+			await restoreRegistration(settingsPath, JSON.stringify(before), packageRoot, [prettySource]);
+			// Preserve a valid slot, including any new package immediately before
+			// it; if absent, reconstruct immediately after the surviving neighbor.
+			const expected = [...leading, "npm:anchor", edited, ...(present ? adjacent : []), originalPretty, ...(present ? [] : adjacent), "npm:next", ...trailing];
+			assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")), { ...current, packages: expected });
+		});
+	}
+}
+
+test("shouldKeepOccurrenceOrderBetweenEditedDuplicateAnchors", async (t) => {
+	const root = await createWorkspace(t), settingsPath = join(root, "settings.json");
+	const first = { source: "npm:duplicate@1", extensions: ["first"] };
+	const second = { source: "npm:duplicate@1", extensions: ["second"] };
+	const changedFirst = { ...first, source: "npm:duplicate@2", extensions: ["changed-first"] };
+	const changedSecond = { ...second, extensions: ["changed-second"] };
+	const before = { packages: ["npm:anchor", first, originalPretty, second] };
+	const current = { packages: ["npm:anchor", changedFirst, changedSecond, prettySource, "npm:new"], theme: "concurrent" };
+	await writeFile(settingsPath, JSON.stringify(current));
+	await restoreRegistration(settingsPath, JSON.stringify(before), packageRoot, [prettySource]);
+	assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")), { ...current, packages: ["npm:anchor", changedFirst, originalPretty, changedSecond, "npm:new"] });
+});
+
+test("shouldDistinguishIdenticalAnchorOccurrencesDespiteConcurrentInsertions", async (t) => {
+	const root = await createWorkspace(t), settingsPath = join(root, "settings.json");
+	const before = { packages: ["npm:anchor", "npm:duplicate", originalPretty, "npm:duplicate", "npm:next"] };
+	await writeFile(settingsPath, JSON.stringify({ packages: ["npm:new", "npm:anchor", "npm:duplicate", "npm:duplicate", "npm:next", prettySource] }));
+	await restoreRegistration(settingsPath, JSON.stringify(before), packageRoot, [prettySource]);
+	assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")), { packages: ["npm:new", "npm:anchor", "npm:duplicate", originalPretty, "npm:duplicate", "npm:next"] });
+});
+
+test("shouldAnchorToSurvivingDuplicateWhenEarlierOccurrenceWasRemoved", async (t) => {
+	const root = await createWorkspace(t), settingsPath = join(root, "settings.json");
+	const first = { source: "npm:duplicate", extensions: ["first"] };
+	const second = { source: "npm:duplicate", extensions: ["second"] };
+	const before = { packages: [first, originalPretty, second] };
+	await writeFile(settingsPath, JSON.stringify({ packages: [second, prettySource, "npm:new"] }));
+	await restoreRegistration(settingsPath, JSON.stringify(before), packageRoot, [prettySource]);
+	assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")), { packages: [originalPretty, second, "npm:new"] });
+});
+
+test("shouldMatchSurvivingExactDuplicateBeforeAnInsertedOccurrence", async (t) => {
+	const root = await createWorkspace(t), settingsPath = join(root, "settings.json");
+	const first = { source: "npm:duplicate", extensions: ["first"] };
+	const second = { source: "npm:duplicate", extensions: ["second"] };
+	const inserted = { source: "npm:duplicate", extensions: ["concurrent"] };
+	const before = { packages: [first, originalPretty, second] };
+	const current = { packages: [inserted, first, second, prettySource] };
+	await writeFile(settingsPath, JSON.stringify(current));
+	await restoreRegistration(settingsPath, JSON.stringify(before), packageRoot, [prettySource]);
+	assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")), { packages: [inserted, first, originalPretty, second] });
+});
+
+test("shouldRestoreMultipleSelectedOccurrencesInOriginalOrder", async (t) => {
+	const root = await createWorkspace(t), settingsPath = join(root, "settings.json");
+	const neighbor = { source: "npm:neighbor", extensions: ["old"] };
+	const changed = { ...neighbor, extensions: ["new"] };
+	const secondPretty = { ...originalPretty, extensions: ["other"], source: "npm:@heyhuynhgiabuu/pi-pretty@0.6.28" };
+	const harness = { source: packageRoot, skills: [] };
+	const before = { packages: ["npm:anchor", originalPretty, neighbor, secondPretty, harness, "npm:next"] };
+	await writeFile(settingsPath, JSON.stringify({ packages: ["npm:anchor", changed, "npm:next", prettySource, packageRoot], custom: "keep" }));
+	await restoreRegistration(settingsPath, JSON.stringify(before), packageRoot, [prettySource]);
+	assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")), { packages: ["npm:anchor", originalPretty, changed, secondPretty, harness, "npm:next"], custom: "keep" });
+});
+
+for (const surviving of ["previous", "next", "none", "reordered"]) {
+	test(`shouldUseDeterministicFallbackWith${surviving}Anchors`, async (t) => {
+		const root = await createWorkspace(t), settingsPath = join(root, "settings.json");
+		const previous = { source: "npm:previous", extensions: [] };
+		const next = { source: "npm:next", skills: [] };
+		const changedPrevious = { ...previous, extensions: ["new"] };
+		const changedNext = { ...next, skills: ["new"] };
+		const before = { packages: [previous, originalPretty, next] };
+		const cases = {
+			previous: [["npm:new", changedPrevious], ["npm:new", changedPrevious, originalPretty]],
+			next: [["npm:new", changedNext], ["npm:new", originalPretty, changedNext]],
+			none: [["npm:new", "npm:other"], ["npm:new", originalPretty, "npm:other"]],
+			reordered: [[changedNext, changedPrevious], [changedNext, changedPrevious, originalPretty]],
+		};
+		const [packages, expected] = cases[surviving];
+		await writeFile(settingsPath, JSON.stringify({ packages, theme: "concurrent" }));
+		await restoreRegistration(settingsPath, JSON.stringify(before), packageRoot, [prettySource]);
+		assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")), { packages: expected, theme: "concurrent" });
+	});
+}
+
+for (const sourceKind of ["local", "git"]) {
+	test(`shouldAnchorToEdited${sourceKind}RegistrationBySource`, async (t) => {
+		const root = await createWorkspace(t), settingsPath = join(root, "settings.json");
+		const source = sourceKind === "local" ? join(root, "neighbor") : "git:https://example.com/neighbor#v1";
+		const neighbor = { source, extensions: [] };
+		const changed = { ...neighbor, source: sourceKind === "local" ? "./neighbor" : source, extensions: ["new"] };
+		const before = { packages: ["npm:anchor", neighbor, originalPretty, "npm:next"] };
+		await writeFile(settingsPath, JSON.stringify({ packages: ["npm:anchor", changed, prettySource, "npm:next"] }));
+		await restoreRegistration(settingsPath, JSON.stringify(before), packageRoot, [prettySource]);
+		assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")), { packages: ["npm:anchor", changed, originalPretty, "npm:next"] });
+	});
+}

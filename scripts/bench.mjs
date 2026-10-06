@@ -9,7 +9,8 @@ import { promisify } from "node:util";
 import { findHostRoot } from "./pi-host.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
-const MODES = ["native", "package"];
+const MODES = ["native", "package", "package-native"];
+const SKILL_TIMING_OPTIONS = { warmups: 1, samples: 5 };
 const DEFAULT_SAMPLES = 7;
 const MICRO_SAMPLES = 30;
 const IDLE_MS = 100;
@@ -19,10 +20,10 @@ const summarize = samples => {
 	const sorted = [...samples].sort((a, b) => a - b);
 	return { samples, median: sorted[Math.floor(sorted.length / 2)], p95: sorted[Math.ceil(sorted.length * 0.95) - 1] };
 };
-async function timings(operation) {
-	for (let index = 0; index < 5; index++) await operation();
+async function timings(operation, options = { warmups: 5, samples: MICRO_SAMPLES }) {
+	for (let index = 0; index < options.warmups; index++) await operation();
 	const samples = [];
-	for (let index = 0; index < MICRO_SAMPLES; index++) { const start = performance.now(); await operation(); samples.push(performance.now() - start); }
+	for (let index = 0; index < options.samples; index++) { const start = performance.now(); await operation(); samples.push(performance.now() - start); }
 	return summarize(samples);
 }
 
@@ -42,7 +43,7 @@ async function worker(mode) {
 			{ name: "context7", config: { url: "https://example.invalid", enabled: false }, source: "benchmark" },
 			{ name: "engram", config: { command: "engram", enabled: false }, source: "benchmark" },
 		] }), createTransport: () => { throw new Error("Benchmark forbids MCP connections"); } });
-		const settingsManager = sdk.SettingsManager.inMemory({ packages: mode === "native" ? [] : [ROOT] });
+		const settingsManager = sdk.SettingsManager.inMemory({ packages: mode === "native" ? [] : [ROOT] }, { projectTrusted: true });
 		const loader = new sdk.DefaultResourceLoader({ cwd: temporary, agentDir: temporary, settingsManager,
 			noSkills: true, additionalSkillPaths: mode === "native" ? [] : [join(ROOT, "skills")], noThemes: true, noContextFiles: true,
 			extensionFactories: [disabledMcp] });
@@ -52,21 +53,49 @@ async function worker(mode) {
 			resourceLoader: loader, sessionManager: sdk.SessionManager.inMemory(temporary) }));
 		await session.bindExtensions({ mode: "print", onError: error => { throw error; } });
 		await session.extensionRunner.emit({ type: "session_start", reason: "startup" });
+		if (mode === "package-native") {
+			const ctx = session.extensionRunner.createCommandContext();
+			await session.extensionRunner.getCommand("orchestraitor:skills").handler("native", { ...ctx, ui: { ...ctx.ui, notify() {} } });
+		}
 		const startupMs = performance.now() - started;
 		const promptOptions = session.extensionRunner.createCommandContext().getSystemPromptOptions();
+		const promptStarted = performance.now();
 		const prepared = await session.extensionRunner.emitBeforeAgentStart("Inspect a synthetic fixture", undefined, structuredClone(promptOptions));
+		const promptPreparationMs = performance.now() - promptStarted;
 		const prompt = buildSystemPrompt(prepared.systemPromptOptions);
-		const active = new Set(session.getActiveToolNames());
+		const active = new Set(prepared.systemPromptOptions.selectedTools);
 		const schemas = session.getAllTools().filter(tool => active.has(tool.name)).map(({ name, description, parameters }) => ({ name, description, parameters }));
 		const ownedInstructions = Object.entries(prepared.systemPromptOptions.sections ?? {}).filter(([key]) => key.startsWith("pi_orchestraitor_")).map(([, body]) => body).join("");
 		const memory = process.memoryUsage();
 		const idleStart = process.cpuUsage();
 		await new Promise(resolve => setTimeout(resolve, IDLE_MS));
 		const idleCpu = process.cpuUsage(idleStart);
-		const result = { startupMs, rssBytes: memory.rss, heapUsedBytes: memory.heapUsed, idleCpuMicroseconds: idleCpu.user + idleCpu.system,
+		const result = { startupMs, promptPreparationMs, rssBytes: memory.rss, heapUsedBytes: memory.heapUsed, idleCpuMicroseconds: idleCpu.user + idleCpu.system,
 			prompt: size(prompt), activeToolDeclarations: size(JSON.stringify(schemas)), instructions: size(ownedInstructions),
 			skillCatalog: size(formatSkillsForPrompt(loader.getSkills().skills)), skills: loader.getSkills().skills.length };
 		if (mode === "native") return result;
+		const skillCtx = session.extensionRunner.createContext();
+		if (mode === "package") {
+			const registryTool = session.getToolDefinition("skill_registry");
+			const searchArgs = { operation: "search", query: "code conventions", limit: 5 };
+			const loadArgs = { operation: "load", name: "code-conventions" };
+			const lookup = await registryTool.execute("search", searchArgs, undefined, undefined, skillCtx);
+			const loaded = await registryTool.execute("load", loadArgs, undefined, undefined, skillCtx);
+			const matches = JSON.parse(lookup.content[0].text).matches;
+			if (!matches.some(({ name }) => name === loadArgs.name)) throw new Error("Benchmark search missed code-conventions");
+			result.skillWorkflow = { matched: loadArgs.name, search: size(lookup.content[0].text), load: size(loaded.content[0].text),
+				calls: size(JSON.stringify([{ name: registryTool.name, arguments: searchArgs }, { name: registryTool.name, arguments: loadArgs }])),
+				registrySnapshot: size(await readFile(join(temporary, ".ai/skills/registry.md"), "utf8")) };
+			result.skillWorkflow.refreshMs = await timings(() => session.extensionRunner.emitBeforeAgentStart("Inspect a synthetic fixture", undefined, structuredClone(promptOptions)), SKILL_TIMING_OPTIONS);
+			result.skillWorkflow.searchMs = await timings(() => registryTool.execute("search", searchArgs, undefined, undefined, skillCtx), SKILL_TIMING_OPTIONS);
+			result.skillWorkflow.loadMs = await timings(() => registryTool.execute("load", loadArgs, undefined, undefined, skillCtx), SKILL_TIMING_OPTIONS);
+		} else {
+			const skill = loader.getSkills().skills.find(({ name }) => name === "code-conventions");
+			const readArgs = { path: skill.filePath };
+			const loaded = await session.getToolDefinition("read").execute("load", readArgs, undefined, undefined, skillCtx);
+			result.skillWorkflow = { load: size(loaded.content.map(block => block.text ?? "").join("")),
+				calls: size(JSON.stringify([{ name: "read", arguments: readArgs }])) };
+		}
 		const tool = session.getToolDefinition("orchestraitor_tasks");
 		const ctx = session.extensionRunner.createContext();
 		const tasks = Array.from({ length: 20 }, (_, index) => ({ id: `t${index}`, title: `Inspect synthetic module ${index}`, status: "pending" }));
@@ -127,9 +156,9 @@ async function main(args) {
 	const fingerprint = createHash("sha256");
 	for (const file of tracked) { fingerprint.update(file + "\0"); fingerprint.update(await readFile(join(ROOT, file)).catch(error => { if (error.code === "ENOENT") return "<deleted>"; throw error; })); }
 	const host = await findHostRoot();
-	const report = { version: 2, recordedAt: new Date().toISOString(), node: process.version, pi: JSON.parse(await readFile(join(host, "package.json"), "utf8")).version,
+	const report = { version: 3, recordedAt: new Date().toISOString(), node: process.version, pi: JSON.parse(await readFile(join(host, "package.json"), "utf8")).version,
 		platform: process.platform, revision: execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim(), treeSha256: fingerprint.digest("hex"),
-		limitations: ["No model or MCP requests; estimatedTokens uses characters/4, not a tokenizer.", "Startup and idle samples use print mode.", "Hook samples use a simulated native Pi UI without terminal I/O and with 10,000 entries.", "Subagent response sizes use a synthetic controller receipt; no child is started."], modes: {} };
+		limitations: ["No model or MCP requests; estimatedTokens uses characters/4, not a tokenizer.", "Startup and idle samples use print mode; first prompt preparation is measured separately.", "Hook samples use a simulated native Pi UI without terminal I/O and with 10,000 entries.", "Subagent response sizes use a synthetic controller receipt; no child is started.", "Skill workflow uses one deterministic English search and code-conventions; protocol wrappers, missed searches, caching and task quality are not modeled."], modes: {} };
 	for (const mode of MODES) report.modes[mode] = { samples: [] };
 	for (let round = 0; round < options.samples; round++) for (const mode of MODES) {
 		const { stdout } = await runFile(process.execPath, [fileURLToPath(import.meta.url), "--worker", mode], { cwd: ROOT, timeout: 30000, maxBuffer: 1024 * 1024 });
@@ -137,13 +166,24 @@ async function main(args) {
 	}
 	for (const mode of MODES) {
 		const record = report.modes[mode];
-		record.summary = Object.fromEntries(["startupMs", "rssBytes", "heapUsedBytes", "idleCpuMicroseconds"].map(key => [key, summarize(record.samples.map(sample => sample[key]))]));
+		record.summary = Object.fromEntries(["startupMs", "promptPreparationMs", "rssBytes", "heapUsedBytes", "idleCpuMicroseconds"].map(key => [key, summarize(record.samples.map(sample => sample[key]))]));
 	}
+	const lazy = report.modes.package.samples[0], nativeHeaders = report.modes["package-native"].samples[0];
+	const lazyInitial = lazy.prompt.characters + lazy.activeToolDeclarations.characters;
+	const nativeInitial = nativeHeaders.prompt.characters + nativeHeaders.activeToolDeclarations.characters;
+	const lazyWorkflow = lazyInitial + lazy.skillWorkflow.calls.characters + lazy.skillWorkflow.search.characters + lazy.skillWorkflow.load.characters;
+	const nativeWorkflow = nativeInitial + nativeHeaders.skillWorkflow.calls.characters + nativeHeaders.skillWorkflow.load.characters;
+	report.registryComparison = {
+		initialCharacters: { nativeHeaders: nativeInitial, lazy: lazyInitial, reductionPercent: 100 * (1 - lazyInitial / nativeInitial) },
+		oneSelectedSkillCharacters: { nativeHeaders: nativeWorkflow, lazy: lazyWorkflow, reductionPercent: 100 * (1 - lazyWorkflow / nativeWorkflow) },
+		extraLazyLookupCharacters: (lazyWorkflow - lazyInitial) - (nativeWorkflow - nativeInitial),
+	};
 	if (options.compare) {
 		const before = JSON.parse(await readFile(options.compare, "utf8"));
 		report.comparison = { treeSha256: before.treeSha256, sameMethodology: before.version === report.version, compatibleEnvironment: before.node === report.node && before.pi === report.pi && before.platform === report.platform, modes: {} };
 		for (const mode of MODES) {
 			const current = report.modes[mode], previous = before.modes[mode];
+			if (!previous) { report.comparison.modes[mode] = { unavailable: "Previous report has no matching configuration" }; continue; }
 			report.comparison.modes[mode] = { startupMedianChangePercent: 100 * (current.summary.startupMs.median / previous.summary.startupMs.median - 1),
 				promptCharacterReductionPercent: 100 * (1 - current.samples[0].prompt.characters / previous.samples[0].prompt.characters),
 				...(mode !== "native" ? { taskResponseCharacterReductionPercent: 100 * (1 - current.samples[0].taskResponse.characters / previous.samples[0].taskResponse.characters) } : {}) };

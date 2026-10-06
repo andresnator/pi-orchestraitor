@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { mkdir, realpath, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
-import { createWorkspace, loadExtensions, packageRoot } from "./helpers/pi-host.mjs";
+import { createWorkspace, loadExtensions, packageRoot, pi } from "./helpers/pi-host.mjs";
+import { REGISTRY_RESOLVE_EVENT } from "../extensions/skills/registry.mjs";
 
 const controllerKey = Symbol.for("pi-orchestraitor.subagent-controller");
 
@@ -29,7 +30,8 @@ async function fixture(t, results = []) {
 		batches.push({ manifests, prompts: manifests.map(promptFor) }); return results;
 	} };
 	t.after(() => { globalThis[controllerKey] = previous; });
-	const loaded = await loadExtensions([join(packageRoot, "extensions/subagents.ts")], cwd);
+	const eventBus = pi.createEventBus();
+	const loaded = await loadExtensions([join(packageRoot, "extensions/subagents.ts")], cwd, eventBus);
 	assert.deepEqual(loaded.errors, []);
 	loaded.runtime.getThinkingLevel = () => "high";
 	loaded.runtime.getActiveTools = () => ["read", "edit", "write", "subagent_run"];
@@ -40,7 +42,7 @@ async function fixture(t, results = []) {
 		cwd, skills, contextFiles: [{ path: "AGENTS.md", content: "captured instructions" }],
 	} });
 	capture();
-	return { cwd, batches, loaded, extension, ctx, capture, tool: extension.tools.get("subagent_run").definition };
+	return { cwd, batches, loaded, extension, ctx, capture, eventBus, tool: extension.tools.get("subagent_run").definition };
 }
 
 for (const scenario of ["writer", "readers", "partial", "unknown"]) {
@@ -192,4 +194,42 @@ test("shouldIncludeExactEditablePathsWhenImplementerReceivesItsAssignment", asyn
 	assert.match(prompt, /observed findings from inference/);
 	assert.match(prompt, /blockers, remaining work and unperformed checks/);
 	assert.match(prompt, /Do not run commands, delegate, or claim checks you did not perform/);
+});
+
+test("shouldUseTheRefreshedRegistryBodyWhenTheNativeNameIsDelegated", async (t) => {
+	// Given
+	const { cwd, tool, ctx, batches, capture, eventBus } = await fixture(t);
+	const directory = join(cwd, "chosen");
+	await mkdir(directory);
+	const filePath = join(directory, "SKILL.md");
+	await writeFile(filePath, "Do not reread a stale body after resolution.");
+	const skill = { name: "chosen", filePath, baseDir: directory };
+	capture([skill]);
+	eventBus.on(REGISTRY_RESOLVE_EVENT, (request) => { request.result = Promise.resolve([{ skill, body: "Fresh authoritative selected body" }]); });
+	// When
+	await tool.execute("registry", { tasks: [{ role: "explore", instruction: "inspect", skills: ["chosen"] }] }, undefined, undefined, ctx);
+	// Then
+	assert.match(batches[0].prompts[0], /Fresh authoritative selected body/);
+	assert.doesNotMatch(batches[0].prompts[0], /Do not reread a stale body/);
+});
+
+test("shouldNotFallBackToACapturedSkillWhenTheRegistryRejectsDelegation", async (t) => {
+	// Given
+	const { cwd, tool, ctx, batches, capture, eventBus } = await fixture(t);
+	capture([{ name: "chosen", filePath: join(cwd, "SKILL.md"), baseDir: cwd }]);
+	eventBus.on(REGISTRY_RESOLVE_EVENT, (request) => { request.result = Promise.reject(new Error("Native skill is no longer available")); });
+	// When / Then
+	await assert.rejects(tool.execute("registry", { tasks: [{ role: "explore", instruction: "inspect", skills: ["chosen"] }] }, undefined, undefined, ctx), /no longer available/);
+	assert.deepEqual(batches, []);
+});
+
+test("shouldRejectManualOnlySkillsWhenNoRegistryResolverHandlesDelegation", async (t) => {
+	// Given
+	const { cwd, tool, ctx, batches, capture } = await fixture(t);
+	const filePath = join(cwd, "SKILL.md");
+	await writeFile(filePath, "Manual instructions must not reach a model automatically.");
+	capture([{ name: "manual", filePath, baseDir: cwd, disableModelInvocation: true }]);
+	// When / Then
+	await assert.rejects(tool.execute("manual", { tasks: [{ role: "explore", instruction: "inspect", skills: ["manual"] }] }, undefined, undefined, ctx), /manual-only|explicit/i);
+	assert.deepEqual(batches, []);
 });

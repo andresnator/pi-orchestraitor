@@ -28,7 +28,8 @@
       "./extensions/instructions.ts",
       "./extensions/mcp.ts",
       "./extensions/subagents.ts",
-      "./extensions/status-ui.ts"
+      "./extensions/status-ui.ts",
+      "./extensions/skill-registry.ts"
     ],
     "skills": [
       "./skills"
