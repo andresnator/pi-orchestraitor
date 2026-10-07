@@ -124,8 +124,8 @@ export function compactTool<TParams extends TSchema, TDetails, TState>(
 				.map((block) => block.text)
 				.join("\n");
 			if (expanded && !context.isError && result.details && typeof result.details === "object") {
-				if (original.name === "subagent_run" && "results" in result.details && Array.isArray(result.details.results)) {
-					output = JSON.stringify(result.details.results, null, 2);
+				if (["subagent_run", "subagent_collect"].includes(original.name) && "results" in result.details && Array.isArray(result.details.results)) {
+					output = JSON.stringify("pending" in result.details && Array.isArray(result.details.pending) && result.details.pending.length ? { results: result.details.results, pending: result.details.pending } : result.details.results, null, 2);
 				} else if (original.name === "orchestraitor_tasks" && "state" in result.details) {
 					output = JSON.stringify(result.details, null, 2);
 				}
@@ -222,10 +222,11 @@ function summarizeResult(name: string, details: unknown): Summary {
 		return { text: `${active} active · ${completed}/${tasks.length} completed`, failed: failures.length > 0,
 			errors: failures.map((task) => `${task.role}: ${classifyAgent(task).phase}${task.diagnostic ? ` · ${task.diagnostic}` : ""}`).join("\n") };
 	}
-	if (name === "subagent_run" && "results" in details && Array.isArray(details.results)) {
+	if (["subagent_run", "subagent_collect"].includes(name) && "results" in details && Array.isArray(details.results)) {
 		const results = details.results;
 		const failures = results.filter((task) => classifyAgent(task).failed || classifyAgent(task).phase === "unavailable");
-		return { text: `${results.length - failures.length}/${results.length} completed`, failed: failures.length > 0,
+		const pending = "pending" in details && Array.isArray(details.pending) ? details.pending.length : 0;
+		return { text: `${results.length - failures.length}/${results.length} completed${pending ? ` · ${pending} pending collection` : ""}`, failed: failures.length > 0,
 			errors: failures.map((task) => `${task.role}: ${task.status}${task.diagnostic ? ` · ${task.diagnostic}` : ""}`).join("\n") };
 	}
 	return empty;

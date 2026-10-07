@@ -19,8 +19,12 @@ export async function inspectCatalog(sdk, catalog, { cwd, trusted, signal, canon
 	signal?.throwIfAborted();
 	const names = new Map();
 	for (const skill of catalog) names.set(skill.name, (names.get(skill.name) ?? 0) + 1);
-	const entries = [];
-	for (const skill of catalog) {
+	const entries = new Array(catalog.length);
+	let cursor = 0;
+	async function worker() {
+	while (cursor < catalog.length) {
+		const index = cursor++;
+		const skill = catalog[index];
 		signal?.throwIfAborted();
 		const entry = {
 			name: skill.name, description: skill.description, filePath: skill.filePath,
@@ -56,8 +60,10 @@ export async function inspectCatalog(sdk, catalog, { cwd, trusted, signal, canon
 			signal?.throwIfAborted();
 			entry.diagnostic = error.message;
 		}
-		entries.push(entry);
+		entries[index] = entry;
 	}
+	}
+	await Promise.all(Array.from({ length: Math.min(4, catalog.length) }, worker));
 	const context = hash(JSON.stringify({ cwd: resolve(cwd), trusted, catalog: catalog.map(({ name, filePath, description, disableModelInvocation, sourceInfo }) => ({ name, filePath, description, disableModelInvocation, sourceInfo })) }));
 	return { version: 1, cwd: resolve(cwd), trusted, context, entries };
 }

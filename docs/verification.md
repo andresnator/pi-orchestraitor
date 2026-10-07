@@ -365,3 +365,38 @@ The local `pi.orchestraitor` plugin was unlinked from the active Herdr profile. 
 - The initial user-profile installation verified all 61 bundled skills and pinned the existing Pretty registration before this bash ownership correction. This correction was verified in temporary profiles; rerun `install:pi` (or apply the documented manual bash exclusion) and reload/restart existing interactive Pi processes to update their Pretty configuration.
 
 The [integration guide](pi-pretty.md) records ownership, disabling and verification. Component/RPC checks do not prove physical editor/activity-indicator acceptance or real model-token savings. Private install/check receipts remain under `.ai/verification/pi-pretty/` and are excluded from Git/package output.
+
+## Profiles, provider bridge and background collection — 2026-10-07
+
+`npm test`: **565/565 passing** (baseline: 551/551). Tests cover profile CRUD/application/cancellation, atomic conflict detection, explicit inheritance and off, refreshed models and supported max effort, partial save failure, guarded native child reads through a parent-only simulated provider, oversized stream rejection, reader capacity, mixed synchronous/background execution, cancellation reaching the provider, receipt recovery/deduplication, and automatic parent collection before settlement in native TUI/print/RPC session modes. The agents projection retains background observations until collection and replays collected receipts. Existing packaging, skill equivalence, search compatibility, protected-tool, lifecycle and UI regression suites also pass.
+
+The provider fixtures are deterministic and local; they do not call paid models. TUI/RPC tests exercise native session hooks and scripted UI selection, not an external visible terminal/RPC client. Provider-specific live behavior, visible keyboard/narrow-terminal acceptance, native Windows process teardown, and the cost/quality A/B remain manual acceptance items. See [performance](performance.md#profiles-and-bounded-background-work--2026-10-07) for measured local trade-offs.
+
+### Review regressions — 2026-10-07
+
+The initial 565 passing tests did not cover the six reported native-runtime failures. The revised suite adds 24 regressions and passes **589/589**; `npm run test:pretty` passes **8/8**. `git diff --check` is clean.
+
+- Pre-settlement requests a cancellable `subagent_collect wait` instead of awaiting children inside Pi's settlement boundary. Native tests cover abort during the wait and precisely at the boundary.
+- The provider bridge delta-encodes cumulative partial snapshots, enforces decoded/wire budgets, and permits one unconsumed nonterminal event. Tests cover ordinary long text/thinking streams, overflow, slow consumers and cancellation while waiting for transport credit.
+- Provider terminal usage remains observable during bounded cancellation teardown. Real guarded-child fixtures retain 300 observed tokens, or 330 including an earlier tool response, exactly once.
+- Collection that changes accounting is direct-only; nested `status` remains available. Real `ctx.executeTool` and `codemode` tests include disk receipts and reload. Nested mixed launches persist recovery receipts only for background tasks, preventing foreground consumption from being recovered twice.
+- Detached progress uses a versioned session event channel and reaches the native agents panel after the launch callback closes. Vetoed navigation still displays the cancelled outcome while late observations after teardown remain rejected.
+- Mixed results match task IDs; synchronous rows leave the live projection immediately, including when the background task is first. Late full-batch updates cannot restore delivered rows.
+
+All provider fixtures remain offline and deterministic. No paid model or external service calls were needed for these fixes.
+
+### Trust, settlement and session-tree accounting regressions — 2026-10-07
+
+Native offline reproductions cover the three subsequent review findings. The suite passes **598/598**, with **8/8** pretty compatibility checks:
+
+- Untrusted project assignments are not read or applied, including malformed project JSON and project defaults for model, effort, and execution mode. Personal assignments and explicit per-task choices remain usable. The panel gates project scope on native Pi trust and rechecks trust before writes and launch.
+- A parent that refuses to collect receives at most one automatic reminder per task. Persistent reminder markers survive reload and tree navigation. The session then reports unresolved collection and preserves pending receipts for manual recovery instead of continuing to request model responses.
+- Native tree navigation to a result receipt before its collection receipt keeps consumption at 300 tokens. Accounting deduplication inspects the entire session tree, while result recovery follows the active branch. Repeated collection and reload do not launch another child or count the result again.
+
+Providers are simulated locally and exercise the native Pi runtime and actual guarded child processes.
+
+### Searchable model-profile menus — 2026-10-07
+
+Every `/models-profiles` terminal selection uses Pi's public `Input`, `SelectList`, and `fuzzyFilter` components. Model searches include the provider, exact ID, and display name. RPC continues to use native selection dialogs.
+
+Five additional tests cover fuzzy token matching, no-match selection, Backspace, arrow wrapping, Escape, focus/cursor placement, Unicode, terminal widths 1/20/52/120 at heights 12/24, resizing without losing selection, scrollable details, and the actual registered command's searchable menus through edit/save/apply/duplicate/rename/refresh. Scripted native components verify persisted exact IDs and no assistant messages. The final suite passes **603/603**, pretty compatibility passes **8/8**, and `git diff --check` is clean. These are local component/runtime checks; no paid provider call or external visible terminal acceptance was needed.

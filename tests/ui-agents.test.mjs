@@ -164,3 +164,85 @@ test("shouldBoundReadOnlyPanelAndSanitizeOnlyDisplayWhenLabelsAreUntrusted", asy
 	assert.deepEqual(closed, { status: "closed" });
 	assert.equal(snapshot.recent[0].label, label);
 });
+
+test("background observations remain visible until collection and replay collection receipts", async t => {
+	const { createAgentsProjection } = await loadUiModule(t, "extensions/ui/agents.ts");
+	const view = createAgentsProjection();
+	view.start("call/1", [{ role: "explore", instruction: "inspect" }]);
+	view.update("call/1", progress(1, [observed("reader")]));
+	view.finish("call/1", { details: { results: [], pending: ["reader"] } });
+	assert.equal(view.snapshot().live[0].id, "reader");
+	assert.equal(view.update("call/1", progress(2, [observed("reader", "completed")])), true);
+	const result = { id: "reader", role: "explore", status: "completed", terminated: true };
+	view.collect("collect/1", { details: { results: [result] } });
+	assert.equal(view.snapshot().live.length, 0);
+	assert.equal(view.snapshot().recent.length, 1);
+	view.replay([{ type: "message", message: { role: "toolResult", toolName: "subagent_collect", toolCallId: "collect/1", details: { results: [result] } } }]);
+	assert.equal(view.snapshot().recent[0].id, "reader");
+});
+
+for (const backgroundFirst of [true, false]) test(`mixed batches retire synchronous rows by ID with background ${backgroundFirst ? "first" : "last"}`, async t => {
+	const { createAgentsProjection } = await loadUiModule(t, "extensions/ui/agents.ts");
+	const view = createAgentsProjection();
+	const ids = backgroundFirst ? ["background", "sync"] : ["sync", "background"];
+	const rows = phase => ids.map(id => ({ ...observed(id, phase), effectiveModel: `fixture/${id}` }));
+	view.start("call/1", ids.map(id => ({ role: "explore", instruction: `inspect ${id}` })));
+	view.update("call/1", progress(1, rows("running")));
+	view.finish("call/1", { details: { results: [{ id: "sync", role: "explore", status: "completed", terminated: true }], pending: ["background"] } });
+	assert.deepEqual(view.snapshot().live.map(row => row.id), ["background"]);
+	assert.deepEqual(view.snapshot().recent.map(({ id, label, effectiveModel }) => ({ id, label, effectiveModel })),
+		[{ id: "sync", label: "inspect sync", effectiveModel: "fixture/sync" }]);
+	// Session progress still contains the complete original batch after tool return.
+	assert.equal(view.update("call/1", progress(2, rows("completed"))), true);
+	assert.deepEqual(view.snapshot().live.map(row => row.id), ["background"]);
+	view.collect("collect/1", { details: { results: [{ id: "background", role: "explore", status: "completed", terminated: true }] } });
+	assert.deepEqual(view.snapshot().live, []);
+	assert.deepEqual(view.snapshot().recent.map(({ id, label, effectiveModel }) => ({ id, label, effectiveModel })), [
+		{ id: "sync", label: "inspect sync", effectiveModel: "fixture/sync" },
+		{ id: "background", label: "inspect background", effectiveModel: "fixture/background" },
+	]);
+	assert.equal(view.update("call/1", progress(3, rows("completed"))), false);
+});
+
+test("partial background collection preserves full batch update identity without reviving collected rows", async t => {
+	const { createAgentsProjection } = await loadUiModule(t, "extensions/ui/agents.ts");
+	const view = createAgentsProjection();
+	view.start("call/1", [{ role: "explore", instruction: "one" }, { role: "explore", instruction: "two" }]);
+	view.update("call/1", progress(1, [observed("one", "completed"), observed("two")]));
+	view.finish("call/1", { details: { results: [], pending: ["one", "two"] } });
+	view.collect("collect/1", { details: { results: [{ id: "one", role: "explore", status: "completed", terminated: true }] } });
+	assert.equal(view.update("call/1", progress(2, [observed("one", "completed"), observed("two", "stopping")])), true);
+	assert.deepEqual(view.snapshot().live.map(({ id, phase }) => ({ id, phase })), [{ id: "two", phase: "stopping" }]);
+	assert.deepEqual(view.snapshot().recent.map(row => row.id), ["one"]);
+	view.collect("collect/2", { details: { results: [{ id: "two", role: "explore", status: "cancelled", terminated: true }] } });
+	assert.deepEqual(view.snapshot().live, []);
+});
+
+test("background readers from separate launches remain visible and collection retires only its own row", async t => {
+	const { createAgentsProjection } = await loadUiModule(t, "extensions/ui/agents.ts");
+	const view = createAgentsProjection();
+	for (const id of ["one", "two"]) {
+		view.start(id, [{ role: "explore", instruction: id }]);
+		view.update(id, { ...progress(1, [observed(id)], 7, id), batchStarted: true });
+		view.finish(id, { details: { results: [], pending: [id] } });
+	}
+	assert.deepEqual(view.snapshot().live.map(row => row.id).sort(), ["one", "two"]);
+	view.collect("collect/1", { details: { results: [{ id: "one", role: "explore", status: "completed", terminated: true }] } });
+	assert.deepEqual(view.snapshot().live.map(row => row.id), ["two"]);
+	assert.equal(view.update("two", progress(2, [observed("two", "completed")], 7, "two")), true);
+	assert.equal(view.snapshot().live[0].phase, "completed");
+	view.collect("collect/2", { details: { results: [{ id: "two", role: "explore", status: "completed", terminated: true }] } });
+	assert.deepEqual(view.snapshot().live, []);
+});
+
+test("replaying a partial mixed receipt does not assign another task's instruction by position", async t => {
+	const { createAgentsProjection } = await loadUiModule(t, "extensions/ui/agents.ts");
+	const view = createAgentsProjection();
+	view.replay([
+		{ type: "message", message: { role: "assistant", content: [{ type: "toolCall", id: "mixed", name: "subagent_run",
+			arguments: { tasks: [{ role: "explore", instruction: "background assignment" }, { role: "explore", instruction: "sync assignment" }] } }] } },
+		{ type: "message", message: { role: "toolResult", toolName: "subagent_run", toolCallId: "mixed",
+			details: { results: [{ id: "sync", role: "explore", status: "completed", terminated: true }], pending: ["background"] } } },
+	]);
+	assert.equal(view.snapshot().recent[0].label, "Assignment unavailable");
+});

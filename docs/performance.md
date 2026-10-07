@@ -85,3 +85,17 @@ Run three repetitions per scenario per version: 24 sessions total. Pair versions
 For each pair record completion, observed acceptance, turns/corrections, elapsed time, input/output/cache-read/cache-write, and reported cost when available. Sum parent native responses and top-level child tool usage once, including failed attempts and verification. Child details attribute that aggregate and must not be added again. Treat incomplete usage as incomplete, never zero or an accepted savings result. Do not derive a monetary saving from a cache percentage or use a single weighted token count across different providers.
 
 Report paired differences and all failures. Keep the change only if acceptance is preserved and measured task consumption improves without a material time regression. Three repetitions provide an initial acceptance signal, not statistical proof; publish uncertainty instead of promising a fixed saving.
+
+## Profiles and bounded background work — 2026-10-07
+
+The skill inspector now uses four workers while preserving catalog order and every validation/read. `jag-refactor` loads its technique index only when needed: the entrypoint decreased from 13,371 to 7,901 UTF-8 bytes (41%); the moved catalog remains available as a reference. Child search adds optional files-only output and a match limit, with truncation indicated.
+
+Three offline samples per mode, run sequentially without tests, compared base `3fa03fe` in an isolated worktree with the implementation on Node 24.20.0 / Pi 1.0.4 / macOS. Raw reports: `/tmp/pi-profiles-base-clean.json` and `/tmp/pi-profiles-final-clean.json` (local, not distributed).
+
+| Package metric | Base | Implementation |
+|---|---:|---:|
+| Median startup | 298.0 ms | 313.8 ms |
+| Median prompt preparation | 25.84 ms | 22.62 ms |
+| Active tool declaration characters | 7,667 | 8,333 |
+
+Profiles and collection add tool instructions/context. These samples do not establish a general speed or memory improvement: native startup also varied (230.1 → 239.6 ms), native RSS varied substantially, paths differ between worktrees, and the sample count is small. The inspector's preparation time decreased in this run while startup increased. No model requests were made. Background execution overlaps independent work but does not guarantee token savings; real usage and quality require the separately budgeted A/B described above.

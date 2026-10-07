@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
+import { childBridge } from "./bridge.mjs";
 import { readFile, mkdir } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
@@ -20,9 +23,18 @@ try {
 	validateManifest(manifest);
 	for (const path of manifest.files) await validatePath(manifest, path, true);
 	const modelRuntime = await sdk.ModelRuntime.create({
-		authPath: join(credentialDir, "auth.json"), modelsPath: join(credentialDir, "models.json"),
+		authPath: join(manifest.bridgeModel ? temporary : credentialDir, "auth.json"), modelsPath: manifest.bridgeModel ? null : join(credentialDir, "models.json"),
 		allowModelNetwork: false,
 	});
+	if (manifest.bridgeModel) {
+		const require = createRequire(join(sdkRoot, "package.json"));
+		const aiPath = require.resolve.paths("@earendil-works/pi-ai").map(root => join(root, "@earendil-works/pi-ai/dist/index.js")).find(existsSync);
+		if (!aiPath) throw new Error("Cannot locate host pi-ai SDK");
+		const { createAssistantMessageEventStream } = await import(pathToFileURL(aiPath).href);
+		const model = manifest.bridgeModel;
+		modelRuntime.registerProvider(model.provider, { api: model.api, baseUrl: "https://bridge.invalid", apiKey: "parent-bridge",
+			models: [{ ...model, baseUrl: "https://bridge.invalid" }], streamSimple: childBridge(process, createAssistantMessageEventStream, model) });
+	}
 	const runtime = await createChildRuntime(sdk, manifest, digest, report, temporary, modelRuntime);
 	// Native RPC owns stdin, framing, extension binding and settled events.
 	await sdk.runRpcMode(runtime);

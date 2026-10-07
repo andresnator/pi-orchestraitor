@@ -1,3 +1,4 @@
+import { parentBridge } from "./bridge.mjs";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
@@ -120,7 +121,7 @@ export async function runTask(manifest, prompt, options = {}) {
 		startTimeout = START_TIMEOUT_MS, taskTimeout = TASK_TIMEOUT_MS, stopGrace = STOP_GRACE_MS } = options;
 	const result = { id: manifest.id, role: manifest.role, cwd: manifest.cwd, model: manifest.model, reasoning: manifest.reasoning,
 		status: "failed", finalResponse: "", writes: [], diagnostic: "", terminated: false, usageComplete: false };
-	let effectiveModel;
+	let effectiveModel, disposeBridge;
 	const observe = (phase, evidence = {}) => observeProgress(options.observer, manifest, phase,
 		{ ...(effectiveModel ? { effectiveModel } : {}), ...evidence });
 	if (signal?.aborted) {
@@ -186,12 +187,13 @@ export async function runTask(manifest, prompt, options = {}) {
 		await writeFile(manifestPath, raw, { mode: 0o600 });
 		if (signal?.aborted) throw new Error("Task cancelled");
 		// No shell, no inherited stdin, no CLI startup switches or preload flags.
-		const env = { ...process.env };
+		const env = manifest.bridgeModel ? Object.fromEntries(["PATH", "LANG", "LC_ALL", "TMPDIR", "TEMP", "TMP", "SYSTEMROOT", "PI_OFFLINE"].filter(key => process.env[key] !== undefined).map(key => [key, process.env[key]])) : { ...process.env };
 		delete env.NODE_OPTIONS; delete env.NODE_PATH;
 		child = spawnProcess(process.execPath, [childPath, manifestPath, sdkRoot ?? "", credentialDir ?? ""], {
 			cwd: manifest.cwd, env, stdio: ["pipe", "pipe", "pipe", "ipc"],
 		});
 		options.onSpawn?.(child);
+		if (options.registry && options.modelFor) disposeBridge = parentBridge(child, options.registry, options.modelFor(manifest), signal, fail);
 		child.once("close", () => { closed = true; });
 		child.once("disconnect", () => { ipcClosed = true; });
 		child.once("exit", (code, sig) => {
@@ -264,6 +266,7 @@ export async function runTask(manifest, prompt, options = {}) {
 		result.status = timedOut ? "timed_out" : signal?.aborted ? "cancelled" : "failed";
 		diagnose(`${error instanceof Error ? error.message : String(error)}\n`);
 	} finally {
+		disposeBridge?.cancel();
 		observe("stopping");
 		clearTimeout(startTimer); clearTimeout(taskTimer);
 		signal?.removeEventListener("abort", cancel);
@@ -284,6 +287,7 @@ export async function runTask(manifest, prompt, options = {}) {
 		}
 		acceptingWrites = false;
 		acceptingUsage = false;
+		disposeBridge?.();
 		if (child && !closed && !stdoutEnded) incompleteUsage("stdout accounting drain was not confirmed before the deadline");
 		if (responseOpen || decoder.buffer.trim()) incompleteUsage("unfinished response or RPC record");
 		result.terminated = !child || exited;

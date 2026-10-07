@@ -977,7 +977,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "9bd03ef5d358529eff630c0cf3df169e9f3ccc4fc80a3a5f8c15b4ac0cd593e8"
+          "sha256": "9c5674da56bb8e9e6945a53000241bb5213de178458291e0663c7efa4c0867b6"
         },
         {
           "path": "references/java-notes.md",
@@ -1254,12 +1254,17 @@
         {
           "path": "references/smell-lenses.md",
           "sha256": "da56cfd622ae51bfe230141a75ec4b5a934f2a18d0441aa9d604b4ac31c68bd3"
+        },
+        {
+          "path": "references/technique-catalog.md",
+          "sha256": "237c795448b37b6dda0b64d9e879807a5fc2df3874ce037cf70b0491e7e97968"
         }
       ],
       "adaptations": [
         "SKILL.md",
         "references/technique-to-pattern.md",
-        "references/smell-lenses.md"
+        "references/smell-lenses.md",
+        "references/technique-catalog.md"
       ]
     },
     {

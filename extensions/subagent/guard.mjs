@@ -41,13 +41,16 @@ export function createGuard(sdk, manifest, digest, report) {
 			},
 		});
 		pi.registerTool({ name: "search", label: "Search", description: "Search literal text recursively in safe project or selected skill files; no shell or regular expressions", defaultActive: false,
-			parameters: { ...pathSchema, properties: { ...pathSchema.properties, text: { type: "string", minLength: 1 } }, required: ["text"] },
+			parameters: { ...pathSchema, properties: { ...pathSchema.properties, text: { type: "string", minLength: 1 }, mode: { type: "string", enum: ["content", "files"] }, limit: { type: "integer", minimum: 1, maximum: 2000 } }, required: ["text"] },
 			async execute(_id, args, signal) {
+				if (args.mode !== undefined && !["content", "files"].includes(args.mode)) throw new Error("Invalid search mode");
+				if (args.limit !== undefined && (!Number.isInteger(args.limit) || args.limit < 1 || args.limit > 2000)) throw new Error("Invalid search limit");
 				if (!args.text) throw new Error("Search text is required");
 				const start = await validatePath(manifest, args.path ?? ".");
 				const queue = [start], matches = [];
-				let visited = 0, size = 0;
-				while (queue.length && visited < MAX_SEARCH_FILES && size < MAX_OUTPUT) {
+				let visited = 0, size = 0, truncated = false;
+				const maxMatches = args.limit ?? Infinity;
+				while (queue.length && visited < MAX_SEARCH_FILES && size < MAX_OUTPUT && matches.length < maxMatches) {
 					if (signal?.aborted) throw new Error("Task cancelled");
 					const path = queue.pop();
 					try { await validatePath(manifest, path); } catch { continue; }
@@ -60,18 +63,19 @@ export function createGuard(sdk, manifest, digest, report) {
 						continue;
 					}
 					visited++;
-					if (stat.size > MAX_SEARCH_BYTES) continue;
+					if (stat.size > MAX_SEARCH_BYTES) { truncated = true; continue; }
 					const content = await readFile(path, "utf8");
 					if (content.includes("\0")) continue;
 					for (const [index, line] of content.split("\n").entries()) {
 						if (line.includes(args.text)) {
-							const match = `${projectRelativePath(manifest.cwd, path)}:${index + 1}: ${line}`;
+							const match = args.mode === "files" ? projectRelativePath(manifest.cwd, path) : `${projectRelativePath(manifest.cwd, path)}:${index + 1}: ${line}`;
 							matches.push(match); size += match.length;
-							if (size >= MAX_OUTPUT) break;
+							if (size >= MAX_OUTPUT || matches.length >= maxMatches) { truncated = true; break; }
+							if (args.mode === "files") break;
 						}
 					}
 				}
-				return textResult(limit(matches.join("\n") + (queue.length ? "\n[Search truncated]" : "")));
+				return textResult(limit(matches.join("\n") + (queue.length || truncated ? "\n[Search truncated]" : "")));
 			},
 		});
 		pi.on("tool_call", (event) => {

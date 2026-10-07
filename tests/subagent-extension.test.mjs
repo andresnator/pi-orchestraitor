@@ -36,7 +36,7 @@ async function fixture(t, results = []) {
 	loaded.runtime.getThinkingLevel = () => "high";
 	loaded.runtime.getActiveTools = () => ["read", "edit", "write", "subagent_run"];
 	const extension = loaded.extensions[0];
-	const models = [{ provider: "fixture", id: "first" }, { provider: "fixture", id: "second" }];
+	const models = [{ provider: "fixture", id: "first", reasoning: true }, { provider: "fixture", id: "second", reasoning: true }];
 	const ctx = { cwd, model: models[0], modelRegistry: { getAvailable: () => models }, scopedModels: [] };
 	const capture = (skills = []) => extension.handlers.get("before_agent_start")[0]({ systemPromptOptions: {
 		cwd, skills, contextFiles: [{ path: "AGENTS.md", content: "captured instructions" }],

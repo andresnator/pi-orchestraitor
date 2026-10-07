@@ -5,7 +5,7 @@ export const TASK_TIMEOUT_MS = 10 * 60 * 1000;
 export const START_TIMEOUT_MS = 30 * 1000;
 export const READ_TOOLS = ["read", "search", "list"];
 export const WRITE_TOOLS = [...READ_TOOLS, "edit", "write"];
-export const THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh"];
+export const THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
 const PROTECTED_PARTS = new Set([".git", ".pi", ".codex", ".agents", "node_modules"]);
 const PROTECTED_FILES = new Set(["agents.md", "system.md", "append_system.md"]);
 const PROJECT_SKILL_HOSTS = new Set([".pi", ".agents", ".codex"]);
@@ -46,7 +46,9 @@ export function validateBatch(tasks) {
 	for (const task of tasks) {
 		if (!["explore", "review", "implement"].includes(task.role) || typeof task.instruction !== "string" || !task.instruction.trim()) throw new Error("Each task needs a role and instruction");
 		if (task.reasoning !== undefined && !THINKING_LEVELS.includes(task.reasoning)) throw new Error("Unsupported reasoning level");
+		if (task.mode !== undefined && !["sync", "background"].includes(task.mode)) throw new Error("Unsupported execution mode");
 		if (task.role === "implement") {
+			if (task.mode === "background") throw new Error("Implementation must be synchronous");
 			if (tasks.length !== 1 || !Array.isArray(task.files) || !task.files.length) throw new Error("An implementer requires exclusive execution and assigned files");
 			task.files.forEach((file) => concreteFile(file));
 		} else if (task.files?.length) throw new Error("Readers cannot have editable files");

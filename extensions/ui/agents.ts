@@ -7,7 +7,7 @@ const LABEL_LIMIT = 200;
 const DETAIL_LIMIT = 1000;
 const PANEL_RESERVED_ROWS = 8;
 const PENDING_CALL_LIMIT = 20;
-type BatchObservation = { callId: string; parent?: string; sequence: number; generation?: number; rows: AgentRow[] };
+type BatchObservation = { callId: string; parent?: string; sequence: number; generation?: number; rows: AgentRow[]; pending?: Set<string> };
 const LIVE_PHASES = ["preparing", "starting", "running", "stopping"];
 const FINAL_PHASES = ["completed", "failed", "cancelled", "timed_out", "termination_failed"];
 const ROLES = ["explore", "review", "implement"];
@@ -43,9 +43,17 @@ function boundedRow(value: any, toolCallId: string, label?: string): AgentRow {
 	};
 }
 
+function matchingRow(result: any, rows: AgentRow[], index: number, count: number) {
+	const identified = rows.find((row) => row.id !== undefined && row.id === result.id);
+	// Full foreground receipts preserve input order even if progress was unavailable.
+	// Partial receipts cannot use their position to identify an assignment.
+	return identified ?? (count === rows.length && rows.every((row) => row.id === undefined) ? rows[index] : undefined);
+}
+
 /** In-memory view of native observations and only the active branch's receipts. */
 export function createAgentsProjection() {
-	// Pending metadata tracks native foreground calls, not controller ownership.
+	// Keep complete batch identities for full progress snapshots, even after some
+	// rows have been delivered. Only pending IDs remain visible after tool return.
 	const calls = new Map<string, BatchObservation>();
 	let activeCall: string | undefined;
 	let recent: AgentRow[] = [];
@@ -93,17 +101,37 @@ export function createAgentsProjection() {
 			if (!call) return;
 			const results = result?.details?.results;
 			if (Array.isArray(results) && results.length <= 2) {
-				retain(results.map((row, index) => boundedRow({
-					...row, effectiveModel: call.rows[index]?.effectiveModel,
-				}, callId, call.rows[index]?.label)));
+				retain(results.map((row, index) => {
+					const observation = matchingRow(row, call.rows, index, results.length);
+					return boundedRow({ ...row, effectiveModel: observation?.effectiveModel ?? row.effectiveModel }, callId, observation?.label);
+				}));
 			} else {
 				const diagnostic = result?.content?.filter((block: any) => block.type === "text").map((block: any) => block.text).join("\n") ?? "Outcome unavailable";
 				retain(call.rows.map((row) => boundedRow({ ...row, phase: isError ? "failed" : "unavailable", diagnostic }, callId)));
 				launchBlocked ||= /launches blocked.*termination/i.test(diagnostic);
 			}
 			if (call.parent) nestedHistoryUnavailable = true;
+			if (Array.isArray(result?.details?.pending) && result.details.pending.length) {
+				const delivered = new Set(Array.isArray(results) ? results.map((row: any) => row.id) : []);
+				call.pending = new Set(result.details.pending.filter((id: any) => typeof id === "string" && !delivered.has(id)));
+				if (call.pending.size) return;
+			}
 			calls.delete(callId);
 			if (activeCall === callId) activeCall = calls.keys().next().value;
+		},
+		collect(callId: string, result: any) {
+			const results = result?.details?.results;
+			if (!Array.isArray(results)) return;
+			for (const row of results) {
+				let observation: AgentRow | undefined;
+				for (const [id, call] of calls) {
+					observation ??= call.rows.find(item => item.id === row.id);
+					if (!call.pending?.delete(row.id)) continue;
+					if (!call.pending.size) calls.delete(id);
+				}
+				retain([boundedRow({ ...row, effectiveModel: observation?.effectiveModel ?? row.effectiveModel }, callId, observation?.label)]);
+			}
+			activeCall = calls.keys().next().value;
 		},
 		replay(branch: any[], identity?: string, knownBlocked = false) {
 			calls.clear();
@@ -121,10 +149,14 @@ export function createAgentsProjection() {
 				if (message.role === "assistant") {
 					for (const call of message.content ?? []) if (call.type === "toolCall" && call.name === "subagent_run") assignments.set(call.id, call.arguments?.tasks ?? []);
 				}
-				if (message.role !== "toolResult" || message.toolName !== "subagent_run") continue;
+				if (message.role !== "toolResult" || !["subagent_run", "subagent_collect"].includes(message.toolName)) continue;
 				if (!message.isError && Array.isArray(message.details?.results) && message.details.results.length <= 2) {
 					retain(message.details.results.filter((row: any) => row && ROLES.includes(row.role) && FINAL_PHASES.includes(row.status))
-						.map((row: any, index: number) => boundedRow(row, message.toolCallId, assignments.get(message.toolCallId)?.[index]?.instruction)));
+						.map((row: any, index: number) => {
+							const tasks = assignments.get(message.toolCallId);
+							const label = tasks?.length === message.details.results.length ? tasks[index]?.instruction : undefined;
+							return boundedRow(row, message.toolCallId, label);
+						}));
 				} else if (message.isError) {
 					const diagnostic = message.content?.filter((block: any) => block.type === "text")
 						.map((block: any) => block.text).join("\n") ?? "Launch failed; diagnostic unavailable";
@@ -135,7 +167,8 @@ export function createAgentsProjection() {
 			}
 		},
 		snapshot(): AgentsSnapshot {
-			return structuredClone({ live: activeCall ? calls.get(activeCall)?.rows ?? [] : [],
+			const ordered = [...calls.values()].sort((left, right) => left.callId === activeCall ? -1 : right.callId === activeCall ? 1 : 0);
+			return structuredClone({ live: ordered.flatMap((call) => call.pending ? call.rows.filter((row) => row.id && call.pending!.has(row.id)) : call.rows),
 				recent, historyLimited, nestedHistoryUnavailable, launchBlocked });
 		},
 	};
@@ -149,7 +182,7 @@ export function createAgentsPanel(getSnapshot: () => AgentsSnapshot, tui: TUI, t
 			const snapshot = getSnapshot();
 			const lines = ["Agents — runtime outcomes, not accepted work"];
 			if (snapshot.launchBlocked) lines.push("Launches blocked: child exit was not confirmed.");
-			for (const [label, rows] of [["Active batch", snapshot.live], ["Recent branch outcomes", snapshot.recent]] as const) {
+			for (const [label, rows] of [["Pending agents", snapshot.live], ["Recent branch outcomes", snapshot.recent]] as const) {
 				lines.push(label);
 				if (!rows.length) lines.push("  No observations available.");
 				for (const row of rows) {

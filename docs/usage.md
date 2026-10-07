@@ -93,7 +93,7 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 | `extensions/instructions.ts` | Adds core, execution, and personality sections while preserving Pi and project instructions. |
 | `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. |
 | `extensions/nan.ts` | Native NaN API-key login/environment fallback and seven documented chat models; no default changes or startup requests. |
-| `extensions/subagents.ts` | One bounded launcher, child guards, native usage and optional progress observations. |
+| `extensions/subagents.ts` | Model profiles, bounded sync/background readers, child guards, collection and native usage. |
 | `extensions/skill-registry.ts` | Bounded search/load, native snapshot refresh and atomic diagnostic publication; lazy/native exposure. |
 | `extensions/status-ui.ts` | One owner for agents/tasks panels, unified questions and compact work-header/native-footer chrome. |
 | `skills/` | 56 unique skills and their supporting resources, with short `jag-*` names. |
@@ -197,7 +197,7 @@ See [verification evidence](verification.md) and [attribution](../THIRD_PARTY_NO
 
 ## Subagents and verification
 
-Use `subagent_run` for up to two bounded readers or one exclusive implementer. Each task gets a fresh process/session; the parent runs commands and checks the result. See [subagent input, isolation and lifecycle](subagents.md) for file restrictions, model selection, cancellation, output fields and pending real-model checks.
+Use `/models-profiles` to configure named profiles per role and scope. Use `subagent_run` for up to two pending readers or one exclusive synchronous implementer, and `subagent_collect` to retrieve background results. Each task gets a fresh process/session; the parent runs commands and checks the result. See [subagent input, isolation and lifecycle](subagents.md) for file restrictions, model selection, cancellation, output fields and pending real-model checks.
 
 Normal tools use one unboxed line. `codemode` shows nested-call counts and the currently running tool, and `subagent_run` shows task counts, roles and completion counts. Script source, nested-call arguments and successful output stay hidden until Pi's configurable `app.tools.expand` action (`Ctrl+O` by default) expands the tool. Expansion restores codemode's native code/result view and the complete subagent response.
 

@@ -131,7 +131,7 @@ async function worker(mode) {
 		manager.getBranch = () => { branchReads++; return branch(); }; manager.getEntries = () => { usageReads++; return entries(); };
 		const fakeCtx = { cwd: temporary, mode: "tui", hasUI: true, sessionManager: manager,
 			ui: { setWidget() {}, setStatus() {}, notify() {} } };
-		statusUI({ on(name, handler) { handlers.set(name, handler); }, registerTool() {}, registerCommand() {} });
+		statusUI({ events: sdk.createEventBus(), on(name, handler) { handlers.set(name, handler); }, registerTool() {}, registerCommand() {} });
 		await handlers.get("session_start")({}, fakeCtx);
 		branchReads = usageReads = 0;
 		result.unchangedHookMs = await timings(() => handlers.get("tool_execution_start")({ toolName: "read" }, fakeCtx));

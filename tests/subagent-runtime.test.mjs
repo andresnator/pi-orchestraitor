@@ -118,6 +118,11 @@ test("shouldRestrictNativeWritesAndRecursiveSearchWhenGuardToolsExecute", async 
 	const ctx = runtime.session.extensionRunner.createContext();
 	// When
 	const search = await tools.get("search").execute("search", { text: "needle" }, undefined, undefined, ctx);
+	const fileSearch = await tools.get("search").execute("files", { text: "needle", mode: "files", limit: 1 }, undefined, undefined, ctx);
+	assert.match(fileSearch.content[0].text, /target/);
+	assert.doesNotMatch(fileSearch.content[0].text, /:1:/);
+	assert.match(fileSearch.content[0].text, /truncated/);
+	await assert.rejects(tools.get("search").execute("bad", { text: "needle", limit: 0 }, undefined, undefined, ctx), /limit/);
 	await tools.get("write").execute("write", { path: "target", content: "new" }, undefined, undefined, ctx);
 	// Then
 	assert.match(search.content[0].text, /target:1: needle safe/);

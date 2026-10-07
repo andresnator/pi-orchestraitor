@@ -2,7 +2,7 @@ import type { ExtensionAPI, ExtensionContext, ExtensionUIContext, KeybindingsMan
 import type { Component, TUI } from "@earendil-works/pi-tui";
 import { classifyAgent, createAgentsPanel, createAgentsProjection } from "./ui/agents.ts";
 import { workStatus } from "./ui/display.ts";
-import { subagentLaunchesBlocked } from "./subagents.ts";
+import { subagentLaunchesBlocked, SUBAGENT_PROGRESS_EVENT } from "./subagents.ts";
 import { compactTool } from "./compact-tools.ts";
 import { checkTaskBinding, createTaskPanel, createTaskTool, emptyTasks, replayTasks, taskHeader, TASK_TOOL_NAME } from "./ui/tasks.ts";
 import { createQuestionTool, QUESTION_TOOL_NAME } from "./ui/questions.ts";
@@ -200,9 +200,15 @@ export default function statusUI(pi: ExtensionAPI) {
 		if (event.toolName === "subagent_run") agents.update(event.toolCallId, event.partialResult?.details?.progress);
 		refreshStatus(); owner.refresh();
 	});
+	pi.events.on(SUBAGENT_PROGRESS_EVENT, (progress: any) => {
+		if (!context || progress?.sessionId !== context.sessionManager.getSessionId()) return;
+		if (!agents.update(progress.toolCallId, progress)) return;
+		refreshStatus(); owner.refresh();
+	});
 	pi.on("tool_execution_end", (event, ctx) => {
 		if (!context || !owner.isCurrent(ctx)) return;
 		if (event.toolName === "subagent_run") agents.finish(event.toolCallId, event.result, event.isError);
+		if (event.toolName === "subagent_collect") agents.collect(event.toolCallId, event.result);
 		refreshStatus(); owner.refresh();
 	});
 	pi.registerCommand("orchestraitor:ui", {
