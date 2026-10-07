@@ -96,6 +96,6 @@ test("shouldPreviewAndInstallViaPnpmWhenSdkOverrideIsAbsent", { timeout: 20_000 
 	// Then
 	assert.match(help, /^Usage: pnpm run install:pi \[--local\]/);
 	assert.deepEqual({ verified: receipt.verifiedSkills, companions: receipt.companionPackages }, { verified: 56, companions: [] });
-	assert.ok(settings.packages.some((entry) => resolve(typeof entry === "string" ? entry : entry.source) === resolve(packageRoot)));
+	assert.ok(settings.packages.some((entry) => resolve(cwd, ".pi", typeof entry === "string" ? entry : entry.source) === resolve(packageRoot)));
 	assert.equal(preview.prettyConfig.path, join(agent, "pi-pretty.json"));
 });
