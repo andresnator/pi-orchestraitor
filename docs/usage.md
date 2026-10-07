@@ -1,17 +1,20 @@
 # Usage and operations
 
-A personal Pi package with **56 development/workflow skills** (54 automatic, two explicit-only), a lazy native-authorized skill registry, compact tool output, optional interactive work UI, Context7, Engram, and Orchestraitor for scoped changes and sequential plan execution. It automatically loads the source harness's Colombian architect personality: direct answers, practical explanations, respectful disagreement, and occasional Colombian expressions when the conversation supports them.
+A personal Pi package with **56 development/workflow skills** (54 automatic, two explicit-only), a lazy native-authorized skill registry, compact tool output, temporary `/btw` side conversations, optional interactive work UI, a bundled NaN model provider, Context7, Engram, and Orchestraitor for scoped changes and sequential plan execution. It automatically loads the source harness's Colombian architect personality: direct answers, practical explanations, respectful disagreement, and occasional Colombian expressions when the conversation supports them.
 
 ## Install
 
-Use **Pi 1.0.4** (current verification baseline) and **Node 22.19+**. Engram **3.0.0** is required only for memory. Pi supplies the extension dependencies; no `npm install` is needed for a local package.
+Use **pnpm 12.9.1** and **Node 22.19+**. The checkout's lockfile supplies **Pi 1.0.4**; it is not installed globally or bundled in the distributed package. Engram **3.0.0** is required only for memory. See [development security](#development-security) for the install policy.
 
 From this repository:
 
 ```bash
-npm run install:pi -- --dry-run
-npm run install:pi
+pnpm install --frozen-lockfile # Once on a fresh checkout
+pnpm run install:pi --dry-run
+pnpm run install:pi
 ```
+
+`pnpm run` puts the local Pi CLI on PATH. The installer recognizes its `.bin` shim and resolves the linked package's canonical SDK root; no `PI_TEST_PACKAGE_DIR` override is needed. The selected executable still controls host discovery, so npm-style symlink/global installations continue to work. Keep the checkout available; use `pnpm exec pi` if you want to start the local CLI.
 
 The preview lists every matching standalone skill, including multiple discovery aliases for the same source, and any blocking conflicts. Installation moves matching entries into a recoverable backup, registers this directory through native `pi install`, and verifies that all 56 skills resolve to the bundled adaptations. It also installs `@heyhuynhgiabuu/pi-pretty@0.6.30` through native Pi package management in the same user/project scope. Restart Pi or run `/reload` afterward.
 
@@ -20,13 +23,13 @@ The installer adds `bash` to Pretty's `disableTools`, preserving other preferenc
 For a project installation:
 
 ```bash
-npm run install:pi -- --local --cwd /path/to/project --dry-run
-npm run install:pi -- --local --cwd /path/to/project
+pnpm run install:pi --local --cwd /path/to/project --dry-run
+pnpm run install:pi --local --cwd /path/to/project
 ```
 
 Local installation uses Pi's native `--approve` flag for the selected project's package registration. The package remains at its current path, so keep that directory available.
 
-If you already have the original global `compact-tools` extension, disable that copy through `pi config` before loading this package. Keep it available for recovery.
+If you already have the original global `compact-tools` or `btw` extension, disable that copy through `pi config` before loading this package. Keep its files available for recovery. The installer does not migrate standalone extensions; see [BTW migration](btw.md#migrating-a-standalone-copy).
 
 ### Skill conflicts and recovery
 
@@ -47,8 +50,8 @@ pi remove /absolute/path/to/pi-orchestraitor
 # Remove the companion separately if desired:
 pi remove npm:@heyhuynhgiabuu/pi-pretty
 # Add --local when removing a project installation.
-npm run install:pi -- --restore /absolute/path/to/backup --dry-run
-npm run install:pi -- --restore /absolute/path/to/backup
+pnpm run install:pi --restore /absolute/path/to/backup --dry-run
+pnpm run install:pi --restore /absolute/path/to/backup
 ```
 
 Restoration refuses to overwrite existing entries. Restore multiple backups in reverse installation order. Re-enable the original compact extension if needed, then restart Pi. A stale migration lock is reported with its exact path; inspect any interrupted migration before removing that lock.
@@ -86,8 +89,10 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 | --- | --- |
 | `extensions/compact-tools.ts` | Compact bash/edit/write/codemode presentation, plus a read fallback. Bash uses effective shell settings; conflicting owners are reported and blocked. Expand to inspect arguments, results and error explanations. |
 | `@heyhuynhgiabuu/pi-pretty@0.6.30` | Separately installed companion: highlighted reads, FFF-backed find/grep, prompt editor and activity indicators. Its bash tool is disabled for harness ownership. |
+| `extensions/btw/index.ts` | Temporary 70% side-conversation panel; no tools or local history, explicit `/bring` imports only. |
 | `extensions/instructions.ts` | Adds core, execution, and personality sections while preserving Pi and project instructions. |
 | `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. |
+| `extensions/nan.ts` | Native NaN API-key login/environment fallback and seven documented chat models; no default changes or startup requests. |
 | `extensions/subagents.ts` | One bounded launcher, child guards, native usage and optional progress observations. |
 | `extensions/skill-registry.ts` | Bounded search/load, native snapshot refresh and atomic diagnostic publication; lazy/native exposure. |
 | `extensions/status-ui.ts` | One owner for agents/tasks panels, unified questions and compact work-header/native-footer chrome. |
@@ -97,11 +102,19 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 
 The harness preserves personal model, theme, editor, credentials, and MCP overrides. The separately installed pretty companion supplies its own prompt-editor and activity presentation; see the [pretty integration guide](pi-pretty.md). It provides bounded subagents through `subagent_run`. It does not implement independent verification, resumable SDD, dual review, TCR, or persistent Caveman. Its scope and personality instructions are behavioral rules; they are not a filesystem sandbox.
 
+## NaN model provider
+
+Reload Pi, run `/login nan`, and enter a key generated in NAN Cloud's API Keys settings into Pi's native secret prompt. Alternatively provide `NAN_API_KEY` before starting Pi. Select **NaN / GLM 5.3 Flash** through `/model` for coding; no default-provider change is required. Keys remain in Pi's private credential storage or process environment, never in this package. `glm5.3` requires premium membership; the model list is static and Pi's zero per-token cost display does not account for membership fees or quota. See [NaN setup, overrides, and limits](nan.md).
+
+## Temporary side conversations
+
+Use `/btw` or `/btw <question>` without continuing the main task. Closing cancels and discards the conversation. Submit `/bring latest|N+|N-M|all` **inside BTW** to explicitly copy a selection into the parent without triggering a turn. The panel uses the parent's current model and thinking level; it has no tools. See [BTW controls, isolation, and migration](btw.md).
+
 ## Optional work UI
 
 Open `/orchestraitor:agents` or `/orchestraitor:tasks`; use `tasks expand|collapse` for detail and `/orchestraitor:ui hide|show` for passive chrome. The model-only task/question tools do not replace execution or permissions. Pi keeps its native editor/header/footer and counters.
 
-See the [interactive UI guide](interactive-ui.md) for schemas, task replay versus recovery, native keybindings, synthetic/live checks and limitations. Exclude `extensions/status-ui.ts` through `pi config` to disable all UI features without disabling the launcher. For one invocation, `--exclude-tools orchestraitor_tasks,orchestraitor_ask` persistently excludes just the model tools; `hide` only changes presentation.
+See the [interactive UI guide](interactive-ui.md) for schemas, task replay versus recovery, native keybindings, synthetic/live checks and limitations. Exclude `extensions/status-ui.ts` through `pi config` to disable the work UI without disabling the launcher or BTW. For one invocation, `--exclude-tools orchestraitor_tasks,orchestraitor_ask` persistently excludes just the model tools; `hide` only changes presentation.
 
 ## MCP and memory
 
@@ -138,25 +151,47 @@ pi --no-extensions -e builtin:mcp -e builtin:codemode -e "$HARNESS"
 
 This changes only that invocation. Personal and project MCP settings still apply. Existing skill sources may collide until migrated. Engram may open its usual database; use the temporary integration test below for isolated memory checks.
 
-## Verify
+## Development security
 
-The [efficiency guide](performance.md) documents compact model-facing task/child handoffs, projection reuse and the offline benchmark. Run `npm run bench -- --samples 7 --output /tmp/pi-benchmark.json` from a checkout; it makes no model/MCP requests. Observed character reductions are distinct from measured provider-token savings.
+Use pnpm 12.9.1 with the committed lockfile. Pi 1.0.4 is a development dependency only; runtime peers remain host-provided and neither the host nor `node_modules` is packed. BTW's pinned `beautiful-mermaid@1.1.3` is a separate runtime dependency; local checkouts install it here, while Pi installs it for native Git/npm sources.
 
 ```bash
-npm test
-npm run test:mcp
-npm run test:pretty
-npm run test:personality
-npm pack --dry-run --ignore-scripts
+pnpm install --frozen-lockfile
 ```
 
-- `npm test` checks native tool regressions, prompt and personality injection, packaged skill loading and resources, migration and recovery, and native installation in temporary configuration. It uses local synthetic providers for native UI/child integration, not live models or MCP services. Visible TUI acceptance remains a separate gate.
+| Policy | Effect |
+| --- | --- |
+| Frozen lockfile | CI cannot silently resolve new dependency versions. |
+| `minimumReleaseAge: 1440` | Newly published versions must age for 24 hours; do not bypass the cooldown. |
+| `autoInstallPeers: false` | Do not automatically install host-provided peers. |
+| `blockExoticSubdeps: true` | Reject exotic transitive sources, such as Git or arbitrary URLs. |
+| `strictDepBuilds: true` | A new dependency with an unreviewed lifecycle script stops installation. |
+| Version-specific `allowBuilds: false` | Explicitly deny the reviewed genai 2.21.0, esbuild 0.28.2 and protobufjs 7.6.6 scripts. New versions require another review. |
+
+All dependency build scripts remain denied. Published artifacts and the optional esbuild platform package work for the verified tests without postinstall. Install optional dependencies normally; do not omit them. This is not a sandbox, a malware scan, or a guarantee that locked code is safe. The policy applies to this development checkout, not to Pi's separately managed packages, Pretty, or your global Pi installation.
+
+Do not run blanket `approve-builds`, add wildcard approvals, or regenerate the lockfile automatically to make CI pass. Inspect a changed script/version and rerun tests before any explicit approval. An intentional update uses `pnpm install` locally and reviews the lockfile diff; CI stays frozen. `pnpm audit` checks current registry advisories but cannot prove absence of unknown vulnerabilities.
+
+## Verify
+
+The [efficiency guide](performance.md) documents compact model-facing task/child handoffs, projection reuse and the offline benchmark. Run `pnpm run bench --samples 7 --output /tmp/pi-benchmark.json` from a checkout; it makes no model/MCP requests. Observed character reductions are distinct from measured provider-token savings.
+
+```bash
+pnpm test
+pnpm pack --dry-run --ignore-scripts
+# Optional external checks; not automatic CI gates:
+pnpm run test:mcp
+pnpm run test:pretty
+pnpm run test:personality
+```
+
+- `pnpm test` checks native tool regressions, prompt and personality injection, packaged skill loading and resources, migration and recovery, and native installation in temporary configuration. It uses local synthetic providers for native UI/child integration, not live models or MCP services. Visible TUI acceptance remains a separate gate.
 - `test:pretty` exercises the actual installed companion on the native Pi SDK and CLI in temporary profiles, including both load orders, reload, preserved tool selection, a custom shell/prefix, read and find/grep, plus bash conflict blocking/recovery. It requires the pinned companion or `PI_PRETTY_PACKAGE_DIR` and makes no model/MCP requests; terminal screenshots are a separate check.
 - `test:mcp` calls Context7 and Engram through native `codemode`, with synthetic memories and a temporary database. It checks project separation and avoids personal memories.
 - `test:personality` makes bounded calls to the configured Pi model in isolated sessions. It writes synthetic transcripts for manual scoring; it uses the configured account and consumes model quota.
 - Packing includes extensions, instructions, skills, scripts, docs, and licenses. Tests, `.ai` reports, personal settings, credentials, and memory databases are excluded.
 
-Tests use the Pi executable on PATH. Set `PI_TEST_PACKAGE_DIR` to the installed npm package root if it cannot be located. The installer inventory adapter and some integration checks depend on host internals and need revalidation after a Pi upgrade. The adapter checks that its required host hooks exist before migration. Peers use `*` because Pi supplies them; the original baseline used Pi 1.0.0 and current deterministic checks run on Pi 1.0.4, with the codemode fixture updated to supply the host's prompt-guidelines callback. Historical live UI evidence retains its recorded host version. Revalidate on upgrades. The UI guide documents native dynamic-selection versus persistent-exclusion behavior on reload. The established test convention is `node:test` with `node:assert`.
+Tests prefer the canonical Pi development host installed by pnpm and propagate its SDK root to installer subprocesses. `pnpm test` also puts the local CLI on PATH. Private dependency fixtures resolve through the host's module tree rather than assuming nested `node_modules`. Set `PI_TEST_PACKAGE_DIR` to explicitly test another installed host root; without a local host, tests fall back to Pi on PATH. Packing integration covers both pnpm and npm for compatibility. The installer inventory adapter and some integration checks depend on host internals and need revalidation after a Pi upgrade. The adapter checks that its required host hooks exist before migration. Peers use `*` because Pi supplies them; the original baseline used Pi 1.0.0 and current deterministic checks run on Pi 1.0.4, with the codemode fixture updated to supply the host's prompt-guidelines callback. Historical live UI evidence retains its recorded host version. Revalidate on upgrades. The UI guide documents native dynamic-selection versus persistent-exclusion behavior on reload. The established test convention is `node:test` with `node:assert`.
 
 See [verification evidence](verification.md) and [attribution](../THIRD_PARTY_NOTICES.md).
 

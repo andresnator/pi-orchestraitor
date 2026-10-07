@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createChildRuntime } from "../../extensions/subagent/runtime.mjs";
 import { RpcDecoder } from "../../extensions/subagent/controller.mjs";
+import { resolveHostPath } from "../helpers/host-path.mjs";
 
 const [manifestPath, sdkRoot] = process.argv.slice(2);
 const raw = await readFile(manifestPath, "utf8");
@@ -12,7 +13,7 @@ const temporary = join(dirname(manifestPath), "settings");
 await mkdir(temporary);
 process.env.PI_CODING_AGENT_DIR = temporary;
 const sdk = await import(pathToFileURL(join(sdkRoot, "dist/index.js")).href);
-const { createAssistantMessageEventStream } = await import(pathToFileURL(join(sdkRoot, "node_modules/@earendil-works/pi-ai/dist/index.js")).href);
+const { createAssistantMessageEventStream } = await import(pathToFileURL(resolveHostPath(sdkRoot, "node_modules/@earendil-works/pi-ai/dist/index.js")).href);
 const pendingWrites = [];
 const report = (message) => {
 	if (message.type !== "write") return process.send(message);

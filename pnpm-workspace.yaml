@@ -1,0 +1,11 @@
+# Pi supplies runtime peers; only the development host is installed here.
+autoInstallPeers: false
+minimumReleaseAge: 1440
+blockExoticSubdeps: true
+strictDepBuilds: true
+# Published artifacts/platform packages are sufficient for the verified toolchain.
+# New versions with build scripts require a fresh review.
+allowBuilds:
+  '@google/genai@2.21.0': false
+  esbuild@0.28.2: false
+  protobufjs@7.6.6: false

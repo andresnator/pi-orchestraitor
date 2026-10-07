@@ -2,6 +2,7 @@
   "name": "pi-orchestraitor",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@12.9.1",
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/andresnator/pi-orchestraitor.git"
@@ -34,8 +35,10 @@
   "pi": {
     "extensions": [
       "./extensions/compact-tools.ts",
+      "./extensions/btw/index.ts",
       "./extensions/instructions.ts",
       "./extensions/mcp.ts",
+      "./extensions/nan.ts",
       "./extensions/subagents.ts",
       "./extensions/status-ui.ts",
       "./extensions/skill-registry.ts"
@@ -59,12 +62,22 @@
   "config": {
     "piPretty": "npm:@heyhuynhgiabuu/pi-pretty@0.6.30"
   },
+  "dependencies": {
+    "beautiful-mermaid": "1.1.3"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "1.0.4"
+  },
   "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
     "@earendil-works/pi-coding-agent": "*",
     "@earendil-works/pi-tui": "*",
     "typebox": "*"
   },
   "peerDependenciesMeta": {
+    "@earendil-works/pi-ai": {
+      "optional": true
+    },
     "@earendil-works/pi-coding-agent": {
       "optional": true
     },

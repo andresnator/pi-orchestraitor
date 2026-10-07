@@ -6,7 +6,7 @@ import { mkdir, readFile, realpath } from "node:fs/promises";
 import test from "node:test";
 import { createPackageUISession, createWorkspace, packageRoot } from "./helpers/ui-harness.mjs";
 
-const EXTENSIONS = ["compact-tools.ts", "instructions.ts", "mcp.ts", "skill-registry.ts", "status-ui.ts", "subagents.ts"];
+const EXTENSIONS = ["compact-tools.ts", "index.ts", "instructions.ts", "mcp.ts", "nan.ts", "skill-registry.ts", "status-ui.ts", "subagents.ts"];
 const ACTIVE = ["read", "bash", "edit", "write", "subagent_run", "orchestraitor_tasks", "orchestraitor_ask", "skill_registry"];
 const run = promisify(execFile);
 

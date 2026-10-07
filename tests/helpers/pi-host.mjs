@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { after } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { resolveHostPath } from "./host-path.mjs";
 
 export const packageRoot = fileURLToPath(new URL("../../", import.meta.url));
 const EXPECTED_HOST_NAME = "@earendil-works/pi-coding-agent";
@@ -16,12 +17,19 @@ process.env.PI_TELEMETRY = "0";
 after(() => rm(isolatedAgentDir, { recursive: true, force: true }));
 
 export const hostRoot = await findHostRoot();
-export const importHost = (path) => import(pathToFileURL(join(hostRoot, path)).href);
+// Installer subprocesses must use the same SDK as these fixtures.
+process.env.PI_TEST_PACKAGE_DIR = hostRoot;
+export const importHost = (path) => import(pathToFileURL(resolveHostPath(hostRoot, path)).href);
 export const pi = await importHost("dist/index.js");
 export const { loadExtensions } = await importHost("dist/core/extensions/loader.js");
 
 async function findHostRoot() {
-	if (process.env.PI_TEST_PACKAGE_DIR) return resolve(process.env.PI_TEST_PACKAGE_DIR);
+	if (process.env.PI_TEST_PACKAGE_DIR) return realpath(resolve(process.env.PI_TEST_PACKAGE_DIR));
+	try {
+		return await realpath(join(packageRoot, "node_modules", EXPECTED_HOST_NAME));
+	} catch (error) {
+		if (error.code !== "ENOENT") throw error;
+	}
 	const executable = execFileSync("which", ["pi"], { encoding: "utf8" }).trim();
 	let directory = dirname(await realpath(executable));
 	while (true) {

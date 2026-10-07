@@ -1,16 +1,16 @@
 # Verification evidence
 
-The package targets Pi 1.0.0, Node 22.19+, and Engram 3.0.0. Run the commands below against the installed host before upgrading or distributing it.
+The current deterministic baseline is Pi 1.0.4, Node 22.19+, and pnpm 12.9.1. Engram 3.0.0 is required only for memory. Development checks use the locked local host; rerun them before upgrading or distributing the package.
 
 | Command | Claim checked |
 | --- | --- |
-| `npm test` | Native tool regressions, instructions and personality injection, tarball resources and 56 native / 54 automatic / two explicit-only skill names, adapted workflow contracts/credits, consolidated review criteria/discovery, prompt expansion, MCP overrides, migration, rollback, and restoration. |
-| `npm run test:mcp` | Real Context7 and Engram calls through native codemode, extension hooks, and project separation in temporary memory storage. |
-| `npm run test:personality` | Configured-model responses in fresh isolated sessions, with predefined criteria and synthetic receipts for manual scoring. |
-| `npm run install:pi -- --dry-run` | Complete lexical discovery inventory, including aliases hidden by native deduplication, and proposed standalone-skill moves, without migration or registration. |
-| `npm pack --dry-run --ignore-scripts` | Distributed resource inventory and exclusion of tests, local reports, and personal data. |
+| `pnpm test` | Native tool regressions, instructions and personality injection, tarball resources and 56 native / 54 automatic / two explicit-only skill names, adapted workflow contracts/credits, consolidated review criteria/discovery, prompt expansion, MCP overrides, migration, rollback, and restoration. |
+| `pnpm run test:mcp` | Real Context7 and Engram calls through native codemode, extension hooks, and project separation in temporary memory storage. |
+| `pnpm run test:personality` | Configured-model responses in fresh isolated sessions, with predefined criteria and synthetic receipts for manual scoring. |
+| `pnpm run install:pi --dry-run` | Complete lexical discovery inventory, including aliases hidden by native deduplication, and proposed standalone-skill moves, without migration or registration. |
+| `pnpm pack --dry-run --ignore-scripts` | Distributed resource inventory and exclusion of tests, local reports, and personal data. |
 
-## Private Git distribution and CI
+## Initial private Git distribution and CI
 
 The package is distributed through the private `andresnator/pi-orchestraitor` GitHub repository. `private: true` prevents accidental npm publication; the explicit Pi manifest and host-provided peers remain unchanged.
 
@@ -21,9 +21,75 @@ Fresh local checks on Pi 1.0.4 and Node 24.20.0:
 - `npm pack --dry-run --ignore-scripts` includes 247 files, including `docs/usage.md`, and excludes tests, `.ai`, and `.github`.
 - `git diff --check` passed. Changes remain unstaged; no commit, push, publication, or personal Pi registration was performed.
 
-`.github/workflows/ci.yml` runs deterministic tests and package inventory checks on Ubuntu with Node 22.19.0 and 24.20.0, using pinned Pi 1.0.4. Live MCP, Pretty, real-model personality checks, and visible terminal acceptance are not CI gates. GitHub-hosted execution and the Node 22/Linux matrix have not yet been run; local success is not remote CI evidence. Historical failed-fixture receipts below remain unchanged.
+`.github/workflows/ci.yml` runs deterministic tests and package inventory checks on Ubuntu with Node 22.19.0 and 24.20.0, using pinned Pi 1.0.4. Live MCP, Pretty, real-model personality checks, and visible terminal acceptance are not CI gates. At this initial preparation checkpoint, GitHub-hosted execution and the Node 22/Linux matrix had not yet run; local success was not remote CI evidence. Historical failed-fixture receipts below remain unchanged.
 
 Official packaging reference: [Pi packages](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md). Installed Pi 1.0.4 documentation was the version-specific authority; Context7's indexed Pi versions did not include 1.0.4.
+
+## pnpm development migration — 2026-10-07
+
+The previous npm-based hosted CI passed both Node jobs with zero annotations in [run 37535400922](https://github.com/andresnator/pi-orchestraitor/actions/runs/37535400922). The new pnpm-based workflow has not been pushed or executed on GitHub.
+
+| Fresh local check | Observed result |
+| --- | --- |
+| Release cooldown | All eight previously blocked Pi/chord 1.0.4 versions exceeded 24 hours; no age exceptions added. |
+| Dependency script gate | First install rejected genai 2.21.0, esbuild 0.28.2 and protobufjs 7.6.6 scripts. Each exact version was explicitly denied; no scripts approved. |
+| Frozen installation | Passed with the complete lockfile; a fresh temporary offline install also passed and used Pi 1.0.4 without changing the lockfile. |
+| Negative policy probes | A stale manifest failed with `ERR_PNPM_OUTDATED_LOCKFILE`; an unreviewed esbuild script failed a fresh install with `ERR_PNPM_IGNORED_BUILDS`. Both probes used temporary directories. |
+| Compatibility RED/GREEN | Observed shim-based host discovery and missing nested dependency imports before adapting test-only host fixtures. A new pnpm packing case also failed on its absolute output filename before normalization. |
+| Final `pnpm test` | 439/439 passed, zero skipped, on Node 24.20.0 and the locked Pi 1.0.4 SDK. Includes four host-layout tests, two policy tests and both pnpm/npm extracted-package cases. |
+| Packing | pnpm dry-run includes 247 resource files; tests, development modules, lockfile, workspace policy, `.ai` and `.github` remain excluded. Both extracted tarballs load resources and the child bootstrap without bundled host dependencies. |
+| Dependency audit | `pnpm audit` reported zero known advisories at check time. One transitive dependency, `node-domexception@1.0.0`, has a deprecation notice; it was not independently replaced. Audit is not a safety guarantee. |
+
+The CI host now comes from `pnpm install --frozen-lockfile`, not an untracked global npm installation. Checkout, setup-node and pnpm setup are pinned by commit SHA and use Node 24 runtimes; the runner remains `ubuntu-24.04` and the test matrix remains Node 22.19.0/24.20.0. Cache is disabled. CI checks that installation/testing did not rewrite the lockfile or policy.
+
+The pnpm 12 lockfile contains separate YAML documents for package-manager and project dependencies. Test fixtures resolve private host dependency paths through the selected host's module tree, covering npm's nested and pnpm's sibling layouts. The production extension and installer behavior is unchanged; runtime peers remain `*`, with Pi only in `devDependencies`. See [development security](usage.md#development-security) for the install policy and its limits.
+
+This migration has no commit, push, publication, live MCP/model/Pretty checks or visible-terminal acceptance. The assistant did not stage or unstage files. The index initially contained three migration files; final verification observed all migration changes staged externally, and that state was left intact. Node 22/Linux execution of the pnpm workflow remains unperformed.
+
+## pnpm installer entry point — 2026-10-07
+
+The recommended entry point is `pnpm run install:pi --dry-run`, then `pnpm run install:pi`. A fresh checkout first needs `pnpm install --frozen-lockfile` to obtain the locked local CLI.
+
+The previous migration adapted test fixtures but left production host discovery unable to recognize pnpm's `.bin` shim. Fixture propagation of `PI_TEST_PACKAGE_DIR` hid the normal invocation failure. Two new checks failed before the production fix: selected-shim discovery and a real pnpm installer invocation with the SDK override removed.
+
+`scripts/pi-host.mjs` now validates and canonically resolves the linked host package beside the PATH-selected shim. Existing npm-style symlink/global discovery and explicit overrides are retained; an incorrectly named sibling package is rejected. Installer help and setup/recovery examples use pnpm argument forwarding without an extra `--` separator.
+
+- Targeted discovery, installation and migration checks: **16/16 passed**, zero skipped.
+- The new real-command check previews the default Pretty plan without writes/downloads, then registers with `--without-pretty` in a temporary project/profile. No personal Pi configuration or shared skills are modified.
+- Latest full suite: **516/516 passed**, zero skipped. At this turn's baseline, concurrent BTW work produced six unrelated failures in a smaller suite; that work was not modified by this installer correction and subsequently passed. These changing test counts are not an attributable improvement claim for the installer fix.
+- Latest pnpm package dry-run: **255 files**, excluding tests, development modules, pnpm lock/policy and local state. The resource count includes concurrent BTW work.
+- No commit, push, publication or hosted CI rerun was performed. Existing concurrent changes were preserved; the Git index was empty at this correction's start.
+
+## BTW repository integration — 2026-10-07
+
+Imported the user's standalone BTW into `extensions/btw/`, retaining its 70% width/height and temporary, tool-free side-conversation contract. UI/diagnostics are translated to English; replies still follow the user's language. The 71 existing Vitest cases were ported to the repository's Node test/assert convention without adding a second test runner.
+
+| Fresh local check | Observed result |
+| --- | --- |
+| Standalone baseline | 71/71 tests and its existing TypeScript check passed before import. |
+| Package registration RED/GREEN | Two targeted tests failed before the import/manifest entry, then passed with one bundled BTW owner and exact exclusion of the standalone index. |
+| Imported cases | 71/71 passed using Pi's native TypeScript/peer mapping and fake providers. |
+| Extracted tarballs | Both pnpm/npm cases initially failed on missing `beautiful-mermaid`; frozen offline production-only dependency provisioning fixed the fixture. Package suite passed 6/6. |
+| Full `pnpm test` | 516/516 passed, zero skipped, on Node 24.20.0 and the locked Pi 1.0.4 host, including concurrent pnpm-related work preserved in the checkout. |
+| Imported-source typecheck | Passed using the standalone extension's installed TypeScript compiler and a temporary `/tmp/pi-btw-tsconfig.json` mapping peers to the locked host. This is not a new CI gate or a packaged compiler dependency. |
+| Frozen install / packing / whitespace | `pnpm install --frozen-lockfile`, `pnpm pack --dry-run --ignore-scripts`, and `git diff --check` passed. BTW's seven source files and guide are packed; tests, host/dependency modules, and personal configuration are not. |
+
+The manifest adds pinned `beautiful-mermaid@1.1.3` and an optional host-provided `pi-ai` peer. The original global extension is retained and excluded by its index path in this user's settings; reload/restart is required. Other installations must disable their own original copy through `pi config`. No live provider, visual terminal acceptance, hosted Node 22/Linux CI, commit, push, or publication was performed for this integration. See [BTW operations](btw.md).
+
+## NAN repository integration — 2026-10-07
+
+Added `extensions/nan.ts` as an additional native provider with the seven chat definitions from NAN's official Pi guide. The extension uses Pi 1.0.4's `createProvider`, `envApiKeyAuth`, and lazy `openAICompletionsApi` via the host-mapped `pi-ai/compat` entrypoint. No dependency, personal configuration, credential, or default-provider change is part of this integration. Context7 had no indexed 1.0.4 documentation; installed documentation/types supplied exact-version API evidence.
+
+| Fresh local check | Observed result |
+| --- | --- |
+| Registration/reload RED/GREEN | Two targeted cases failed before the source/manifest entry, then passed with one NAN provider and unchanged settings/session model. |
+| Provider regressions | **11/11 passed**: official metadata, unavailable-without-key, environment fallback, secret API-key prompt, stored-key precedence, logout, cancellation before/during login, text/tool SSE, request auth/compatibility/usage, reload, and personal model overrides. |
+| Targeted provider/package/UI suite | **35/35 passed**, zero skipped; pnpm/npm extracted tarballs register the native NAN provider and seven models. |
+| Full `pnpm test` | **527/527 passed**, zero skipped, on Node 24.20.0 and the locked Pi 1.0.4 host. Existing BTW/pnpm/host changes were preserved. |
+| Source typecheck | Strict `noEmit` check passed using existing TypeScript 5.9.3 and a temporary `/tmp/pi-nan-tsconfig.json` mapping declarations to the locked host. No new compiler dependency or CI gate. |
+| Frozen install / packing / whitespace | `pnpm install --frozen-lockfile`, `pnpm pack --dry-run --ignore-scripts`, and `git diff --check` passed. The source and NAN guide are packed; tests, host modules, local state, and credentials are not. |
+
+Keys in tests are synthetic and native transport responses are mocked; no real NAN login, membership/quota validation, inference, visible TUI acceptance, hosted Node 22/Linux CI, commit, push, or publication was performed. The Git index remains empty. `/login nan` requires a user-provided dashboard API key; native login stores it locally without remote validation. Zero per-token rates cannot represent membership fees or quota. See [NAN operations](nan.md).
 
 ## Evidence boundaries
 

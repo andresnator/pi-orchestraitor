@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { copyFile, mkdir, readFile, rename, rm } from "node:fs/promises";
-import { basename, join } from "node:path";
+import { copyFile, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { basename, join, resolve } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
 import {
@@ -15,14 +15,15 @@ const EXPECTED_PROMPTS = ["absorb", "orchestraitor", "plan", "review"];
 const PROVENANCE = JSON.parse(await readFile(join(packageRoot, "docs/skills-provenance.json"), "utf8"));
 const EXPECTED_FILES = [
 	"LICENSE", "README.md", "THIRD_PARTY_NOTICES.md", "package.json",
-	"extensions/compact-tools.ts", "extensions/instructions.ts", "extensions/mcp.ts", "extensions/subagents.ts",
+	"extensions/compact-tools.ts", "extensions/instructions.ts", "extensions/mcp.ts", "extensions/nan.ts", "extensions/subagents.ts",
+	...["index", "context", "conversation", "markdown", "popup", "transcript", "types"].map((name) => `extensions/btw/${name}.ts`),
 	"extensions/skill-registry.ts", "extensions/skills/sources.mjs", "extensions/skills/registry.mjs", "extensions/skills/store.mjs", "extensions/skills/types.ts",
 	"extensions/status-ui.ts", "extensions/ui/display.ts", "extensions/ui/agents.ts", "extensions/ui/tasks.ts", "extensions/ui/questions.ts",
 	"extensions/subagent/child.mjs", "extensions/subagent/controller.mjs", "extensions/subagent/guard.mjs", "extensions/subagent/policy.mjs", "extensions/subagent/runtime.mjs",
 	"instructions/core.md", "instructions/orchestraitor.md", "instructions/personality.md",
 	"scripts/install-pi.mjs", "scripts/pi-host.mjs", "scripts/skill-migration.mjs", "scripts/check-personality.mjs", "scripts/bench.mjs",
 	"scripts/skill-inventory.mjs", "scripts/package-registration.mjs", "scripts/pretty-config.mjs",
-	"docs/usage.md", "docs/skills.md", "docs/skills-provenance.json", "docs/verification.md", "docs/subagents.md", "docs/interactive-ui.md", "docs/performance.md", "docs/pi-pretty.md",
+	"docs/btw.md", "docs/nan.md", "docs/usage.md", "docs/skills.md", "docs/skills-provenance.json", "docs/verification.md", "docs/subagents.md", "docs/interactive-ui.md", "docs/performance.md", "docs/pi-pretty.md",
 	"docs/architecture/execution.md", "docs/architecture/flows.md", "docs/architecture/index.md",
 	"licenses/Apache-2.0.txt", "licenses/MIT.txt", "licenses/mattpocock-MIT.txt", "licenses/humanlayer-MIT.txt",
 	...PROVENANCE.skills.flatMap((skill) => skill.resources.map(({ path }) => `skills/${skill.name}/${path}`)),
@@ -77,21 +78,29 @@ test("shouldLoadPromptsAndExtensionsWhenExplicitPackageBypassesDiscovery", async
 		prompts: loader.getPrompts().prompts.map(({ name }) => name).sort(),
 		skills: loader.getSkills().skills.length,
 	}, {
-		extensions: ["compact-tools.ts", "instructions.ts", "mcp.ts", "skill-registry.ts", "status-ui.ts", "subagents.ts"],
+		extensions: ["compact-tools.ts", "index.ts", "instructions.ts", "mcp.ts", "nan.ts", "skill-registry.ts", "status-ui.ts", "subagents.ts"],
 		errors: [], prompts: EXPECTED_PROMPTS, skills: 56,
 	});
 });
 
-test("shouldLoadOnlyPackagedResourcesWhenTarballIsExtractedElsewhere", async (t) => {
+for (const manager of ["pnpm", "npm"]) test(`shouldLoadOnlyPackagedResourcesWhen${manager}TarballIsExtractedElsewhere`, async (t) => {
 	// Given
 	const cwd = await createWorkspace(t);
-	const packed = JSON.parse(execFileSync("npm", ["pack", "--ignore-scripts", "--json", "--pack-destination", cwd], {
+	const packing = JSON.parse(execFileSync(manager, ["pack", "--ignore-scripts", "--json", "--pack-destination", cwd], {
 		cwd: packageRoot, encoding: "utf8", env: { ...process.env, npm_config_cache: join(cwd, "npm-cache") },
-	}))[0];
-	execFileSync("tar", ["-xzf", join(cwd, packed.filename), "-C", cwd]);
+	}));
+	const packed = Array.isArray(packing) ? packing[0] : packing;
+	execFileSync("tar", ["-xzf", resolve(cwd, packed.filename), "-C", cwd]);
 	const modules = join(cwd, "node_modules"); await mkdir(modules);
 	const extracted = join(modules, "harness package with spaces");
 	await rename(join(cwd, "package"), extracted);
+	// Provision only locked runtime dependencies, offline and without installing host peers.
+	for (const file of ["pnpm-lock.yaml", "pnpm-workspace.yaml"]) {
+		await copyFile(join(packageRoot, file), join(extracted, file));
+	}
+	execFileSync("pnpm", ["install", "--prod", "--offline", "--frozen-lockfile", "--ignore-scripts"], {
+		cwd: extracted, encoding: "utf8", timeout: 30000,
+	});
 	const workspace = join(cwd, "consumer");
 	await mkdir(workspace);
 	// When
@@ -118,12 +127,15 @@ test("shouldLoadOnlyPackagedResourcesWhenTarballIsExtractedElsewhere", async (t)
 		theme: resources.settingsManager.getTheme(),
 		dependencies: manifest.dependencies,
 		peers: manifest.peerDependencies,
+		nanProvider: session.modelRuntime.getProvider("nan")?.name,
+		nanModels: session.modelRuntime.getModels("nan").map(({ id }) => id),
 	}, {
 		files: EXPECTED_FILES, errors: [], prompts: EXPECTED_PROMPTS,
 		skills: PROVENANCE.skills.map(({ name }) => name).sort(), skillDiagnostics: [],
 		active: ["read", "bash", "edit", "write", "subagent_run", "orchestraitor_tasks", "orchestraitor_ask", "skill_registry"], prefix: "Host instructions",
-		preservedSection: "Project-specific instructions", theme: "system", dependencies: undefined,
-		peers: { "@earendil-works/pi-coding-agent": "*", "@earendil-works/pi-tui": "*", typebox: "*" },
+		preservedSection: "Project-specific instructions", theme: "system", dependencies: { "beautiful-mermaid": "1.1.3" },
+		peers: { "@earendil-works/pi-ai": "*", "@earendil-works/pi-coding-agent": "*", "@earendil-works/pi-tui": "*", typebox: "*" },
+		nanProvider: "NaN", nanModels: ["deepseek-v4-flash", "glm5.3-flash", "qwen3.8-flash", "mimo-v2.6-flash", "gemma4", "qwen3.6", "glm5.3"],
 	});
 	// Native extensions must work under node_modules, including spaces.
 	assert.ok(packed.files.every(({ path }) => !path.startsWith("herdr/") && !path.includes("workbench")));
@@ -149,6 +161,24 @@ test("shouldLoadOnlyPackagedResourcesWhenTarballIsExtractedElsewhere", async (t)
 	for (const file of EXPECTED_FILES) {
 		assert.doesNotMatch(await readFile(join(extracted, file), "utf8"), /\/Users\/sopra\/|\/opt\/homebrew\//);
 	}
+});
+
+test("shouldRegisterBtwOnceWhenStandaloneCopyIsExcluded", async (t) => {
+	// Given
+	const cwd = await createWorkspace(t);
+	const original = join(isolatedAgentDir, "extensions/btw");
+	await mkdir(original, { recursive: true });
+	await writeFile(join(original, "index.ts"), `export default function(pi) {
+		pi.registerCommand("btw", { description: "Standalone fixture", handler: async () => {} });
+	}`);
+	t.after(() => rm(original, { recursive: true, force: true }));
+	// When
+	const resources = await loadPackage(cwd, { settings: { extensions: [`-${join(original, "index.ts")}`] } });
+	const loaded = resources.loader.getExtensions();
+	const owners = loaded.extensions.filter((extension) => extension.commands.has("btw"));
+	// Then
+	assert.deepEqual({ paths: owners.map(({ path }) => path), errors: loaded.errors },
+		{ paths: [join(packageRoot, "extensions/btw/index.ts")], errors: [] });
 });
 
 test("shouldAvoidDoubleRegistrationWhenOriginalGlobalExtensionIsExcluded", async (t) => {

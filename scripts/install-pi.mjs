@@ -9,7 +9,7 @@ import { inventorySkills } from "./skill-inventory.mjs";
 import { applyMigration, exists, planMigration, restoreBackup } from "./skill-migration.mjs";
 
 const PACKAGE_ROOT = fileURLToPath(new URL("../", import.meta.url));
-const HELP = "Usage: npm run install:pi -- [--local] [--cwd <project>] [--without-pretty] [--dry-run]\n       npm run install:pi -- --restore <backup-directory> [--dry-run]";
+const HELP = "Usage: pnpm run install:pi [--local] [--cwd <project>] [--without-pretty] [--dry-run]\n       pnpm run install:pi --restore <backup-directory> [--dry-run]";
 
 async function main() {
 	const options = parseOptions(process.argv.slice(2));

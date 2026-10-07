@@ -34,14 +34,19 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           package-manager-cache: false
-      - name: Install pinned Pi host
-        run: |
-          npm install --global @earendil-works/pi-coding-agent@1.0.4
-          echo "PI_TEST_PACKAGE_DIR=$(npm root --global)/@earendil-works/pi-coding-agent" >> "$GITHUB_ENV"
-          pi --version
+      - name: Set up pinned pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          run_install: false
+      - name: Install locked development host
+        run: pnpm install --frozen-lockfile
+      - name: Verify local Pi version
+        run: pnpm exec pi --version
       - name: Run deterministic tests
-        run: npm test
+        run: pnpm test
       - name: Check package inventory
-        run: npm pack --dry-run --ignore-scripts
+        run: pnpm pack --dry-run --ignore-scripts
+      - name: Check lockfile and policy stay unchanged
+        run: git diff --exit-code -- pnpm-lock.yaml pnpm-workspace.yaml
       - name: Check whitespace
         run: git show --format= --check HEAD
