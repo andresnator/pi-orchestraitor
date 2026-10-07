@@ -46,7 +46,7 @@ test("shouldUseFrozenLocalHostAndPinnedActionsWhenCiRuns", async () => {
 	assert.deepEqual(workflow.permissions, { contents: "read" });
 	assert.equal(actions.length, 3);
 	assert.ok(actions.every(({ uses }) => /@[a-f0-9]{40}$/.test(uses)));
-	assert.equal(actions[0].with["persist-credentials"], false);
+	assert.deepEqual(actions[0].with, { "persist-credentials": false, "fetch-depth": 2 });
 	assert.equal(actions[1].with["package-manager-cache"], false);
 	assert.equal(actions[2].with.run_install, false);
 });
