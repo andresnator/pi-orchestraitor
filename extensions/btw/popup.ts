@@ -2,6 +2,7 @@ import type { KeybindingsManager, Theme } from "@earendil-works/pi-coding-agent"
 import { Container, CURSOR_MARKER, Editor, Input, matchesKey, ScrollView, stripTerminalSequences, truncateToWidth, type Component, type Focusable, type TUI, type TuiMouseEvent } from "@earendil-works/pi-tui";
 import { LOADING_TEXT, SideConversation } from "./conversation.ts";
 import { BtwMarkdown } from "./markdown.ts";
+import { fitParts, formatThinking, progressParts, thinkingPreview, type StatusPart } from "./status.ts";
 import { selectTranscript } from "./transcript.ts";
 
 export const POPUP_HEIGHT_RATIO = 0.7;
@@ -10,9 +11,22 @@ export const POPUP_BORDER_COLUMNS = 2;
 export const MAX_EDITOR_ROWS = 3;
 export const MIN_EDITOR_COLUMNS = 3;
 const MARKDOWN_VIEWS_PER_TURN = 3;
+// Reasoning previews render literally, so partial markup cannot restyle the panel.
+const MARKDOWN_SYNTAX = /[\\`*_[\]#<>|~]/g;
 export const WELCOME_TEXT = "Ask a question. BTW uses Pi's model and is discarded on close. Only /bring returns content to the main conversation.";
-export const FOOTER_HELP = "Enter: send · Ctrl+F: search · /bring: import · Ctrl+Q: close and discard";
+// Narrow panels drop numbered hints first, highest number first; sending and closing always show.
+const IDLE_HINTS: StatusPart[] = [
+	{ text: "Enter: send" }, { text: "Shift+Tab: thinking", priority: 1 }, { text: "Ctrl+F: search", priority: 2 },
+	{ text: "/bring: import", priority: 3 }, { text: "Ctrl+Q: close and discard" },
+];
+const BUSY_HINTS: StatusPart[] = [
+	{ text: "Esc: cancel" }, { text: "Enter: queue", priority: 1 }, { text: "Ctrl+T: thinking preview", priority: 2 }, { text: "Ctrl+Q: close and discard" },
+];
+export const FOOTER_HELP = IDLE_HINTS.map(hint => hint.text).join(" · ");
+export const BUSY_HELP = BUSY_HINTS.map(hint => hint.text).join(" · ");
 export const LATEST_CONTROL = "↓ latest answer";
+/** Keeps elapsed time and speed current while a request runs. */
+export const STATUS_TICK_MS = 250;
 
 export class BtwPopup implements Component, Focusable {
 	focused = true;
@@ -32,6 +46,8 @@ export class BtwPopup implements Component, Focusable {
 	private editorColumnOffset = 0;
 	private footerTop = 0;
 	private statusMessage = "";
+	private showThinking = true;
+	private ticker?: ReturnType<typeof setInterval>;
 
 	constructor(
 		private readonly tui: TUI,
@@ -51,7 +67,17 @@ export class BtwPopup implements Component, Focusable {
 		});
 		this.editor.onSubmit = text => { void this.submit(text); };
 		this.editor.onChange = () => tui.requestRender();
-		this.conversation.onChange = () => tui.requestRender();
+		this.conversation.onChange = () => { this.syncTicker(); tui.requestRender(); };
+	}
+
+	private syncTicker(): void {
+		if (this.conversation.busy && !this.disposed) {
+			this.ticker ??= setInterval(() => this.tui.requestRender(), STATUS_TICK_MS);
+			this.ticker.unref?.();
+		} else {
+			clearInterval(this.ticker);
+			this.ticker = undefined;
+		}
 	}
 
 	async submit(question: string): Promise<void> {
@@ -75,10 +101,11 @@ export class BtwPopup implements Component, Focusable {
 	private refreshConversation(): void {
 		// Independent documents prevent an unfinished fence from consuming another message.
 		// Each view retains its cache across streaming updates and followups.
+		const latest = this.conversation.turns.length - 1;
 		this.conversation.turns.forEach((turn, index) => {
 			const messages = [
 				`### Question ${index + 1}\n${turn.question}\n\n`,
-				`### Assistant\n${turn.answer || (turn.note ? "" : LOADING_TEXT)}\n\n`,
+				`### Assistant\n${turn.answer || (turn.note ? "" : this.placeholder(index === latest))}\n\n`,
 				[turn.note ? `> ${turn.note}` : "", "---"].filter(Boolean).join("\n\n"),
 			];
 			messages.forEach((text, messageIndex) => {
@@ -91,10 +118,20 @@ export class BtwPopup implements Component, Focusable {
 		this.transcript.children = [...this.turnViews, this.pendingView];
 	}
 
+	/** Pending answer text: the request's phase, or its latest reasoning when the preview is on. */
+	private placeholder(latest: boolean): string {
+		const progress = latest ? this.conversation.progress : undefined;
+		if (progress?.phase !== "thinking") return LOADING_TEXT;
+		const preview = this.showThinking ? thinkingPreview(progress.thinking).replace(MARKDOWN_SYNTAX, "\\$&") : "";
+		return preview ? `> ${preview}` : "Thinking…";
+	}
+
 	handleInput(data: string): void {
 		if (this.disposed) return;
 		if (matchesKey(data, "ctrl+q")) { this.close(); return; }
 		if (matchesKey(data, "ctrl+f")) { this.searching = !this.searching; this.tui.requestRender(); return; }
+		if (matchesKey(data, "shift+tab")) { this.conversation.cycleThinking(); this.tui.requestRender(); return; }
+		if (matchesKey(data, "ctrl+t")) { this.showThinking = !this.showThinking; this.tui.requestRender(); return; }
 		if (this.searching) {
 			if (matchesKey(data, "escape")) this.searching = false;
 			else if (matchesKey(data, "enter") || matchesKey(data, "ctrl+g")) this.searchIndex++;
@@ -184,12 +221,18 @@ export class BtwPopup implements Component, Focusable {
 			this.searching && this.searchMatches.includes(this.scroll.scrollTop + offset) ? this.theme.fg("warning", stripTerminalSequences(line)) : line);
 		const border = (text: string) => this.theme.fg("border", text);
 		const row = (text: string) => border("│") + truncateToWidth(text, innerWidth, "", true) + border("│");
-		const pending = this.conversation.pending.length ? ` · ${this.conversation.pending.length} queued` : "";
-		const title = ` /btw · ${this.conversation.status}${pending} · temporary `;
+		// Request details give way first, so the phase, queue, and thinking level stay visible.
+		const [phase, ...details] = progressParts(this.conversation.progress, Date.now());
+		const queued = this.conversation.pending.length ? [{ text: `${this.conversation.pending.length} queued` }] : [];
+		const thinking = formatThinking(this.conversation.thinking, this.conversation.thinkingLevel);
+		const title = ` ${fitParts([
+			{ text: "/btw" }, { text: phase }, ...details.map((text, index) => ({ text, priority: index })), ...queued, { text: `think ${thinking}` },
+		], innerWidth - 2)} `;
 		this.editorTop = bodyHeight + 2;
 		this.footerTop = this.editorTop + editorLines.length;
 		const searchInfo = this.searching ? ` · ${this.searchMatches.length ? this.searchIndex + 1 : 0}/${this.searchMatches.length} · Enter/Shift+Enter` : "";
-		const help = `${LATEST_CONTROL}${searchInfo} · ${this.statusMessage || FOOTER_HELP}`;
+		const hints = this.statusMessage ? [{ text: this.statusMessage }] : this.conversation.busy ? BUSY_HINTS : IDLE_HINTS;
+		const help = fitParts([{ text: `${LATEST_CONTROL}${searchInfo}` }, ...hints], innerWidth);
 		return [
 			border("╭") + truncateToWidth(this.theme.fg("accent", title), innerWidth, "", true) + border("╮"),
 			...visible.map(row), ...Array.from({ length: bodyHeight - visible.length }, () => row("")),
@@ -204,6 +247,7 @@ export class BtwPopup implements Component, Focusable {
 		if (this.disposed) return;
 		this.disposed = true;
 		this.focused = false;
+		this.syncTicker();
 		this.conversation.dispose();
 		this.editor.onSubmit = undefined;
 		this.editor.onChange = undefined;

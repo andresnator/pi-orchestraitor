@@ -1,14 +1,19 @@
 import { randomUUID } from "node:crypto";
-import { clampThinkingLevel, type AssistantMessage, type Context, type Message } from "@earendil-works/pi-ai";
+import { clampThinkingLevel, type AssistantMessage, type Context, type Message, type ModelThinkingLevel } from "@earendil-works/pi-ai";
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import type { SideTurn } from "./types.ts";
+import { SIDE_QUESTION_INSTRUCTIONS } from "./context.ts";
+import type { SidePhase, SideProgress, SideThinking, SideTurn } from "./types.ts";
 
 export const LOADING_TEXT = "Consulting the context…";
 export const EMPTY_RESPONSE_TEXT = "The model returned no text response.";
 export const TRUNCATED_RESPONSE_TEXT = "The response reached the model's output limit.";
 export const CANCELLED_RESPONSE_TEXT = "Response cancelled.";
 export const FAILED_RESPONSE_TEXT = "The request could not be completed.";
+export const TOOL_REQUEST_TEXT = "The model asked to run a tool. BTW never runs tools; ask it to answer from the context.";
 export const CHAT_STATUS = { ready: "Ready", responding: "Responding", cancelled: "Cancelled", error: "Error" } as const;
+/** Shift+Tab order. Low keeps side answers fast; inherit follows the parent. */
+export const SIDE_THINKING_LEVELS: readonly SideThinking[] = ["off", "low", "inherit"];
+export const DEFAULT_SIDE_THINKING: SideThinking = "low";
 
 export class SideConversation {
 	private readonly sessionId = randomUUID();
@@ -19,6 +24,8 @@ export class SideConversation {
 	private queue: string[] = [];
 	onChange: () => void = () => {};
 	status: string = CHAT_STATUS.ready;
+	thinking: SideThinking = DEFAULT_SIDE_THINKING;
+	progress?: SideProgress;
 
 	constructor(
 		private readonly ctx: ExtensionCommandContext,
@@ -30,6 +37,19 @@ export class SideConversation {
 	get turns(): readonly SideTurn[] { return this.sideTurns; }
 	get pending(): readonly string[] { return this.queue; }
 
+	/** Level the next request sends, after inheritance and the current model's limits. */
+	get thinkingLevel(): ModelThinkingLevel {
+		const model = this.ctx.model;
+		if (!model || model.reasoning === false) return "off";
+		return clampThinkingLevel(model, this.thinking === "inherit" ? this.ctx.thinkingLevel ?? "off" : this.thinking);
+	}
+
+	cycleThinking(): void {
+		if (this.disposed) return;
+		this.thinking = SIDE_THINKING_LEVELS[(SIDE_THINKING_LEVELS.indexOf(this.thinking) + 1) % SIDE_THINKING_LEVELS.length];
+		this.onChange();
+	}
+
 	async send(question: string): Promise<void> {
 		question = question.trim();
 		if (this.disposed || !question) return;
@@ -40,62 +60,73 @@ export class SideConversation {
 		}
 		const controller = new AbortController();
 		const turn: SideTurn = { question, answer: "" };
+		const progress: SideProgress = { phase: "sending", startedAt: Date.now(), answerChars: 0, thinking: "" };
 		this.request = controller;
+		this.progress = progress;
 		this.sideTurns.push(turn);
-		this.history.push({ role: "user", content: [{ type: "text", text: question }], timestamp: Date.now() });
+		// Instructions travel once with the first question; later requests extend the same prefix.
+		const instructions = this.history.length ? [] : [{ type: "text" as const, text: SIDE_QUESTION_INSTRUCTIONS }];
+		this.history.push({ role: "user", content: [...instructions, { type: "text", text: question }], timestamp: Date.now() });
 		this.status = CHAT_STATUS.responding;
 		this.onChange();
 
 		try {
 			const model = this.ctx.model;
 			if (!model) throw new Error("Select a model before using /btw.");
-			const thinking = clampThinkingLevel(model, this.ctx.thinkingLevel ?? "off");
+			const reasoning = this.thinkingLevel;
 			const stream = this.ctx.modelRegistry.streamSimple(model, {
 				...this.context,
 				messages: structuredClone([...this.context.messages, ...this.history]),
-				tools: [],
 			}, {
 				signal: controller.signal,
 				// Side turns share an identity, never the main session's identity.
+				// The provider's default retention applies, as for the parent's requests.
 				sessionId: this.sessionId,
-				cacheRetention: "none",
-				reasoning: thinking === "off" || model.reasoning === false ? undefined : thinking,
+				reasoning: reasoning === "off" ? undefined : reasoning,
 			});
 			for await (const event of stream) {
 				if (!this.isCurrent(controller)) return;
-				if (event.type === "text_delta") {
+				if (event.type === "thinking_start" || event.type === "thinking_delta") {
+					if (progress.firstTextAt === undefined) progress.phase = "thinking";
+					progress.thinking = extractThinking(event.partial);
+					this.onChange();
+				} else if (event.type === "text_delta") {
+					progress.phase = "streaming";
+					progress.firstTextAt ??= Date.now();
 					turn.answer = extractText(event.partial);
+					progress.answerChars = turn.answer.length;
 					this.onChange();
 				} else if (event.type === "done") {
-					turn.answer = extractText(event.message) || EMPTY_RESPONSE_TEXT;
-					if (event.reason === "toolUse" || event.reason === "deferred") {
-						turn.note = FAILED_RESPONSE_TEXT;
-						this.status = CHAT_STATUS.error;
-					} else {
-						// Replay text only: no tools, thinking signatures, or provider continuation handles.
+					const text = extractText(event.message);
+					const toolRequest = event.reason === "toolUse" || event.reason === "deferred";
+					turn.answer = text || (toolRequest ? "" : EMPTY_RESPONSE_TEXT);
+					progress.usage = event.message.usage;
+					if (toolRequest) turn.note = TOOL_REQUEST_TEXT;
+					else if (event.reason === "length") turn.note = TRUNCATED_RESPONSE_TEXT;
+					// Replay text only: no tool calls, thinking signatures, or provider continuation handles.
+					if (turn.answer) {
 						this.history.push({
 							...event.message,
 							content: [{ type: "text", text: turn.answer }],
 							responseId: undefined,
 							deferred: undefined,
 						});
-						if (event.reason === "length") turn.note = TRUNCATED_RESPONSE_TEXT;
-						this.status = CHAT_STATUS.ready;
 					}
+					this.finish(progress, "done", CHAT_STATUS.ready);
 				} else if (event.type === "error") {
 					turn.note = event.error.errorMessage || FAILED_RESPONSE_TEXT;
-					this.status = CHAT_STATUS.error;
+					this.finish(progress, "error", CHAT_STATUS.error);
 				}
 			}
 		} catch (error) {
 			if (!this.isCurrent(controller)) return;
 			turn.note = error instanceof Error ? error.message : String(error);
-			this.status = CHAT_STATUS.error;
+			this.finish(progress, "error", CHAT_STATUS.error);
 		} finally {
 			if (this.isCurrent(controller)) {
 				if (this.status === CHAT_STATUS.responding) {
 					turn.note = FAILED_RESPONSE_TEXT;
-					this.status = CHAT_STATUS.error;
+					this.finish(progress, "error", CHAT_STATUS.error);
 				}
 				this.request = undefined;
 				// Failed requests must not leave an invisible, paused queue.
@@ -107,6 +138,12 @@ export class SideConversation {
 		}
 	}
 
+	private finish(progress: SideProgress, phase: SidePhase, status: string): void {
+		progress.phase = phase;
+		progress.endedAt = Date.now();
+		this.status = status;
+	}
+
 	private isCurrent(controller: AbortController): boolean {
 		return !this.disposed && this.request === controller;
 	}
@@ -116,7 +153,8 @@ export class SideConversation {
 		this.request.abort();
 		this.request = undefined;
 		this.sideTurns[this.sideTurns.length - 1].note = CANCELLED_RESPONSE_TEXT;
-		this.status = CHAT_STATUS.cancelled;
+		if (this.progress) this.finish(this.progress, "cancelled", CHAT_STATUS.cancelled);
+		else this.status = CHAT_STATUS.cancelled;
 		this.queue = [];
 		this.onChange();
 	}
@@ -129,6 +167,7 @@ export class SideConversation {
 		this.history = [];
 		this.sideTurns = [];
 		this.queue = [];
+		this.progress = undefined;
 		this.onChange = () => {};
 		this.context.messages = [];
 		this.context.systemPrompt = undefined;
@@ -138,4 +177,8 @@ export class SideConversation {
 
 function extractText(message: AssistantMessage): string {
 	return message.content.filter((block) => block.type === "text").map((block) => block.text).join("\n");
+}
+
+function extractThinking(message: AssistantMessage): string {
+	return message.content.filter((block) => block.type === "thinking").map((block) => block.thinking).join("\n");
 }
