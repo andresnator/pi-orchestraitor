@@ -31,6 +31,7 @@ const METHOD = [
 	"Usage is summed once from assistant messages, usage entries, compaction/branch summaries and top-level tool-result usage. details.results usage only attributes that aggregate and is never added.",
 	"Incomplete accounting (usageComplete false, invalid usage or uncollected background readers) makes totals a lower bound, never a zero. A background child left pending in one selected session counts as collected when another, such as a fork, collects it.",
 	"--since/--until select entries by their own timestamp; usage belongs to the entry that reports it, so a background child collected after --until counts in the later window.",
+	"Every counted assistant request is a turn; per-turn usage, cost and cache figures divide by the turns that recorded valid usage.",
 	"Model time is Pi's durationMs or, in logs written before Pi recorded it, the assistant entry time minus the request start (message.timestamp). Tool time exists only where Pi recorded durationMs; timedResults counts those results.",
 	"Sessions are read oldest first. A fork copies its parent's entries with their ids and timestamps; a copy counts only when no older selected session holds it, and is otherwise replayed as state only.",
 	"Cache misses follow Pi's cache-stats rule along each request's parentId branch rather than file order. Cold starts after session start, compaction or branch summary are reported separately.",
@@ -153,7 +154,7 @@ function createReport(options) {
 		sources: { files: 0, sessions: 0, forks: 0, entries: 0, inheritedEntries: 0, invalidLines: 0 },
 		usage: { total: emptyUsage(), complete: true, assistant: emptyUsage(), usageEntries: {}, summaries: {}, toolResults: {},
 			incomplete: { invalidUsage: 0, receipts: 0, children: 0, uncollected: 0 } },
-		turns: { assistant: 0, user: 0, perUserMessage: null }, models: {},
+		turns: { assistant: 0, withUsage: 0, user: 0, perUserMessage: null }, models: {},
 		cache: { misses: { count: 0, missedTokens: 0, missedCost: 0, byCause: {} }, coldStarts: {}, transitions: {} },
 		ceremony: { only: {}, batchedTurns: 0, calls: {} }, tools: {},
 		codemode: { results: 0, characters: 0, estimatedTokens: 0, perTurnEstimatedTokens: null, bySource: {}, multiSource: { results: 0, characters: 0 },
@@ -216,17 +217,30 @@ function recordAssistant(report, node, message, counted, track) {
 		price.cost += num(usage.cost?.cacheRead);
 	}
 	if (!counted) return;
-	if (!validUsage(usage)) { report.usage.incomplete.invalidUsage++; return; }
+	// A request without valid usage still counts as a turn; usage averages divide by the turns with usage.
+	const valid = validUsage(usage);
+	if (!valid) report.usage.incomplete.invalidUsage++;
 	const names = toolCalls.map(call => label(call.name));
-	addUsage(report.usage.assistant, usage);
 	report.turns.assistant++;
-	const model = bucket(report.models, modelKey, () => ({ turns: 0, timedTurns: 0, durationMs: 0, toolCalls: 0, codemodeCharacters: 0, usage: emptyUsage() }));
+	const model = bucket(report.models, modelKey, () => ({ turns: 0, usageTurns: 0, timedTurns: 0, durationMs: 0, toolCalls: 0, codemodeCharacters: 0, usage: emptyUsage() }));
 	model.turns++;
 	model.toolCalls += names.length;
-	addUsage(model.usage, usage);
 	const durationMs = durationOf(node.entry, message);
 	if (durationMs !== undefined) { model.timedTurns++; model.durationMs += durationMs; }
 	for (const name of names) bucket(report.tools, name, newTool).calls++;
+	const ceremony = names.filter(isCeremony);
+	for (const name of ceremony) report.ceremony.calls[name] = (report.ceremony.calls[name] ?? 0) + 1;
+	if (names.length && ceremony.length === names.length) {
+		const kind = ceremony.every(name => name === TASKS_TOOL) ? "tasks" : ceremony.every(name => name.startsWith("mem_")) ? "memory" : "mixed";
+		const record = bucket(report.ceremony.only, kind, () => ({ turns: 0, cost: 0, durationMs: 0, byModel: {} }));
+		const byModel = bucket(record.byModel, modelKey, () => ({ turns: 0, cost: 0, durationMs: 0 }));
+		for (const target of [record, byModel]) { target.turns++; target.cost += valid ? num(usage.cost?.total) : 0; target.durationMs += durationMs ?? 0; }
+	} else if (ceremony.length) report.ceremony.batchedTurns++;
+	if (!valid) return;
+	report.turns.withUsage++;
+	model.usageTurns++;
+	addUsage(report.usage.assistant, usage);
+	addUsage(model.usage, usage);
 	const event = classify(node.parent?.state ?? START, message);
 	if (event?.cold) {
 		const cold = bucket(report.cache.coldStarts, event.cold, () => ({ count: 0, uncachedTokens: 0, uncachedCost: 0 }));
@@ -239,14 +253,6 @@ function recordAssistant(report, node, message, counted, track) {
 		if (event.miss) { transition.misses++; track.misses.push(event.miss); }
 		if (event.idle) { transition.idleRequests++; if (event.miss) transition.idleMisses++; }
 	}
-	const ceremony = names.filter(isCeremony);
-	for (const name of ceremony) report.ceremony.calls[name] = (report.ceremony.calls[name] ?? 0) + 1;
-	if (names.length && ceremony.length === names.length) {
-		const kind = ceremony.every(name => name === TASKS_TOOL) ? "tasks" : ceremony.every(name => name.startsWith("mem_")) ? "memory" : "mixed";
-		const record = bucket(report.ceremony.only, kind, () => ({ turns: 0, cost: 0, durationMs: 0, byModel: {} }));
-		const byModel = bucket(record.byModel, modelKey, () => ({ turns: 0, cost: 0, durationMs: 0 }));
-		for (const target of [record, byModel]) { target.turns++; target.cost += num(usage.cost?.total); target.durationMs += durationMs ?? 0; }
-	} else if (ceremony.length) report.ceremony.batchedTurns++;
 	const prompt = promptOf(usage);
 	if (prompt <= 0) return;
 	const price = promptCost(usage) / prompt;
@@ -351,7 +357,8 @@ function finalize(report, track) {
 	for (const model of Object.values(report.models)) {
 		const prompt = promptOf(model.usage);
 		model.cacheHitRatio = prompt ? model.usage.cacheRead / prompt : null;
-		model.perTurn = { cost: model.usage.cost.total / model.turns, promptTokens: prompt / model.turns, outputTokens: model.usage.output / model.turns,
+		const priced = value => (model.usageTurns ? value / model.usageTurns : null);
+		model.perTurn = { cost: priced(model.usage.cost.total), promptTokens: priced(prompt), outputTokens: priced(model.usage.output),
 			durationMs: model.timedTurns ? model.durationMs / model.timedTurns : null, codemodeEstimatedTokens: model.codemodeCharacters / 4 / model.turns };
 	}
 	for (const tool of Object.values(report.tools)) tool.estimatedTokens = tool.resultCharacters / 4;
@@ -430,7 +437,8 @@ async function buildReport(options) {
 const changeOf = (before, after) => ({ before: before ?? null, after: after ?? null,
 	changePercent: Number.isFinite(before) && Number.isFinite(after) && before !== 0 ? 100 * (after / before - 1) : null });
 function headline(report) {
-	const turns = report.turns.assistant, perTurn = value => (turns ? value / turns : null);
+	// Reports without withUsage counted only turns with valid usage.
+	const turns = report.turns.assistant, withUsage = report.turns.withUsage ?? turns, perTurn = value => (withUsage ? value / withUsage : null);
 	const per100 = value => (turns ? (100 * value) / turns : null), rate = record => (record?.requests ? record.misses / record.requests : null);
 	return {
 		costPerTurn: perTurn(report.usage.total.cost.total),
@@ -456,8 +464,9 @@ function compareReports(before, report) {
 }
 
 function summary(report) {
-	const money = value => `$${num(value).toFixed(Math.abs(num(value)) < 1 ? 3 : 2)}`;
-	const tokens = value => (value >= 1e6 ? `${(value / 1e6).toFixed(2)}M` : value >= 1e3 ? `${(value / 1e3).toFixed(1)}k` : String(Math.round(num(value))));
+	// A model whose turns all lack valid usage has no per-turn averages.
+	const money = value => (Number.isFinite(value) ? `$${value.toFixed(Math.abs(value) < 1 ? 3 : 2)}` : "n/a");
+	const tokens = value => (!Number.isFinite(value) ? "n/a" : value >= 1e6 ? `${(value / 1e6).toFixed(2)}M` : value >= 1e3 ? `${(value / 1e3).toFixed(1)}k` : String(Math.round(value)));
 	const percent = value => (Number.isFinite(value) ? `${(100 * value).toFixed(1)}%` : "n/a");
 	const { total } = report.usage, turns = report.turns.assistant, lines = [];
 	lines.push(`Pi usage report v${report.version} (metadata only; estimated tokens = characters/4)`);

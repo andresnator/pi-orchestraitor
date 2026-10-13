@@ -177,6 +177,28 @@ test("shouldReportALowerBoundWhenChildOrMessageUsageIsIncomplete", async (t) => 
 	assert.match(human, /lower bound: incomplete accounting/);
 });
 
+test("shouldCountTheTurnButAverageOnlyRecordedUsageWhenAnAssistantMessageHasInvalidUsage", async (t) => {
+	// Given
+	const dir = await createWorkspace(t);
+	const log = session();
+	log.add(user());
+	log.add(assistant(1_000, 0));
+	log.add(user());
+	log.add(assistant(0, 0, { usage: { input: "unknown" }, content: [call("t1", "orchestraitor_tasks", {})] }));
+	log.add(result("t1", "orchestraitor_tasks", "{}"));
+	log.add(assistant(3_000, 0));
+	await write(join(dir, "invalid.jsonl"), log);
+	// When
+	const json = report(dir);
+	// Then
+	const model = json.models["test/model-a"];
+	assert.deepEqual({ turns: json.turns, model: [model.turns, model.usageTurns, model.toolCalls, model.perTurn.promptTokens],
+		tasks: [json.tools.orchestraitor_tasks.calls, json.tools.orchestraitor_tasks.results, json.ceremony.only.tasks.turns],
+		invalidUsage: json.usage.incomplete.invalidUsage, input: json.usage.total.input }, {
+		turns: { assistant: 3, withUsage: 2, user: 2, perUserMessage: 1.5 }, model: [3, 2, 1, 2_000], tasks: [1, 1, 1], invalidUsage: 1, input: 4_000,
+	});
+});
+
 test("shouldCountOnlyEntriesInsideTheWindowWhenSinceAndUntilAreGiven", async (t) => {
 	// Given
 	const dir = await createWorkspace(t);
