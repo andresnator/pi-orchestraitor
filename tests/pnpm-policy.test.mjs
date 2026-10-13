@@ -23,7 +23,9 @@ test("shouldLockDevelopmentHostAndDenyUnreviewedBuildsWhenPnpmInstalls", async (
 	assert.deepEqual({ manager: manifest.packageManager, host: manifest.devDependencies[HOST_NAME], runtime: manifest.dependencies,
 		peer: manifest.peerDependencies[HOST_NAME], private: manifest.private },
 		{ manager: "pnpm@12.9.1", host: "1.2.0", runtime: { "beautiful-mermaid": "1.1.3" }, peer: "*", private: true });
-	assert.deepEqual(policy, { autoInstallPeers: false, minimumReleaseAge: 1440, blockExoticSubdeps: true, strictDepBuilds: true,
+	assert.deepEqual(policy, { autoInstallPeers: false, minimumReleaseAge: 1440,
+		minimumReleaseAgeExclude: ["@earendil-works/pi-agent-core@1.2.0", "@earendil-works/pi-ai@1.2.0", "@earendil-works/pi-codemode@1.2.0", "@earendil-works/pi-coding-agent@1.2.0", "@earendil-works/pi-mcp@1.2.0", "@earendil-works/pi-telemetry@1.2.0", "@earendil-works/pi-tui@1.2.0"],
+		blockExoticSubdeps: true, strictDepBuilds: true,
 		allowBuilds: { "@google/genai@2.21.0": false, "esbuild@0.28.2": false, "protobufjs@7.6.6": false } });
 	assert.equal(projectLock.importers["."].devDependencies[HOST_NAME].specifier, "1.2.0");
 	assert.match(projectLock.importers["."].devDependencies[HOST_NAME].version, /^1\.2\.0(?:\(|$)/);
