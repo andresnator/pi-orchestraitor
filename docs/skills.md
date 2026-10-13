@@ -127,7 +127,7 @@ See [offline savings and limitations](performance.md) and [child resolution](sub
 | Dependency security checks | Relevant package tooling and advisory-service access; disclose unavailable checks. |
 | GitHub issues and PR inspection | Configured GitHub integration or authenticated `gh`; posting requires the user's publishing instruction. |
 | Jira artifact drafting | No Jira account needed for text drafts; a connected service is required for publishing. |
-| Current technical documentation | Context7, or installed version-compatible documentation when unavailable. |
+| Current technical documentation | Installed docs, types and source for installed packages, Pi included; Context7 for libraries that are not installed, disclosed when unavailable. |
 | Code graphs | Optional configured graph integration; normal source inspection is the fallback. No graph indexer is installed or launched. |
 | Knowledge-base publishing | Optional configured destination, with explicit publishing authorization. |
 

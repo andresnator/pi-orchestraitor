@@ -57,6 +57,17 @@ The maintainer's sessions from 2026-10-03 to 2026-10-13 are summarized privately
 
 On Node 24.20.0 / Pi 1.2.0 / macOS, seven benchmark rounds recorded package startup at 328.9 ms (native 250.5 ms). Prompt plus tool declarations measured 20,008 characters with lazy skills versus 36,365 with native headers.
 
+## Codemode output budget
+
+Codemode output carried the largest share of the baseline's paid prompt cost, so the package lowers its default cap and asks for narrower reads:
+
+- `extensions/context-budget.ts` adds `// @options: {"max_output_tokens": 8000}` to top-level codemode scripts the model issues without options. Pi's own default is 10,000 estimated tokens (characters/4). Above the cap, Pi keeps the start and end of the output, saves all of it to a temporary file and names that file in the result. `--orchestraitor-codemode-max-output N` sets another cap, and `0` keeps Pi's default. An invalid value is reported at session start and also keeps Pi's default.
+- The transcript keeps the script as the model wrote it; only the executed copy changes. Scripts with an options line, misplaced options (which Pi rejects), nested calls and other tools are left unchanged, and an unexpected input leaves the call as it is.
+- A blank or comment first line is replaced, so line numbers do not move. Otherwise the options line is added, and the frames in Pi's final `Script error:` block are moved back one line. The saved full output and stack traces that a script prints itself keep the shifted numbers, and first-line columns can differ from an unmodified run.
+- `extensions/instructions.ts` changes Pi's rule to read pi `.md` files completely into: list the headings first, then read the relevant sections completely. The rest of Pi's docs section, its paths and its position stay unchanged; if Pi rewords that rule, the section is left as Pi renders it. `instructions/core.md` prefers installed docs, types and source for installed packages, Pi included, and keeps Context7 for libraries that are not installed.
+
+These are hypotheses until measured. After a week of comparable work, run `pnpm run usage --since <merge date> --compare <baseline>` and compare per model and per turn: codemode output per turn should fall without more turns per task or repeated scripts. A lower cap, such as 6,000, cut more output when truncation was simulated over recorded results, but that simulation assumes the model behaves the same. Evaluate it as a separate, explicitly chosen cohort.
+
 ## Historical efficiency comparison
 
 Before removal of the optional workbench on 2026-10-05, Node 24.20.0 and Pi 1.0.2 on macOS, seven fresh-process rounds per configuration produced:

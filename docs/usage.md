@@ -89,10 +89,11 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 | Resource | Purpose |
 | --- | --- |
 | `extensions/compact-tools.ts` | Compact bash/edit/write/codemode presentation, plus a read fallback. Bash uses effective shell settings; conflicting owners are reported and blocked. Expand to inspect arguments, results and error explanations. |
+| `extensions/context-budget.ts` | Caps output of top-level codemode scripts that set no options at 8,000 estimated tokens; Pi saves the full output to a temporary file. `--orchestraitor-codemode-max-output N` sets another cap, and `0` keeps Pi's 10,000. The transcript keeps the original script. See the [codemode output budget](performance.md#codemode-output-budget). |
 | `@heyhuynhgiabuu/pi-pretty@0.6.30` | Separately installed companion: highlighted reads, FFF-backed find/grep, prompt editor and activity indicators. Its bash tool is disabled for harness ownership. |
 | `pi-claude-bridge@0.9.2` | Separately installed companion through `install:pi`; Claude Code bridge. Authentication and model selection remain user-controlled. |
 | `extensions/btw/index.ts` | Temporary 70% side-conversation panel; no tools or local history, explicit `/bring` imports only. |
-| `extensions/instructions.ts` | Adds core, execution, and personality sections while preserving Pi and project instructions. |
+| `extensions/instructions.ts` | Adds core, execution, and personality sections while preserving Pi and project instructions. Only Pi's docs rule changes, from reading whole files to reading the relevant sections. |
 | `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. |
 | `extensions/nan.ts` | Native NaN API-key login/environment fallback and seven documented chat models; no default changes or startup requests. |
 | `extensions/subagents.ts` | Model profiles, bounded sync/background readers, child guards, collection and native usage. |

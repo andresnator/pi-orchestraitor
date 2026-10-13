@@ -35,6 +35,7 @@
   "pi": {
     "extensions": [
       "./extensions/compact-tools.ts",
+      "./extensions/context-budget.ts",
       "./extensions/btw/index.ts",
       "./extensions/instructions.ts",
       "./extensions/mcp.ts",
