@@ -1,5 +1,5 @@
 import type { KeybindingsManager, Theme, ToolDefinition } from "@earendil-works/pi-coding-agent";
-import { Box, Input, ScrollView, SelectList, Text, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type TUI } from "@earendil-works/pi-tui";
+import { Input, getKeybindings, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type TUI } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import type { createUIOwner } from "../status-ui.ts";
 import { sanitizeDisplay } from "./display.ts";
@@ -11,10 +11,9 @@ export const QUESTION_TEXT_LIMIT = 1000;
 export const QUESTION_LABEL_LIMIT = 200;
 export const ANSWER_TEXT_LIMIT = 1000;
 const ID_LIMIT = 80;
-const CARD_FIXED_ROWS = 7;
 const CARD_NATIVE_LAYOUT_ROWS = 6; // Native footer, widget/status and chat spacing.
-const CARD_PADDING_COLUMNS = 4;
-const CARD_COMPACT_ROWS = 13;
+const CARD_MIN_BORDERED_WIDTH = 10;
+const LABEL_MAX_LINES = 2;
 type Question = { id: string; prompt: string; selection: "single" | "multiple"; options: { label: string; value: string }[]; required?: boolean; allowText?: boolean };
 type Answer = { id: string; values: string[]; text?: string };
 type Answered = { status: "answered"; answers: Answer[] };
@@ -105,135 +104,288 @@ export function createQuestionTool(owner: ReturnType<typeof createUIOwner>): Too
 	};
 }
 
-/** Native components own selection, editing and scrolling; this owns only form state. */
+type Row = { kind: "option" | "review"; index: number } | { kind: "text" | "submit" };
+type SelectAction = "tui.select.up" | "tui.select.down" | "tui.select.confirm" | "tui.select.cancel" | "tui.select.pageUp" | "tui.select.pageDown";
+type Color = Parameters<Theme["fg"]>[0];
+type Hint = { key: string; text: string; priority: number };
+const KEY_NAMES: Record<string, string> = { escape: "esc", up: "↑", down: "↓", left: "←", right: "→", pageUp: "pgup", pageDown: "pgdn" };
+const SGR = /\x1b\[[0-9;]*m/gu;
+const MOVES = new Set<SelectAction>(["tui.select.up", "tui.select.down", "tui.select.confirm"]);
+/** Fit sanitized plain text before styling, so truncation resets never end a row highlight early. */
+const clip = (value: string, max: number) => max <= 0 ? "" : visibleWidth(value) <= max ? value : truncateToWidth(value, max, "…").replace(SGR, "");
+const fit = (value: string, max: number) => { const clipped = clip(value, max); return clipped + " ".repeat(Math.max(0, max - visibleWidth(clipped))); };
+const paragraphs = (value: string) => sanitizeDisplay(value).split("\n").map((part) => part.replace(/\s+/gu, " ").trim()).filter((part, index, all) => part || all[index - 1]);
+
+/** Rows are drawn here so long labels wrap; native Input owns text editing and native keybindings own navigation. */
 export function createQuestionnaire(questions: Question[], tui: TUI, getTheme: () => Theme, keys: KeybindingsManager, done: (result: Outcome) => void) {
 	const drafts = questions.map((question): Answer => ({ id: question.id, values: [] }));
 	let questionIndex = 0;
-	let selectionIndex = 0;
+	let cursor = 0;
+	let promptTop = 0;
+	let promptPage = 1;
+	let promptMax = 0;
+	let returnToReview = false;
 	let editing = false;
 	let focused = false;
 	let disposed = false;
 	let finished = false;
-	let maxVisible = OPTION_LIMIT;
 	let warning = "";
-	let list: SelectList;
-	const input = new Input({ placeholder: "Write an answer" });
-	const prompt = new Text("", 0, 0);
-	const scroll = new ScrollView(prompt, { scrollbar: "hidden", follow: "none" });
+	const input = new Input({ prompt: "", placeholder: "Type your answer", placeholderStyle: (value) => getTheme().fg("dim", value) });
 	const review = () => questionIndex >= questions.length;
+	const answered = (index: number) => drafts[index].values.length > 0 || drafts[index].text !== undefined;
+	const missing = () => questions.filter((question, index) => question.required !== false && !answered(index));
+	const rows = (): Row[] => review() ? [...questions.map((_, index) => ({ kind: "review" as const, index })), { kind: "submit" as const }]
+		: [...questions[questionIndex].options.map((_, index) => ({ kind: "option" as const, index })), ...(questions[questionIndex].allowText ? [{ kind: "text" as const }] : [])];
+	// Cancel and paging follow the configured manager; movement and confirm also read Pi's global bindings, as native SelectList did.
+	const is = (data: string, action: SelectAction) => keys.matches(data, action) || (MOVES.has(action) && getKeybindings().matches(data, action));
+	const keyName = (action: SelectAction | "tui.input.submit", fallback: string) => {
+		const key = (keys.getKeys?.(action) ?? getKeybindings().getKeys(action))?.[0] ?? fallback;
+		return KEY_NAMES[key] ?? key;
+	};
 	const redraw = () => { tui.requestRender(); };
+	const syncFocus = () => { input.focused = focused && editing && !finished && !disposed; };
 	const finish = (result: Outcome) => {
 		if (finished || disposed) return;
 		finished = true;
-		input.focused = false;
+		syncFocus();
 		done(result);
 	};
-	const syncControls = () => { buildList(); input.focused = focused && editing && !finished && !disposed; };
-	const advance = () => { editing = false; questionIndex++; selectionIndex = 0; warning = ""; scroll.scrollToStart(); syncControls(); redraw(); };
-	input.onEscape = () => { editing = false; syncControls(); redraw(); };
+	const go = (index: number) => {
+		editing = false; warning = ""; questionIndex = index; promptTop = 0; syncFocus();
+		if (review()) { cursor = questions.length; return; }
+		const draft = drafts[index], options = questions[index].options;
+		cursor = draft.text !== undefined ? options.length : Math.max(0, options.findIndex((option) => option.value === draft.values[0]));
+	};
+	const next = () => { const target = returnToReview ? questions.length : questionIndex + 1; returnToReview = false; go(target); };
+	const back = () => { editing = false; warning = ""; syncFocus(); redraw(); };
+	input.onEscape = back;
 	input.onSubmit = (value) => {
-		try { text(value, ANSWER_TEXT_LIMIT, "answer text"); }
+		try { if (!value.trim()) throw new Error("Type an answer first, or go back to the options"); text(value, ANSWER_TEXT_LIMIT, "answer text"); }
 		catch (error) { warning = String((error as Error).message); redraw(); return; }
 		drafts[questionIndex] = { id: questions[questionIndex].id, values: [], text: value };
-		advance();
+		next();
+		redraw();
 	};
-	function items() {
-		if (review()) return [...questions.map((question, index) => ({ value: `review:${index}`, label: `${index + 1}. ${label(question.prompt)}: ${summary(index)}` })), { value: "submit", label: "Submit answers" }];
-		const question = questions[questionIndex], draft = drafts[questionIndex];
-		return [...question.options.map((option, index) => ({ value: `option:${index}`, label: `${question.selection === "single" ? draft.values.includes(option.value) ? "(●)" : "( )" : draft.values.includes(option.value) ? "[x]" : "[ ]"} ${index + 1}. ${label(option.label)}` })),
-			...(question.allowText ? [{ value: "text", label: "Write text" }] : []), { value: "continue", label: "Continue / review" }, { value: "clear", label: "Clear answer" }];
+	function edit() {
+		editing = true;
+		input.setValue("");
+		const draft = drafts[questionIndex].text;
+		if (draft) input.handleInput(`\x1b[200~${draft}\x1b[201~`); // A paste leaves the native cursor after the saved draft.
+		syncFocus();
 	}
-	function summary(index: number) {
-		const draft = drafts[index], question = questions[index];
-		return draft.text !== undefined ? label(draft.text) : draft.values.length ? draft.values.map((value) => label(question.options.find((option) => option.value === value)!.label)).join(", ") : "Unanswered";
+	function toggle(index: number) {
+		const question = questions[questionIndex], value = question.options[index].value, values = drafts[questionIndex].values;
+		drafts[questionIndex] = { id: question.id, values: question.selection === "single" ? [value] : values.includes(value) ? values.filter((item) => item !== value) : [...values, value] };
 	}
-	function select(value: string) {
-		warning = "";
-		if (value === "submit") {
+	function confirm(row: Row) {
+		if (row.kind === "submit") {
+			const absent = missing();
+			if (absent.length) { warning = `Required: answer ${absent.map((question) => label(question.id)).join(", ")} first`; return; }
 			try { finish({ status: "answered", answers: validateAnswers(questions, drafts) }); }
 			catch (error) { warning = String((error as Error).message); }
-		} else if (value.startsWith("review:")) {
-			questionIndex = Number(value.slice("review:".length)); selectionIndex = 0; scroll.scrollToStart();
-		} else if (value === "continue") advance();
-		else if (value === "text") { editing = true; input.setValue(drafts[questionIndex].text ?? ""); }
-		else if (value === "clear") drafts[questionIndex] = { id: questions[questionIndex].id, values: [] };
-		else if (value.startsWith("option:")) {
-			const question = questions[questionIndex], option = question.options[Number(value.slice("option:".length))];
-			const values = drafts[questionIndex].values;
-			drafts[questionIndex] = { id: question.id, values: question.selection === "single" ? [option.value] : values.includes(option.value) ? values.filter((item) => item !== option.value) : [...values, option.value] };
-		}
-		syncControls();
-		redraw();
+		} else if (row.kind === "review") { returnToReview = true; go(row.index); }
+		else if (row.kind === "text") edit();
+		else if (questions[questionIndex].selection === "single") { toggle(row.index); next(); }
+		else if (questions[questionIndex].required !== false && !answered(questionIndex)) warning = "Required: pick at least one (space)";
+		else next();
 	}
-	function buildList() {
+	function handleKey(data: string) {
+		warning = "";
+		const list = rows(), row = list[cursor];
+		if (is(data, "tui.select.cancel")) finish({ status: "cancelled" });
+		else if (is(data, "tui.select.pageUp")) promptTop = Math.max(0, promptTop - promptPage);
+		else if (is(data, "tui.select.pageDown")) promptTop = Math.min(promptMax, promptTop + promptPage);
+		else if (is(data, "tui.select.up")) cursor = (cursor + list.length - 1) % list.length;
+		else if (is(data, "tui.select.down")) cursor = (cursor + 1) % list.length;
+		else if (is(data, "tui.select.confirm")) confirm(row);
+		else if (matchesKey(data, "left") && questionIndex > 0) { returnToReview = false; go(questionIndex - 1); }
+		else if (matchesKey(data, "right") && !review()) { returnToReview = false; go(questionIndex + 1); }
+		else if (review()) return;
+		else if (matchesKey(data, "space")) { if (row.kind === "option") toggle(row.index); else edit(); }
+		else if (/^[1-9]$/u.test(data) && Number(data) <= list.length) cursor = Number(data) - 1;
+		else if (matchesKey(data, "backspace")) drafts[questionIndex] = { id: questions[questionIndex].id, values: [] };
+	}
+	function render(width: number): string[] {
 		const theme = getTheme();
-		const current = items();
-		list = new SelectList(current, maxVisible, {
-			selectedPrefix: (value) => theme.fg("accent", value), selectedText: (value) => theme.fg("accent", value),
-			description: (value) => theme.fg("muted", value), scrollInfo: (value) => theme.fg("dim", value), noMatch: (value) => theme.fg("warning", value),
-		});
-		list.setSelectedIndex(selectionIndex);
-		list.onSelectionChange = (item) => { selectionIndex = current.findIndex((entry) => entry.value === item.value); };
-		list.onSelect = (item) => select(item.value);
-		list.onCancel = () => finish({ status: "cancelled" });
+		const italic = (value: string) => theme.italic?.(value) ?? value;
+		const border = (value: string) => theme.fg("borderMuted", value);
+		const bordered = width >= CARD_MIN_BORDERED_WIDTH;
+		const inner = bordered ? width - 2 : Math.max(1, width);
+		const pad = !bordered ? 0 : inner >= 40 ? 2 : 1;
+		const content = Math.max(1, inner - pad * 2);
+		const pointerWidth = content >= 3 ? 2 : 0;
+		const markWidth = content >= 8 ? 3 : content >= 5 ? 2 : 0;
+		const labelWidth = Math.max(1, content - pointerWidth - markWidth);
+		const line = (value: string, fill?: (value: string) => string, indent = pad) => {
+			const body = " ".repeat(indent) + value;
+			const padded = body + " ".repeat(Math.max(0, inner - visibleWidth(body)));
+			return fill ? fill(padded) : padded;
+		};
+		const wrap = (value: string, max: number) => {
+			const lines = wrapTextWithAnsi(value, labelWidth);
+			return lines.length <= max ? lines : [...lines.slice(0, max - 1), clip(lines.slice(max - 1).join(" "), labelWidth)];
+		};
+		const list = rows();
+		cursor = Math.min(cursor, list.length - 1);
+		const question = review() ? undefined : questions[questionIndex];
+		const draft = review() ? undefined : drafts[questionIndex];
+		const selected = question?.selection === "multiple" ? draft!.values.length : 0;
+		const glyph = (chosen: boolean) => question?.selection === "multiple" ? chosen ? "■" : "□" : chosen ? "●" : "○";
+		const typed = () => `“${label(draft!.text ?? "")}”`;
+		const rowLines = (row: Row) => row.kind === "option" ? Math.min(LABEL_MAX_LINES, wrapTextWithAnsi(label(question!.options[row.index].label), labelWidth).length)
+			: row.kind === "text" && !editing && draft!.text !== undefined ? Math.min(LABEL_MAX_LINES, wrapTextWithAnsi(typed(), labelWidth).length) : 1;
+
+		const renderRow = (row: Row, index: number, height: number): string[] => {
+			const lit = index === cursor;
+			const fill = lit && row.kind !== "submit" ? (value: string) => theme.bg("selectedBg", value) : undefined;
+			const pointer = pointerWidth ? `${lit ? theme.fg("accent", theme.bold("❯")) : " "} ` : "";
+			const strong = (value: string) => lit ? theme.bold(value) : value;
+			const mark = (value: string, color: Color) => markWidth ? theme.fg(color, value) + " ".repeat(markWidth - 1) : "";
+			if (row.kind === "text" && editing) {
+				const suffix = labelWidth >= 32 && input.getValue() ? " your answer" : "";
+				return [line(pointer + mark("›", "accent") + input.render(labelWidth - suffix.length) + (suffix && theme.fg("muted", italic(suffix))), fill)];
+			}
+			if (row.kind === "option" || row.kind === "text") {
+				const chosen = row.kind === "option" ? draft!.values.includes(question!.options[row.index].value) : draft!.text !== undefined;
+				const marker = mark(glyph(chosen), chosen ? "accent" : lit ? "muted" : "dim");
+				if (row.kind === "text" && !chosen) return [line(pointer + marker + theme.fg("muted", clip("Type your own answer…", labelWidth)), fill)];
+				return wrap(row.kind === "option" ? label(question!.options[row.index].label) : typed(), height)
+					.map((value, at) => line((at ? " ".repeat(pointerWidth + markWidth) : pointer + marker) + strong(value), fill));
+			}
+			const room = content - pointerWidth;
+			if (row.kind === "review") {
+				const item = questions[row.index], answer = drafts[row.index];
+				const keyWidth = room >= 24 ? Math.min(Math.max(...questions.map((entry) => visibleWidth(label(entry.id)))) + 2, 16, Math.floor(room / 3)) : 0;
+				const valueWidth = room - keyWidth;
+				let value: string;
+				if (answer.text !== undefined) {
+					const note = valueWidth >= 20 ? " typed" : "";
+					value = theme.fg("muted", "“") + strong(clip(label(answer.text), valueWidth - 2 - note.length)) + theme.fg("muted", "”") + (note && theme.fg("muted", italic(note)));
+				} else if (answer.values.length) {
+					const chosen = answer.values.map((entry) => label(item.options.find((option) => option.value === entry)!.label)).join(" · ");
+					value = clip(chosen, valueWidth).split(" · ").map(strong).join(theme.fg("dim", " · "));
+				} else value = item.required !== false ? theme.fg("warning", clip("not answered", valueWidth)) : theme.fg("muted", clip("skipped", valueWidth));
+				return [line(pointer + (keyWidth ? theme.fg("muted", fit(label(item.id), keyWidth - 2)) + "  " : "") + value, fill)];
+			}
+			const absent = missing(), count = drafts.filter((_, at) => answered(at)).length;
+			const button = clip(` ${absent.length || !count ? "Submit" : `Submit ${count} answer${count === 1 ? "" : "s"}`} `, room);
+			const focusedButton = theme.fg("accent", theme.bold(button));
+			const styled = absent.length ? theme.fg("dim", button) : lit ? theme.inverse?.(focusedButton) ?? focusedButton : theme.fg("accent", button);
+			const note = absent.length ? clip(`  answer ${absent.map((entry) => label(entry.id)).join(", ")} first`, room - visibleWidth(button)) : "";
+			return [line(pointer + styled + (note && theme.fg("muted", note)))];
+		};
+
+		const stripIndent = Math.max(0, pad - 1), stripWidth = inner - pad - stripIndent; // The current tab's padding sits in the left gutter.
+		const strip = () => {
+			if (questions.length < 2) return undefined;
+			for (const nameWidth of [14, 8, 0]) {
+				const parts = questions.map((entry, at) => {
+					const name = nameWidth ? ` ${clip(label(entry.id), nameWidth)}` : "";
+					if (at === questionIndex) return { width: visibleWidth(name) + 3, text: theme.bg("selectedBg", ` ${theme.fg("accent", "●")}${theme.bold(name)} `) };
+					const plain = `${answered(at) ? "✓" : "○"}${name}`;
+					return { width: visibleWidth(plain) + 2, text: ` ${theme.fg(answered(at) ? "success" : "muted", plain)} ` };
+				});
+				parts.push({ width: 1, text: theme.fg("dim", "│") }, { width: 8, text: review() ? theme.bg("selectedBg", ` ${theme.bold("review")} `) : ` ${theme.fg("muted", "review")} ` });
+				const used = parts.reduce((sum, part) => sum + part.width, 0) + parts.length - 1;
+				if (used > stripWidth) continue;
+				const count = selected ? `${selected} selected` : "", gap = stripWidth - used - visibleWidth(count);
+				return parts.map((part) => part.text).join(" ") + (count && gap >= 2 ? " ".repeat(gap) + theme.fg("muted", count) : "");
+			}
+			return undefined;
+		};
+		const stripLine = strip();
+		const promptAll = (review() ? ["Check your answers. Pick a row to change it."] : paragraphs(question!.prompt)).flatMap((part) => part ? wrapTextWithAnsi(part, content) : [""]);
+		while (promptAll.length > 1 && !promptAll.at(-1)) promptAll.pop();
+		if (!promptAll.length) promptAll.push("");
+
+		// Spend the rows that remain after native layout: answers and the prompt first, breathing room last.
+		let left = Math.max(1, Math.max(3, tui.terminal.rows - CARD_NATIVE_LAYOUT_ROWS) - (bordered ? 2 : 0));
+		const take = (want: number) => { const got = Math.max(0, Math.min(want, left)); left -= got; return got; };
+		let shownRows = take(1);
+		let promptShown = take(1);
+		const warningShown = take(warning ? 1 : 0);
+		shownRows += take(list.length - 1);
+		promptShown += take(promptAll.length - promptShown);
+		let more = 0;
+		if (promptShown < promptAll.length) { more = take(1); if (!more && promptShown > 1) { promptShown--; more = 1; } }
+		const stripShown = stripLine === undefined ? 0 : take(1);
+		const heights = list.map(() => 1);
+		if (shownRows === list.length) for (const at of [cursor, ...list.keys()]) heights[at] += take(rowLines(list[at]) - heights[at]);
+		const submitGap = review() && shownRows === list.length ? take(1) : 0;
+		const promptGap = take(1), stripGap = stripShown ? take(1) : 0, endGap = take(1), topGap = stripShown ? 0 : take(1);
+		promptPage = Math.max(1, promptShown);
+		promptMax = Math.max(0, promptAll.length - promptShown);
+		promptTop = Math.min(promptTop, promptMax);
+		const below = promptAll.length - promptTop - promptShown;
+		const indicator = below > 0 ? `↓ ${below} more line${below === 1 ? "" : "s"} · ${keyName("tui.select.pageDown", "pgdn")}`
+			: `↑ ${promptTop} line${promptTop === 1 ? "" : "s"} above · ${keyName("tui.select.pageUp", "pgup")}`;
+		const start = Math.max(0, Math.min(cursor - Math.floor(shownRows / 2), list.length - shownRows));
+		const blank = line("");
+		const body = [
+			...(topGap ? [blank] : []),
+			...(stripShown ? [line(stripLine!, undefined, stripIndent)] : []),
+			...(stripGap ? [blank] : []),
+			...promptAll.slice(promptTop, promptTop + promptShown).map((value) => line(review() ? theme.fg("muted", value) : value)),
+			...(more ? [line(theme.fg("muted", clip(indicator, content)))] : []),
+			...(promptGap ? [blank] : []),
+			...list.slice(start, start + shownRows).flatMap((row, at) => [...(row.kind === "submit" && submitGap ? [blank] : []), ...renderRow(row, start + at, heights[start + at])]),
+			...(endGap ? [blank] : []),
+			...(warningShown ? [line(theme.fg("warning", clip(`!  ${warning}`, content)))] : []),
+		];
+		if (!bordered) return body.map((value) => truncateToWidth(value, width, ""));
+
+		const title = review() ? "Review" : questions.length > 1 ? `Question ${questionIndex + 1} of ${questions.length}` : "Question";
+		const short = review() || questions.length < 2 ? title : `${questionIndex + 1} of ${questions.length}`;
+		const tag = review() ? "nothing sent yet"
+			: `pick ${question!.selection === "single" ? "one" : "any"}${question!.allowText ? " or type" : ""}${stripLine === undefined && selected ? ` · ${selected} selected` : ""}`;
+		const top = () => {
+			for (const [name, note] of [[title, tag], [short, tag], [title, ""], [short, ""]]) {
+				const rule = width - 2 - (visibleWidth(name) + 3) - (note ? visibleWidth(note) + 3 : 0);
+				if (rule >= 1) return border("╭─ ") + theme.fg("accent", theme.bold(name)) + " " + border("─".repeat(rule)) + (note && ` ${theme.fg("muted", note)} ${border("─")}`) + border("╮");
+			}
+			return border(`╭${"─".repeat(width - 2)}╮`);
+		};
+		const confirmKey = keyName("tui.select.confirm", "enter"), cancelKey = keyName("tui.select.cancel", "esc");
+		const up = keyName("tui.select.up", "up"), down = keyName("tui.select.down", "down");
+		const move = { key: up === "↑" && down === "↓" ? "↑↓" : `${up}/${down}`, text: "move", priority: 5 };
+		const cancel = { key: cancelKey, text: "cancel", priority: 8 };
+		const current = list[cursor];
+		const hints: Hint[] = editing ? [{ key: keyName("tui.input.submit", "enter"), text: "save", priority: 9 }, { key: cancelKey, text: "back to options", priority: 8 }]
+			: review() ? [move, { key: confirmKey, text: current.kind === "submit" ? "submit" : "change", priority: 9 }, { key: "←", text: "back", priority: 4 }, cancel]
+			: [move, ...(question!.selection === "multiple" ? [{ key: "space", text: "toggle", priority: 7 }] : []),
+				{ key: confirmKey, text: current.kind === "text" ? "type" : question!.selection === "single" ? "choose" : "next", priority: 9 },
+				{ key: `1–${list.length}`, text: "jump", priority: 2 }, ...(questions.length > 1 ? [{ key: "←→", text: "question", priority: 3 }] : []),
+				...(answered(questionIndex) ? [{ key: "⌫", text: "clear", priority: 1 }] : []), cancel];
+		const bottom = () => {
+			while (hints.length) {
+				const rule = width - 5 - visibleWidth(hints.map((hint) => `${hint.key} ${hint.text}`).join(" · "));
+				if (rule >= 1) return border("╰─ ") + hints.map((hint) => `${hint.key} ${theme.fg("muted", hint.text)}`).join(theme.fg("dim", " · ")) + " " + border(`${"─".repeat(rule)}╯`);
+				hints.splice(hints.indexOf(hints.reduce((low, hint) => hint.priority < low.priority ? hint : low)), 1);
+			}
+			return border(`╰${"─".repeat(width - 2)}╯`);
+		};
+		return [top(), ...body.map((value) => border("│") + value + border("│")), bottom()].map((value) => truncateToWidth(value, width, ""));
 	}
-	syncControls();
 	return {
 		get focused() { return focused; },
-		set focused(value: boolean) { focused = value; input.focused = value && editing && !finished && !disposed; },
-		dispose() { disposed = true; input.focused = false; },
-		invalidate() { input.invalidate(); list.invalidate(); prompt.invalidate(); scroll.invalidate(); },
+		set focused(value: boolean) { focused = value; syncFocus(); },
+		dispose() { disposed = true; syncFocus(); },
+		invalidate() { input.invalidate(); },
 		handleInput(data: string) {
 			if (disposed || finished) return;
 			// Pi's default Escape matches both actions; text-entry Back owns it first.
-			if (editing && keys.matches(data, "tui.select.cancel")) { input.onEscape(); return; }
-			if (keys.matches(data, "app.interrupt")) { finish({ status: "cancelled" }); return; }
-			if (editing) {
+			if (editing && is(data, "tui.select.cancel")) back();
+			else if (keys.matches(data, "app.interrupt")) finish({ status: "cancelled" });
+			else if (editing) {
+				warning = "";
 				const previous = input.getValue();
 				input.handleInput(data);
 				if (sanitizeDisplay(input.getValue()) !== input.getValue() || input.getValue().length > ANSWER_TEXT_LIMIT) {
 					input.setValue(previous); warning = "Text must be bounded and contain no terminal controls";
 				}
-			} else if (keys.matches(data, "tui.select.cancel")) finish({ status: "cancelled" });
-			else if (keys.matches(data, "tui.select.pageUp")) scroll.scrollBy(-Math.max(1, scroll.viewportHeight));
-			else if (keys.matches(data, "tui.select.pageDown")) scroll.scrollBy(Math.max(1, scroll.viewportHeight));
-			else if (matchesKey(data, "space") && !review() && selectionIndex < questions[questionIndex].options.length) select(`option:${selectionIndex}`);
-			else list.handleInput(data);
+			} else handleKey(data);
 			redraw();
 		},
-		render(width: number) {
-			const theme = getTheme();
-			const bordered = width >= CARD_PADDING_COLUMNS + 2;
-			const inner = Math.max(1, width - (bordered ? CARD_PADDING_COLUMNS : 0));
-			const budget = Math.max(1, tui.terminal.rows - CARD_NATIVE_LAYOUT_ROWS - (bordered ? 2 : 0));
-			const compact = tui.terminal.rows <= CARD_COMPACT_ROWS;
-			prompt.setText(wrapTextWithAnsi(label(review() ? "Review all answers; select a row to correct it" : questions[questionIndex].prompt), inner).join("\n"));
-			const promptLines = scroll.render(inner);
-			const promptHeight = Math.min(Math.max(1, budget - CARD_FIXED_ROWS), Math.max(1, Math.min(3, promptLines.length)));
-			scroll.updateLayout(promptLines.length, promptHeight, redraw);
-			maxVisible = Math.max(1, budget - promptHeight - CARD_FIXED_ROWS);
-			syncControls();
-			const controls = editing ? input.render(inner) : list.render(inner);
-			if (!editing && !compact) {
-				const current = items();
-				const start = Math.max(0, Math.min(selectionIndex - Math.floor(maxVisible / 2), current.length - maxVisible));
-				const actionStart = review() ? questions.length : questions[questionIndex].options.length;
-				if (actionStart >= start && actionStart < start + maxVisible) controls.splice(actionStart - start, 0, theme.fg("muted", `─ ACTIONS ${"─".repeat(Math.max(0, inner - 10))}`));
-			}
-			const hint = (action: Parameters<KeybindingsManager["getKeys"]>[0], fallback: string) => keys.getKeys?.(action)?.join("/") || fallback;
-			const hints = editing ? `${hint("tui.select.confirm", "enter")} save text · ${hint("tui.select.cancel", "esc")} back` :
-				`${hint("tui.select.confirm", "enter")} choose · ${hint("tui.select.pageDown", "pgdn")} scroll · ${hint("tui.select.cancel", "esc")} cancel`;
-			const content = [...promptLines.slice(scroll.scrollTop, scroll.scrollTop + promptHeight),
-				...(!compact ? [theme.fg("accent", editing ? "TEXT ENTRY" : review() ? "ANSWERS · correct or submit explicitly" : `CHOICES · ${questions[questionIndex].selection === "single" ? "Single choice" : "Multiple choices"}`)] : []),
-				...controls, theme.fg(warning ? "warning" : "muted", warning || (review() ? "Not submitted · choose Submit answers explicitly" : editing ? "Text is a draft until saved and submitted" : "Highlight is not approval · Space selects")), theme.fg("dim", hints)];
-			const bounded = content.length > budget ? [...content.slice(0, Math.max(0, budget - 2)), ...content.slice(-2)] : content;
-			if (!bordered) return bounded.map(line => truncateToWidth(line, width));
-			const box = new Box(1, 0, value => theme.bg("userMessageBg", value));
-			for (const line of bounded) box.addChild(new Text(truncateToWidth(line, inner), 0, 0));
-			const title = truncateToWidth(` ${review() ? "REVIEW · explicit submission" : `QUESTION · ${questionIndex + 1} / ${questions.length}`} `, width - 2);
-			return [theme.fg("accent", `╭${title}${"─".repeat(Math.max(0, width - 2 - visibleWidth(title)))}╮`),
-				...box.render(width - 2).map(line => theme.fg("accent", "│") + line + theme.fg("accent", "│")),
-				theme.fg("accent", `╰${"─".repeat(width - 2)}╯`)].map(line => truncateToWidth(line, width));
-		},
+		render,
 	};
 }
