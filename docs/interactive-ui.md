@@ -70,14 +70,14 @@ Example model input:
     "id":"approach",
     "prompt":"Which harmless example should the guide use?",
     "selection":"single",
-    "options":[{"label":"Parser","value":"opaque/parser"},{"label":"Formatter","value":"opaque/formatter"}]
+    "options":[{"label":"Parser","value":"opaque/parser","recommended":true},{"label":"Formatter","value":"opaque/formatter"}]
   }]
 }
 ```
 
-Use one to six unique IDs, `single` or `multiple`, two to eight distinct values per choice. Questions default to required; `required:false` permits skipping. Free text needs explicit `allowText:true`. Prompts/values/answers are bounded to 1,000 characters and labels to 200. IDs/option values are returned exactly, separately from sanitized labels.
+Use one to six unique IDs, `single` or `multiple`, two to eight distinct values per choice. Questions default to required; `required:false` permits skipping. Free text needs explicit `allowText:true`. Mark the options you suggest with `recommended:true`, at most one for single choice. Prompts/values/answers are bounded to 1,000 characters and labels to 200. IDs/option values are returned exactly, separately from sanitized labels.
 
-Simple and rich questions use the same rounded card in Pi's current theme. The top border names the question (`Question 2 of 3`, `Review`) and what it accepts (`pick one`, `pick any or type`); the bottom border lists the native key hints that fit, dropping the least important first. With several questions, a strip shows answered (`✓`), pending (`○`) and current questions plus review. The whole prompt is shown and wrapped; when the terminal is too short, it scrolls with page up/down and a `↓ N more lines` indicator. Option labels wrap to two lines, radio marks (`○ ●`) represent single choice and squares (`□ ■`) multiple choice. Highlighting an option never approves it. Results have version 1 and `answered` plus answers, or `cancelled`, `unavailable`, `busy` without submitted answers. Abort/session change discards drafts. An active question is not displaced by another panel/question. Questions collect requirements, not native trust or operation permissions.
+Simple and rich questions use the same rounded card in Pi's current theme. The top border names the question (`Question 2 of 3`, `Review`) and what it accepts (`pick one`, `pick any or type`); the bottom border lists the native key hints that fit, dropping the least important first. With several questions, a strip shows answered (`✓`), pending (`○`) and current questions plus review. The whole prompt is shown and wrapped; when the terminal is too short, it scrolls with page up/down and a `↓ N more lines` indicator. Option labels wrap to two lines, and recommended options end with a muted `(recommended)`, which preselects nothing. Radio marks (`○ ●`) represent single choice and squares (`□ ■`) multiple choice. Highlighting an option never approves it. Results have version 1 and `answered` plus answers, or `cancelled`, `unavailable`, `busy` without submitted answers. Abort/session change discards drafts. An active question is not displaced by another panel/question. Questions collect requirements, not native trust or operation permissions.
 
 | Key | Question | Review |
 |---|---|---|
