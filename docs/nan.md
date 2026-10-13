@@ -62,7 +62,7 @@ Exclude `extensions/nan.ts` from this package through `pi config` to disable the
 
 ## Troubleshooting
 
-- **NAN is absent from `/login`:** reload the package and verify `extensions/nan.ts` is enabled. The current tested host is Pi 1.0.4.
+- **NAN is absent from `/login`:** reload the package and verify `extensions/nan.ts` is enabled. The current tested host is Pi 1.2.0.
 - **NAN models are absent from `/model`:** provide a stored key or `NAN_API_KEY`; unconfigured models remain unavailable.
 - **401:** check the key and requested model's membership tier. The premium model may fail while Flash models work.
 - **402 / 429:** check quota, request rate, and concurrent work rather than repeatedly logging in.

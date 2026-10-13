@@ -26,7 +26,7 @@ async function fixture(t, skillsOverride, source = ".config/opencode/skills") {
 	await loader.reload();
 	const { session, errors } = await startSession(t, cwd, { loader, settingsManager });
 	assert.deepEqual([...loader.getExtensions().errors, ...errors], []);
-	const prepare = () => session.extensionRunner.emitBeforeAgentStart("Work on the fixture", undefined,
+	const prepare = () => session.extensionRunner.emitBeforeAgentStart({ messageType: "user", prompt: "Work on the fixture" },
 		session.extensionRunner.createCommandContext().getSystemPromptOptions());
 	const ctx = () => session.extensionRunner.createContext();
 	const execute = (params) => session.getToolDefinition("skill_registry").execute("registry-fixture", params, undefined, undefined, ctx());

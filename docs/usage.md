@@ -4,7 +4,7 @@ A personal Pi package with **56 development/workflow skills** (54 automatic, two
 
 ## Install
 
-Use **pnpm 12.9.1** and **Node 22.19+**. The checkout's lockfile supplies **Pi 1.0.4**; it is not installed globally or bundled in the distributed package. Engram **3.0.0** is required only for memory. See [development security](#development-security) for the install policy.
+Use **pnpm 12.9.1** and **Node 22.19+**. The checkout's lockfile supplies **Pi 1.2.0**; it is not installed globally or bundled in the distributed package. Engram **3.0.0** is required only for memory. See [development security](#development-security) for the install policy.
 
 From this repository:
 
@@ -89,15 +89,16 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 | Resource | Purpose |
 | --- | --- |
 | `extensions/compact-tools.ts` | Compact bash/edit/write/codemode presentation, plus a read fallback. Bash uses effective shell settings; conflicting owners are reported and blocked. Expand to inspect arguments, results and error explanations. |
+| `extensions/context-budget.ts` | Caps output of top-level codemode scripts that set no options at 8,000 estimated tokens; Pi saves the full output to a temporary file. `--orchestraitor-codemode-max-output N` sets another cap, and `0` keeps Pi's 10,000. The transcript keeps the original script. See the [codemode output budget](performance.md#codemode-output-budget). |
 | `@heyhuynhgiabuu/pi-pretty@0.6.30` | Separately installed companion: highlighted reads, FFF-backed find/grep, prompt editor and activity indicators. Its bash tool is disabled for harness ownership. |
 | `pi-claude-bridge@0.9.2` | Separately installed companion through `install:pi`; Claude Code bridge. Authentication and model selection remain user-controlled. |
 | `extensions/btw/index.ts` | Temporary 70% side-conversation panel; no tools or local history, explicit `/bring` imports only. |
-| `extensions/instructions.ts` | Adds core, execution, and personality sections while preserving Pi and project instructions. |
-| `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. |
+| `extensions/instructions.ts` | Adds core, execution, and personality sections while preserving Pi and project instructions. Only Pi's docs rule changes, from reading whole files to reading the relevant sections. |
+| `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. Engram is skipped when another package already provides its `mem_search` tool. |
 | `extensions/nan.ts` | Native NaN API-key login/environment fallback and seven documented chat models; no default changes or startup requests. |
 | `extensions/subagents.ts` | Model profiles, bounded sync/background readers, child guards, collection and native usage. |
 | `extensions/skill-registry.ts` | Bounded search/load, native snapshot refresh and atomic diagnostic publication; lazy/native exposure. |
-| `extensions/status-ui.ts` | One owner for agents/tasks panels, unified questions and compact work-header/native-footer chrome. |
+| `extensions/status-ui.ts` | One owner for agents/tasks panels, unified questions, compact work-header/native-footer chrome and a warning before a model or thinking switch re-bills cached context. |
 | `skills/` | 56 unique skills and their supporting resources, with short `jag-*` names. |
 | `prompts/` | `/orchestraitor`, `/plan`, `/review`, and `/absorb`, with explicit arguments. |
 | `scripts/install-pi.mjs` | Migration, native package registration, verification, and restoration. |
@@ -121,6 +122,8 @@ See the [interactive UI guide](interactive-ui.md) for schemas, task replay versu
 ## MCP and memory
 
 Context7 uses `https://mcp.context7.com/mcp`. Engram runs `engram mcp --tools=agent` with the session project's cwd. Both use `codemode` exposure. Pi owns connection errors and shutdown; the package never installs missing services.
+
+Engram registers when the session starts, unless another package, such as gentle-engram, already provides Engram's `mem_search` tool: a second route to the same memory would only duplicate its tools. To keep this package's route as well, add the `engram` entry below to `mcp.json`.
 
 An entry with the same server name in personal or project `mcp.json` overrides the complete default. Fields are not merged. For an explicit project identity, use trusted project configuration:
 
@@ -155,7 +158,7 @@ This changes only that invocation. Personal and project MCP settings still apply
 
 ## Development security
 
-Use pnpm 12.9.1 with the committed lockfile. Pi 1.0.4 is a development dependency only; runtime peers remain host-provided and neither the host nor `node_modules` is packed. BTW's pinned `beautiful-mermaid@1.1.3` is a separate runtime dependency; local checkouts install it here, while Pi installs it for native Git/npm sources.
+Use pnpm 12.9.1 with the committed lockfile. Pi 1.2.0 is a development dependency only; runtime peers remain host-provided and neither the host nor `node_modules` is packed. BTW's pinned `beautiful-mermaid@1.1.3` is a separate runtime dependency; local checkouts install it here, while Pi installs it for native Git/npm sources.
 
 ```bash
 pnpm install --frozen-lockfile
@@ -176,7 +179,7 @@ Do not run blanket `approve-builds`, add wildcard approvals, or regenerate the l
 
 ## Verify
 
-The [efficiency guide](performance.md) documents compact model-facing task/child handoffs, projection reuse and the offline benchmark. Run `pnpm run bench --samples 7 --output /tmp/pi-benchmark.json` from a checkout; it makes no model/MCP requests. Observed character reductions are distinct from measured provider-token savings.
+The [efficiency guide](performance.md) documents compact model-facing task/child handoffs, projection reuse, the offline benchmark and the recorded-usage report. Run `pnpm run bench --samples 7 --output /tmp/pi-benchmark.json` from a checkout; it makes no model/MCP requests. `pnpm run usage` summarizes recorded Pi sessions from metadata only. Observed character reductions are distinct from measured provider-token savings.
 
 ```bash
 pnpm test
@@ -193,7 +196,7 @@ pnpm run test:personality
 - `test:personality` makes bounded calls to the configured Pi model in isolated sessions. It writes synthetic transcripts for manual scoring; it uses the configured account and consumes model quota.
 - Packing includes extensions, instructions, skills, scripts, docs, and licenses. Tests, `.ai` reports, personal settings, credentials, and memory databases are excluded.
 
-Tests prefer the canonical Pi development host installed by pnpm and propagate its SDK root to installer subprocesses. `pnpm test` also puts the local CLI on PATH. Private dependency fixtures resolve through the host's module tree rather than assuming nested `node_modules`. Set `PI_TEST_PACKAGE_DIR` to explicitly test another installed host root; without a local host, tests fall back to Pi on PATH. Automated packing integration covers npm; pnpm extracted-package validation is manual. See the [console guide](manual-package-check.md), including the offline metadata-cache limitation. The installer inventory adapter and some integration checks depend on host internals and need revalidation after a Pi upgrade. The adapter checks that its required host hooks exist before migration. Peers use `*` because Pi supplies them; the original baseline used Pi 1.0.0 and current deterministic checks run on Pi 1.0.4, with the codemode fixture updated to supply the host's prompt-guidelines callback. Historical live UI evidence retains its recorded host version. Revalidate on upgrades. The UI guide documents native dynamic-selection versus persistent-exclusion behavior on reload. The established test convention is `node:test` with `node:assert`.
+Tests prefer the canonical Pi development host installed by pnpm and propagate its SDK root to installer subprocesses. `pnpm test` also puts the local CLI on PATH. Private dependency fixtures resolve through the host's module tree rather than assuming nested `node_modules`. Set `PI_TEST_PACKAGE_DIR` to explicitly test another installed host root; without a local host, tests fall back to Pi on PATH. Automated packing integration covers npm; pnpm extracted-package validation is manual. See the [console guide](manual-package-check.md), including the offline metadata-cache limitation. The installer inventory adapter and some integration checks depend on host internals and need revalidation after a Pi upgrade. The adapter checks that its required host hooks exist before migration. Peers use `*` because Pi supplies them; the original baseline used Pi 1.0.0 and current deterministic checks run on Pi 1.2.0, with the codemode fixture updated to supply the host's prompt-guidelines callback and prompt preparation using Pi 1.2.0's `emitBeforeAgentStart(request, options)` form. Historical live UI evidence retains its recorded host version. Revalidate on upgrades. The UI guide documents native dynamic-selection versus persistent-exclusion behavior on reload. The established test convention is `node:test` with `node:assert`.
 
 See [verification evidence](verification.md) and [attribution](../THIRD_PARTY_NOTICES.md).
 

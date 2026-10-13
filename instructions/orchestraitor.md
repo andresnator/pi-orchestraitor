@@ -18,7 +18,7 @@ Cancel children on parent cancellation, session changes, reload or shutdown. Con
 
 ## Tasks and clarification
 
-For substantial multi-step work, use direct model-only `orchestraitor_tasks`. Reuse the latest returned revision; use list when unknown/stale or when the complete board is needed. Done requires parent evidence; reopening requires a reason. Exact-plan tasks retain the original plan path/hash and stable group references. Tasks project successful branch receipts, not execution authority or durable SDD recovery. Child completion never marks tasks done. Use textual progress if UI is unavailable.
+For substantial multi-step work, use direct model-only `orchestraitor_tasks`. Reuse the latest returned revision; use list when unknown/stale or when the complete board is needed. Send updates with the next work calls rather than in a turn of their own; same-message updates take consecutive revisions. Done requires parent evidence already returned; reopening requires a reason. Exact-plan tasks retain the original plan path/hash and stable group references. Tasks project successful branch receipts, not execution authority or durable SDD recovery. Child completion never marks tasks done. Use textual progress if UI is unavailable.
 
 Use direct model-only `orchestraitor_ask` for bounded requirements/preferences in interactive UI; otherwise use chat. Submission requires explicit user input: cancelled, busy or unavailable results are not approval. Questions never replace native trust/security dialogs or authorize destructive operations.
 

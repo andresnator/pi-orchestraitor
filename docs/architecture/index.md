@@ -27,7 +27,7 @@ flowchart LR
 Evidence for nodes and edges:
 - **A:** [prompts/orchestraitor.md:5–8](../../prompts/orchestraitor.md), [prompts/plan.md:5–12](../../prompts/plan.md).
 - **B:** [instructions/orchestraitor.md](../../instructions/orchestraitor.md).
-- **C:** [extensions/mcp.ts:3–19](../../extensions/mcp.ts). Registration is not proof of service availability. Engram is not an SDD state store.
+- **C:** [extensions/mcp.ts:3–28](../../extensions/mcp.ts). Engram registers on session start unless another package already provides `mem_search`. Registration is not proof of service availability. Engram is not an SDD state store.
 - **D:** [extensions/subagents.ts](../../extensions/subagents.ts), [extensions/subagent/runtime.mjs:7–29](../../extensions/subagent/runtime.mjs), [extensions/subagent/guard.mjs:13–83](../../extensions/subagent/guard.mjs).
 
 ## Inside the package
@@ -36,7 +36,7 @@ These are logical components, **not separately deployed services**. Delegated ch
 
 ```mermaid
 flowchart TB
-  M[package.json] -->|declares: E| X[Five extensions]
+  M[package.json] -->|declares: E| X[Package extensions]
   M -->|declares: E| P[Four prompt templates]
   M -->|declares: E| S[Skill catalog]
   P -->|request instructions: F| A[Main agent]
@@ -44,6 +44,7 @@ flowchart TB
   X -->|instructions.ts injects: H| I[core / orchestraitor / personality]
   I -->|system prompt sections: H| A
   X -->|compact-tools.ts decorates: I| T[Native tool presentation]
+  X -->|context-budget.ts caps: N| CB[Model-issued codemode output]
   INS[install-pi.mjs] -->|registers pinned companion: I| PP[pi-pretty]
   PP -->|read / bash / search / editor presentation: I| PUI[Pi native tool and UI APIs]
   X -->|mcp.ts registers: J| MCP[Context7 / Engram]
@@ -60,13 +61,14 @@ flowchart TB
 | E | [package.json](../../package.json): extension, skill and prompt resource declarations. |
 | F | [prompts/plan.md:5–8](../../prompts/plan.md), [prompts/orchestraitor.md:5–6](../../prompts/orchestraitor.md), [prompts/review.md:5–8](../../prompts/review.md), [prompts/absorb.md:5–7](../../prompts/absorb.md). |
 | G | [README.md](../../README.md), [skills/jag-routing/SKILL.md:20–28](../../skills/jag-routing/SKILL.md): catalog selection, then body loading. |
-| H | [extensions/instructions.ts:4–19](../../extensions/instructions.ts): adds sections without replacing Pi/project context. |
+| H | [extensions/instructions.ts:4–26](../../extensions/instructions.ts): adds sections without replacing Pi/project context; only Pi's docs reading rule is narrowed, in place. |
 | I | [extensions/compact-tools.ts](../../extensions/compact-tools.ts): presentation, not a scheduler; yields read/bash to existing extension owners. The installer separately registers [pi-pretty](../pi-pretty.md). |
-| J | [extensions/mcp.ts:6–19](../../extensions/mcp.ts). |
+| J | [extensions/mcp.ts:8–28](../../extensions/mcp.ts). |
 | K | [extensions/subagents.ts](../../extensions/subagents.ts), [instructions/orchestraitor.md](../../instructions/orchestraitor.md). |
 | L | [extensions/subagent/controller.mjs](../../extensions/subagent/controller.mjs), [extensions/subagent/child.mjs:18–28](../../extensions/subagent/child.mjs), [extensions/subagent/runtime.mjs:13–25](../../extensions/subagent/runtime.mjs). |
+| N | [extensions/context-budget.ts](../../extensions/context-budget.ts): lowers the output cap of top-level codemode scripts without options; the transcript keeps the original script. |
 
-**M:** [status-ui.ts](../../extensions/status-ui.ts) delegates to [agents](../../extensions/ui/agents.ts), [tasks](../../extensions/ui/tasks.ts) and [questions](../../extensions/ui/questions.ts). It uses native widgets/status/dialogs, not header/footer/editor factories. Task state comes only from successful active-branch native receipts; it cannot grant writes, accept child work or recover execution. See the [UI guide](../interactive-ui.md).
+**M:** [status-ui.ts](../../extensions/status-ui.ts) delegates to [agents](../../extensions/ui/agents.ts), [tasks](../../extensions/ui/tasks.ts), [questions](../../extensions/ui/questions.ts) and the [cache notice](../../extensions/ui/cache-notice.ts). It uses native widgets/status/dialogs/notifications, not header/footer/editor factories. Task state comes only from successful active-branch native receipts; it cannot grant writes, accept child work or recover execution. See the [UI guide](../interactive-ui.md).
 
 ## The distinctions that prevent confusion
 

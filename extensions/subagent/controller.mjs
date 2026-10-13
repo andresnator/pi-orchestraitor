@@ -193,7 +193,7 @@ export async function runTask(manifest, prompt, options = {}) {
 			cwd: manifest.cwd, env, stdio: ["pipe", "pipe", "pipe", "ipc"],
 		});
 		options.onSpawn?.(child);
-		if (options.registry && options.modelFor) disposeBridge = parentBridge(child, options.registry, options.modelFor(manifest), signal, fail);
+		if (options.registry && options.modelFor) disposeBridge = parentBridge(child, options.registry, options.modelFor(manifest), signal, fail, options.providerSessionFor?.(manifest));
 		child.once("close", () => { closed = true; });
 		child.once("disconnect", () => { ipcClosed = true; });
 		child.once("exit", (code, sig) => {

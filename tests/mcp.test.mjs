@@ -8,31 +8,55 @@ import {
 } from "./helpers/pi-host.mjs";
 
 const { loadMcpConfig } = await importHost("dist/extensions/mcp/config.js");
+const CONTEXT7 = { name: "context7", config: {
+	url: "https://mcp.context7.com/mcp", exposure: "codemode",
+	description: "Current documentation for libraries, frameworks, SDKs, APIs and CLI tools.",
+} };
+const ENGRAM = { name: "engram", config: {
+	command: "engram", args: ["mcp", "--tools=agent"], cwd: ".", exposure: "codemode",
+	description: "Persistent project-scoped memory: search prior decisions and save verified findings.",
+} };
 
-test("shouldRegisterSessionDefaultsWithoutStartingServersWhenExtensionLoads", async (t) => {
-	// Given
+/** Load the extension alone; Pi binds the tool listing when the session starts. */
+async function loadMcp(t, tools) {
 	const cwd = await createWorkspace(t);
-	// When
 	const loaded = await loadExtensions([join(packageRoot, "extensions/mcp.ts")], cwd);
+	loaded.runtime.getAllTools = () => tools.map((name) => ({ name }));
+	const servers = () => loaded.runtime.mcpServers.list().map(({ name, config }) => ({ name, config }));
+	const startSession = async () => {
+		for (const handler of loaded.extensions[0].handlers.get("session_start") ?? []) await handler({ type: "session_start", reason: "startup" }, { cwd });
+	};
+	return { loaded, servers, startSession };
+}
+
+test("shouldRegisterOnlyContext7WithoutStartingServersWhenExtensionLoads", async (t) => {
+	// Given / When
+	const { loaded, servers } = await loadMcp(t, []);
 	// Then
-	assert.deepEqual({
-		errors: loaded.errors,
-		servers: loaded.runtime.mcpServers.list().map(({ name, config }) => ({ name, config })),
-		handlers: [...loaded.extensions[0].handlers.keys()],
-	}, {
-		errors: [],
-		servers: [
-			{ name: "context7", config: {
-				url: "https://mcp.context7.com/mcp", exposure: "codemode",
-				description: "Current documentation for libraries, frameworks, SDKs, APIs and CLI tools.",
-			} },
-			{ name: "engram", config: {
-				command: "engram", args: ["mcp", "--tools=agent"], cwd: ".", exposure: "codemode",
-				description: "Persistent project-scoped memory: search prior decisions and save verified findings.",
-			} },
-		],
-		handlers: [],
-	});
+	assert.deepEqual({ errors: loaded.errors, servers: servers(), handlers: [...loaded.extensions[0].handlers.keys()] },
+		{ errors: [], servers: [CONTEXT7], handlers: ["session_start"] });
+});
+
+test("shouldRegisterEngramOnceWhenSessionsStartWithoutAnotherMemoryRoute", async (t) => {
+	// Given
+	const { loaded, servers, startSession } = await loadMcp(t, ["read", "mcp__engram__mem_search"]);
+	// When
+	await startSession();
+	const registered = loaded.runtime.mcpServers.get("engram");
+	await startSession();
+	// Then
+	assert.deepEqual(servers(), [CONTEXT7, ENGRAM]);
+	// The same registration object: Pi reconnects a server only when its registration is replaced.
+	assert.equal(loaded.runtime.mcpServers.get("engram"), registered);
+});
+
+test("shouldLeaveMemoryToAnotherExtensionWhenItProvidesEngramTools", async (t) => {
+	// Given
+	const { servers, startSession } = await loadMcp(t, ["read", "mem_save", "mem_search"]);
+	// When
+	await startSession();
+	// Then
+	assert.deepEqual(servers(), [CONTEXT7]);
 });
 
 test("shouldHonorFileOverridesWithoutRewritingThemWhenNativeMcpStarts", async (t) => {
@@ -91,6 +115,30 @@ test("shouldReportMissingEngramWithoutBreakingOtherToolsWhenNativeConnectionFail
 	assert.match(status, /engram: failed[\s\S]*ENOENT/);
 	assert.deepEqual({ active: session.getActiveToolNames(), errors },
 		{ active: ["read", "bash", "edit", "write", "subagent_collect", "subagent_run", "orchestraitor_tasks", "orchestraitor_ask", "skill_registry"], errors: [] });
+});
+
+test("shouldNotStartEngramWhenAnotherPackageRegistersMemoryTools", async (t) => {
+	// Given
+	const cwd = await createWorkspace(t);
+	const attempted = [];
+	const memory = (api) => api.registerTool({ name: "mem_search", label: "Memory fixture", description: "Search memory",
+		parameters: { type: "object", properties: {} }, execute: async () => ({ content: [{ type: "text", text: "none" }] }) });
+	const resources = await loadPackage(cwd, {
+		extensionFactories: [pi.createMcpExtension({
+			loadConfig: () => ({ errors: [], servers: [
+				{ name: "context7", config: { url: "https://example.invalid", enabled: false }, source: "fixture", scope: "global" },
+			] }),
+			createTransport: (entry) => { attempted.push(entry.name); throw new Error("Test transport: no process launched"); },
+			logPath: join(cwd, "mcp.log"),
+		}), memory],
+	});
+	// When
+	const { session, errors } = await startSession(t, cwd, resources);
+	const status = await mcpStatus(session);
+	// Then
+	assert.deepEqual({ attempted, errors, servers: session.extensionRunner.runtime.mcpServers.list().map(({ name }) => name) },
+		{ attempted: [], errors: [], servers: ["context7"] });
+	assert.doesNotMatch(status, /engram/);
 });
 
 test("shouldUseEachSessionWorkspaceWhenEngramHasNoFixedProject", async (t) => {

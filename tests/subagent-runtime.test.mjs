@@ -173,6 +173,20 @@ test("shouldRejectForbiddenToolsBeforeBindingChildGuard", async (t) => {
 	}
 });
 
+test("shouldCutLongLinesLikePiGrepWhenGuardSearchMatchesContent", async (t) => {
+	// Given
+	const { cwd, temporary, modelRuntime, manifest } = await fixture(t);
+	await writeFile(join(cwd, "bundle.js"), `needle${"x".repeat(5000)}\nneedle short`);
+	const runtime = await createChildRuntime(pi, manifest, "digest", () => {}, temporary, modelRuntime);
+	t.after(() => runtime.dispose());
+	await runtime.session.bindExtensions({ onError: assert.fail });
+	const search = runtime.session.extensionRunner.getAllRegisteredTools().find(({ definition }) => definition.name === "search").definition;
+	// When
+	const result = await search.execute("search", { text: "needle" }, undefined, undefined, { cwd });
+	// Then
+	assert.equal(result.content[0].text, `bundle.js:1: needle${"x".repeat(494)}... [truncated]\nbundle.js:2: needle short`);
+});
+
 test("shouldExposeSelectedSkillResourcesWithoutDiscoveringOtherSkills", async (t) => {
 	// Given
 	const { cwd, temporary, modelRuntime, manifest } = await fixture(t);
@@ -191,7 +205,9 @@ test("shouldExposeSelectedSkillResourcesWithoutDiscoveringOtherSkills", async (t
 	// Then
 	assert.match(result.content[0].text, /Chosen skill/);
 	await assert.rejects(read.execute("unselected", { path: join(skillsRoot, "unselected.md") }, undefined, undefined, { cwd }), /outside/);
-	assert.deepEqual(runtime.services.resourceLoader.getSkills().skills.map(({ sourceInfo, ...skill }) => skill), manifest.skills);
+	// The selected body arrives in the task prompt, so the child lists no skills to load again.
+	assert.deepEqual(runtime.services.resourceLoader.getSkills().skills, []);
+	assert.doesNotMatch(runtime.session.systemPrompt, /available_skills/);
 });
 
 test("shouldConfirmGuardAndNativeRpcStateWithoutSendingAnyModelPrompt", async (t) => {

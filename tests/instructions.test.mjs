@@ -5,9 +5,14 @@ import test from "node:test";
 import { createWorkspace, importHost, loadExtensions, packageRoot } from "./helpers/pi-host.mjs";
 
 const { normalizeBuildSystemPromptOptions, buildSystemPrompt } = await importHost("dist/core/system-prompt.js");
+// Pi starts runs from a submitted prompt or from an idle custom message with triggerTurn.
+const TRIGGERS = {
+	UserPrompt: { messageType: "user", prompt: "Review only" },
+	CustomMessage: { messageType: "custom", message: { role: "custom", customType: "fixture", content: "Continue", display: false, timestamp: 0 } },
+};
 
-for (const mode of ["tui", "print", "json", "rpc"]) {
-	test(`shouldPreservePromptAndToolsWhenInstructionsRunIn${mode}`, async (t) => {
+for (const mode of ["tui", "print", "json", "rpc"]) for (const [trigger, fields] of Object.entries(TRIGGERS)) {
+	test(`shouldPreservePromptAndToolsWhen${trigger}StartsARunIn${mode}`, async (t) => {
 		// Given
 		const cwd = await createWorkspace(t);
 		const loaded = await loadExtensions([join(packageRoot, "extensions/instructions.ts")], cwd);
@@ -21,7 +26,7 @@ for (const mode of ["tui", "print", "json", "rpc"]) {
 			contextFiles: [{ path: "AGENTS.md", content: "Repository rule" }],
 		});
 		const original = structuredClone(options);
-		const event = { type: "before_agent_start", prompt: "Review only", systemPromptOptions: options };
+		const event = { type: "before_agent_start", ...fields, systemPromptOptions: options };
 		const handlers = loaded.extensions[0].handlers.get("before_agent_start");
 		// When
 		const results = [];
@@ -79,11 +84,65 @@ test("shouldKeepOnePersonalitySectionWhenTheInstructionsExtensionIsReloaded", as
 		const loaded = await loadExtensions([path], cwd);
 		assert.deepEqual(loaded.errors, []);
 		for (const handler of loaded.extensions[0].handlers.get("before_agent_start")) {
-			await handler({ type: "before_agent_start", prompt: "Hello", systemPromptOptions: options }, { cwd, mode: "print" });
+			await handler({ type: "before_agent_start", messageType: "user", prompt: "Hello", systemPromptOptions: options }, { cwd, mode: "print" });
 		}
 	}
 	// Then
 	const prompt = buildSystemPrompt(options);
 	assert.deepEqual({ personalitySections: prompt.split("<pi_orchestraitor_personality>").length - 1, host: options.customPrompt, project: options.sections.project },
 		{ personalitySections: 1, host: "Host rules", project: "Project rules" });
+});
+
+const READ_WHOLE_DOCS = "- Always read pi .md files completely and follow links to related docs";
+const READ_RELEVANT_DOCS = "- In pi .md files, list the headings first, then read the relevant sections completely and follow links to related docs";
+
+/** Mirror Pi's runner: every read renders the options as earlier handlers left them. */
+function startEvent(options, render = () => buildSystemPrompt(options)) {
+	return { type: "before_agent_start", messageType: "user", prompt: "Explain pi extensions", systemPromptOptions: options,
+		get systemPrompt() { return render(); } };
+}
+
+async function ownedSections() {
+	return {
+		pi_orchestraitor_core: await readFile(join(packageRoot, "instructions/core.md"), "utf8"),
+		pi_orchestraitor_execution: await readFile(join(packageRoot, "instructions/orchestraitor.md"), "utf8"),
+		pi_orchestraitor_personality: await readFile(join(packageRoot, "instructions/personality.md"), "utf8"),
+	};
+}
+
+test("shouldNarrowOnlyPiDocsReadingRuleInPlaceWhenPiRendersItsNativeDocs", async (t) => {
+	// Given
+	const cwd = await createWorkspace(t);
+	const loaded = await loadExtensions([join(packageRoot, "extensions/instructions.ts")], cwd);
+	assert.deepEqual(loaded.errors, []);
+	const options = normalizeBuildSystemPromptOptions({ cwd, selectedTools: ["read"], sections: { other_extension: "Keep this" } });
+	const native = buildSystemPrompt(options);
+	const event = startEvent(options);
+	// When
+	const results = [];
+	for (let turn = 0; turn < 2; turn++) {
+		for (const handler of loaded.extensions[0].handlers.get("before_agent_start")) results.push(await handler(event, { cwd, mode: "tui" }));
+	}
+	// Then
+	const prompt = buildSystemPrompt(options);
+	const expected = buildSystemPrompt(normalizeBuildSystemPromptOptions({ cwd, selectedTools: ["read"],
+		sections: { other_extension: "Keep this", ...await ownedSections() } })).replace(READ_WHOLE_DOCS, READ_RELEVANT_DOCS);
+	// Drift guard: Pi still renders the exact rule this extension narrows.
+	assert.equal(native.split(READ_WHOLE_DOCS).length, 2);
+	assert.deepEqual({ results, docsSections: prompt.split("<docs>").length - 1, narrowed: prompt.includes(READ_RELEVANT_DOCS) },
+		{ results: [undefined, undefined], docsSections: 1, narrowed: true });
+	assert.equal(prompt, expected);
+});
+
+test("shouldKeepPiDocsSectionWhenItsReadingRuleChanges", async (t) => {
+	// Given
+	const cwd = await createWorkspace(t);
+	const loaded = await loadExtensions([join(packageRoot, "extensions/instructions.ts")], cwd);
+	assert.deepEqual(loaded.errors, []);
+	const options = normalizeBuildSystemPromptOptions({ cwd, selectedTools: ["read"] });
+	const event = startEvent(options, () => buildSystemPrompt(options).replace(READ_WHOLE_DOCS, "- Read pi .md files as needed"));
+	// When
+	for (const handler of loaded.extensions[0].handlers.get("before_agent_start")) await handler(event, { cwd, mode: "print" });
+	// Then
+	assert.deepEqual(options.sections, await ownedSections());
 });

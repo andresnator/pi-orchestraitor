@@ -68,7 +68,8 @@ export function createGuard(sdk, manifest, digest, report) {
 					if (content.includes("\0")) continue;
 					for (const [index, line] of content.split("\n").entries()) {
 						if (line.includes(args.text)) {
-							const match = args.mode === "files" ? projectRelativePath(manifest.cwd, path) : `${projectRelativePath(manifest.cwd, path)}:${index + 1}: ${line}`;
+							// Lines are cut as Pi's grep cuts them, so one minified line cannot fill the output.
+							const match = args.mode === "files" ? projectRelativePath(manifest.cwd, path) : `${projectRelativePath(manifest.cwd, path)}:${index + 1}: ${sdk.truncateLine(line).text}`;
 							matches.push(match); size += match.length;
 							if (size >= MAX_OUTPUT || matches.length >= maxMatches) { truncated = true; break; }
 							if (args.mode === "files") break;

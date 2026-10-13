@@ -60,7 +60,7 @@ async function worker(mode) {
 		const startupMs = performance.now() - started;
 		const promptOptions = session.extensionRunner.createCommandContext().getSystemPromptOptions();
 		const promptStarted = performance.now();
-		const prepared = await session.extensionRunner.emitBeforeAgentStart("Inspect a synthetic fixture", undefined, structuredClone(promptOptions));
+		const prepared = await session.extensionRunner.emitBeforeAgentStart({ messageType: "user", prompt: "Inspect a synthetic fixture" }, structuredClone(promptOptions));
 		const promptPreparationMs = performance.now() - promptStarted;
 		const prompt = buildSystemPrompt(prepared.systemPromptOptions);
 		const active = new Set(prepared.systemPromptOptions.selectedTools);
@@ -86,7 +86,7 @@ async function worker(mode) {
 			result.skillWorkflow = { matched: loadArgs.name, search: size(lookup.content[0].text), load: size(loaded.content[0].text),
 				calls: size(JSON.stringify([{ name: registryTool.name, arguments: searchArgs }, { name: registryTool.name, arguments: loadArgs }])),
 				registrySnapshot: size(await readFile(join(temporary, ".ai/skills/registry.md"), "utf8")) };
-			result.skillWorkflow.refreshMs = await timings(() => session.extensionRunner.emitBeforeAgentStart("Inspect a synthetic fixture", undefined, structuredClone(promptOptions)), SKILL_TIMING_OPTIONS);
+			result.skillWorkflow.refreshMs = await timings(() => session.extensionRunner.emitBeforeAgentStart({ messageType: "user", prompt: "Inspect a synthetic fixture" }, structuredClone(promptOptions)), SKILL_TIMING_OPTIONS);
 			result.skillWorkflow.searchMs = await timings(() => registryTool.execute("search", searchArgs, undefined, undefined, skillCtx), SKILL_TIMING_OPTIONS);
 			result.skillWorkflow.loadMs = await timings(() => registryTool.execute("load", loadArgs, undefined, undefined, skillCtx), SKILL_TIMING_OPTIONS);
 		} else {
@@ -146,9 +146,11 @@ async function worker(mode) {
 
 async function main(args) {
 	const options = { samples: DEFAULT_SAMPLES };
-	for (let index = 0; index < args.length; index += 2) {
-		const key = args[index], value = args[index + 1];
-		if (!["--samples", "--output", "--compare"].includes(key) || !value) throw new Error("Usage: npm run bench -- [--samples 7] [--output FILE] [--compare FILE]");
+	// pnpm forwards a literal "--" separator to the script.
+	const values = args.filter(arg => arg !== "--");
+	for (let index = 0; index < values.length; index += 2) {
+		const key = values[index], value = values[index + 1];
+		if (!["--samples", "--output", "--compare"].includes(key) || !value) throw new Error("Usage: pnpm run bench [--samples 7] [--output FILE] [--compare FILE]");
 		options[key.slice(2)] = key === "--samples" ? Number(value) : value;
 	}
 	if (!Number.isInteger(options.samples) || options.samples < 1 || options.samples > 30) throw new Error("Samples must be between 1 and 30");
