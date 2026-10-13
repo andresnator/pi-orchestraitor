@@ -68,6 +68,17 @@ Codemode output carried the largest share of the baseline's paid prompt cost, so
 
 These are hypotheses until measured. After a week of comparable work, run `pnpm run usage --since <merge date> --compare <baseline>` and compare per model and per turn: codemode output per turn should fall without more turns per task or repeated scripts. A lower cap, such as 6,000, cut more output when truncation was simulated over recorded results, but that simulation assumes the model behaves the same. Evaluate it as a separate, explicitly chosen cohort.
 
+## Task and memory turns
+
+About 15% of the baseline's assistant turns only updated tasks or memory. The package makes those updates smaller and asks for them to travel with work:
+
+- `orchestraitor_tasks` mutations return the operation, the new revision and only the affected tasks, plus `bindingCurrent` when a plan is bound. `list` still returns the complete board with `bindingCurrent` and the project identity, and every receipt keeps the full versioned state in `details`. On the benchmark's one-task update on a 20-task board, the model-facing response fell from 261 to 146 characters.
+- The task tool runs sequentially, so several updates in one assistant message, alongside work calls, take consecutive revisions. `instructions/orchestraitor.md` asks for updates with the next work calls and for done evidence that has already returned.
+- `extensions/mcp.ts` registers Engram when the session starts, unless another package, such as gentle-engram, already provides `mem_search`; both routes would expose the same memory twice. An `engram` entry in `mcp.json` still adds this package's route.
+- This guidance and the codemode rules add 439 characters to the owned instructions and 40 to the tool declarations. Prompt plus tool declarations grew by 528 characters, about 130 estimated tokens per request, in a prefix that stays stable and is mostly read from cache. Package startup stayed within 1% of the baseline.
+
+The main Codex models rarely sent several calls per message, so fewer turns depend on the model following this guidance. Compare ceremony-only turns per model with `pnpm run usage --compare`.
+
 ## Historical efficiency comparison
 
 Before removal of the optional workbench on 2026-10-05, Node 24.20.0 and Pi 1.0.2 on macOS, seven fresh-process rounds per configuration produced:

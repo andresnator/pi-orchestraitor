@@ -94,7 +94,7 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 | `pi-claude-bridge@0.9.2` | Separately installed companion through `install:pi`; Claude Code bridge. Authentication and model selection remain user-controlled. |
 | `extensions/btw/index.ts` | Temporary 70% side-conversation panel; no tools or local history, explicit `/bring` imports only. |
 | `extensions/instructions.ts` | Adds core, execution, and personality sections while preserving Pi and project instructions. Only Pi's docs rule changes, from reading whole files to reading the relevant sections. |
-| `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. |
+| `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. Engram is skipped when another package already provides its `mem_search` tool. |
 | `extensions/nan.ts` | Native NaN API-key login/environment fallback and seven documented chat models; no default changes or startup requests. |
 | `extensions/subagents.ts` | Model profiles, bounded sync/background readers, child guards, collection and native usage. |
 | `extensions/skill-registry.ts` | Bounded search/load, native snapshot refresh and atomic diagnostic publication; lazy/native exposure. |
@@ -122,6 +122,8 @@ See the [interactive UI guide](interactive-ui.md) for schemas, task replay versu
 ## MCP and memory
 
 Context7 uses `https://mcp.context7.com/mcp`. Engram runs `engram mcp --tools=agent` with the session project's cwd. Both use `codemode` exposure. Pi owns connection errors and shutdown; the package never installs missing services.
+
+Engram registers when the session starts, unless another package, such as gentle-engram, already provides Engram's `mem_search` tool: a second route to the same memory would only duplicate its tools. To keep this package's route as well, add the `engram` entry below to `mcp.json`.
 
 An entry with the same server name in personal or project `mcp.json` overrides the complete default. Fields are not merged. For an explicit project identity, use trusted project configuration:
 
