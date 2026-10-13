@@ -1,6 +1,6 @@
 # Bundled development skills
 
-The package ships 56 unique native skills: 54 automatically selectable and two explicit-only in an isolated package profile. The historical 51-skill base comes from non-learning domains of `agents-orchestrator`, revision `e90b11a4d5fb77bfebcf5f5c96da9471014c17ab`; five direct Matt Pocock adaptations are added, including the explicitly requested teaching exception. Other native sources and configuration filters may change an effective catalog. Public names use the short `jag-*` namespace (at most 15 characters). Original names are recorded in provenance; authors, licenses, and supporting resources are retained. All skill directories are materialized; none depends on a link to the source repository. Ten former review lenses are retained as conditional reference material rather than standalone skills.
+The package ships 57 unique native skills: 54 automatically selectable and three explicit-only in an isolated package profile. The historical 51-skill base comes from non-learning domains of `agents-orchestrator`, revision `e90b11a4d5fb77bfebcf5f5c96da9471014c17ab`; six direct Matt Pocock adaptations are added, including the explicitly requested teaching exception. Other native sources and configuration filters may change an effective catalog. Public names use the short `jag-*` namespace (at most 15 characters). Original names are recorded in provenance; authors, licenses, and supporting resources are retained. All skill directories are materialized; none depends on a link to the source repository. Ten former review lenses are retained as conditional reference material rather than standalone skills.
 
 ## Names and upgrades
 
@@ -8,7 +8,7 @@ Directory basenames and frontmatter names match. Use the new identifiers in `/sk
 
 ## Adapted workflows
 
-Matt Pocock is credited in the YAML metadata of all six workflows. The five new skills use local version 1.0.0 and direct-source revision `6fd947921b935b7e1e69293a200400f0fdd5c15f`; their upstream individual versions are absent, not invented. `jag-domain` retains its original 1.0.4 import identity in provenance, with local version 2.0.0 / adaptation 3.0.0 for the changed output/authorization contract. PR visual guidance additionally retains Dex Horthy/HumanLayer credits and both complete MIT notices.
+Matt Pocock is credited in the YAML metadata of these workflows. The five earlier direct adaptations retain local version 1.0.0 and source revision `6fd947921b935b7e1e69293a200400f0fdd5c15f`. The explicit-only `jag-wait-what` addition uses local version 1.0.0 and source revision `49dd158d1076134a641b33efb035946536778336`; upstream individual versions are absent, not invented. `jag-grill` uses local version/adaptation 2.0.1 for dependency, recommendation and authorization clarity, consulting the latter source while preserving its original import identity and one-question interaction. `jag-domain` retains its original 1.0.4 import identity in provenance, with local version 2.0.0 / adaptation 3.0.0 for the changed output/authorization contract. PR visual guidance additionally retains Dex Horthy/HumanLayer credits and both complete MIT notices.
 
 | Skill | Invocation | Default generated output |
 | --- | --- | --- |
@@ -18,12 +18,29 @@ Matt Pocock is credited in the YAML metadata of all six workflows. The five new 
 | `jag-research` | Automatic or explicit; parent-led | Authorized report: `.ai/research/YYYY-MM-DD-<slug>.md` |
 | `jag-domain` | Automatic or explicit; writes require authorization | `.ai/domain/CONTEXT.md`, multi-context map/contexts, and separate `.ai/adr/` |
 | `jag-teach` | User `/skill:jag-teach <topic>` only | Markdown mission/resources/glossary, lessons, records and references under `.ai/learning/<topic>/` |
+| `jag-grill` | Automatic or explicit; one decision at a time | Inline interview and confirmed understanding; no implementation authority |
+| `jag-wait-what` | User `/skill:jag-wait-what [point]` only | Inline re-explanation; no generated files or task continuation |
 
 Manual-only entries are rejected by automatic lookup and child selection; native explicit commands remain available after user `/reload`. Existing canonical documents and collisions are checked before writes. Read-only requests remain inline; no relocation, dependency installation, background researcher, browser launch or publication is implied. Handoffs provide context, not durable execution recovery or permission.
+
+Use a handoff for portable next-task context when the work moves to another agent or workspace; use native `/compact` for ordinary context compression within the same conversation. The handoff's existing output, redaction, fingerprint and receiving-authorization contract is unchanged.
+
+`jag-wait-what` restores the premise or context behind a confusing answer in the user's language, preserving caveats and evidence rather than merely shortening it. It consumes optional canonical vocabulary without creating glossaries and stops after the explanation. Invoke the native skill command after `/reload`; no `/wait-what` prompt or runtime alias is supplied.
 
 Teaching is one concrete confirmed mission per topic, trusted sources and conversational retrieval/practice feedback. Records distinguish demonstrated understanding, self-reported knowledge and exposure; attendance is not mastery or measured retention. Optional notes retain only useful non-sensitive preferences. HTML/JS widgets, remote assets, telemetry and community posting are outside this first version.
 
 Generated documents under `.ai/` remain local ignored artifacts, not packaged definitions. These source-level contracts, native checks and packaging tests do not demonstrate general model reliability or educational effectiveness.
+
+### Manual productivity checks (not run automatically)
+
+These stable cases require user-run conversations; structural/native tests do not establish real-model clarity or obedience.
+
+| Key | Request / context | Expected outcome |
+| --- | --- | --- |
+| WW1 | `/skill:jag-wait-what` after a confusing Spanish answer, without a glossary | Restores the missing premise in plain Spanish, retains caveats/evidence, and stops without files or task continuation. |
+| WW2 | `/skill:jag-wait-what explain the decision` with canonical context vocabulary | Clarifies the requested decision with the existing terms; does not invent a competing glossary or edit domain documents. |
+| GR1 | Stress-test an idea with dependent decisions and an inspectable fact | One question at a time; checks the fact directly, waits for the user's decision and revisits downstream assumptions. |
+| GR2 | Confirm the interview's understanding without authorizing implementation | Summarizes settled choices and limits, then stops; agreement does not initiate edits or Git delivery. |
 
 ## Consolidated review lenses
 
@@ -195,6 +212,7 @@ Each entry maps the shipped name to its original name, version and SKILL.md lice
 | [jag-handoff](../skills/jag-handoff/SKILL.md) | `handoff` | unversioned | MIT | Matt Pocock: productivity |
 | [jag-research](../skills/jag-research/SKILL.md) | `research` | unversioned | MIT | Matt Pocock: engineering |
 | [jag-teach](../skills/jag-teach/SKILL.md) | `teach` | unversioned | MIT | Matt Pocock: productivity |
+| [jag-wait-what](../skills/jag-wait-what/SKILL.md) | `wait-what` | unversioned | MIT | Matt Pocock: productivity |
 
 ## Excluded capabilities
 

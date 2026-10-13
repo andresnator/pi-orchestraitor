@@ -478,11 +478,24 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "606a7ceea97ad1b3508131bc2c1465bad188062f83aef841c35f08320e1a2a93"
+          "sha256": "51bcef551f52ed029489eabea133e7bb35bc8f82ce079ebbc1e2e39165a704a0"
         }
       ],
       "adaptations": [
         "SKILL.md"
+      ],
+      "sourceConsultations": [
+        {
+          "upstreamRepository": "https://github.com/mattpocock/skills",
+          "upstreamRevision": "49dd158d1076134a641b33efb035946536778336",
+          "purpose": "Consulted for dependency, recommendation and authorization clarity; original import identity and sequential interaction retained.",
+          "resources": [
+            {
+              "path": "skills/productivity/grilling/SKILL.md",
+              "sha256": "befdff1e27a1dfe2a294d5871169ac1afe16d983911daa4f32627514a48c1e15"
+            }
+          ]
+        }
       ]
     },
     {
@@ -1784,6 +1797,35 @@
         "assets/mission-template.md",
         "assets/reference-template.md",
         "assets/resources-template.md"
+      ]
+    },
+    {
+      "name": "jag-wait-what",
+      "upstreamName": "wait-what",
+      "upstreamPaths": [
+        "skills/productivity/wait-what/SKILL.md"
+      ],
+      "upstreamVersion": null,
+      "license": "MIT",
+      "author": "Matt Pocock",
+      "adaptedBy": "pi-orchestraitor",
+      "upstreamRepository": "https://github.com/mattpocock/skills",
+      "upstreamRevision": "49dd158d1076134a641b33efb035946536778336",
+      "upstreamSha256": "d961bb37defd975c539427edb8f450cdbccdcdd552e213c1ece46676a7970905",
+      "upstreamResources": [
+        {
+          "path": "skills/productivity/wait-what/SKILL.md",
+          "sha256": "d961bb37defd975c539427edb8f450cdbccdcdd552e213c1ece46676a7970905"
+        }
+      ],
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "f4f4ed40898c9e0dbaaf756de121a2e076b9521be14518140158e364a7d3f9b4"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
       ]
     }
   ],

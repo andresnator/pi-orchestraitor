@@ -1,6 +1,6 @@
 # pi-orchestraitor
 
-A personal [Pi](https://pi.dev) package for practical coding workflows: 56 bundled skills, compact tools, temporary `/btw` conversations, bounded subagents, a bundled NaN model provider, and optional Context7 and Engram integration.
+A personal [Pi](https://pi.dev) package for practical coding workflows: 57 bundled skills, compact tools, temporary `/btw` conversations, bounded subagents, a bundled NaN model provider, and optional Context7 and Engram integration.
 
 **Private GitHub distribution.** No npm publication or automatic releases.
 
@@ -36,6 +36,7 @@ Do not register both the checkout and the Git source. See [installation, conflic
 /review src/module.ts
 /btw explain this without changing the main task
 /skill:jag-debug investigate this failure
+/skill:jag-wait-what explain the last answer
 ```
 
 Skills load on demand. Replies follow your language; repository artifacts use English. Changes stay unstaged unless you explicitly authorize Git delivery.
