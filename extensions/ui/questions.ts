@@ -87,7 +87,7 @@ const label = (value: string) => sanitizeDisplay(value).replace(/\s+/gu, " ");
 export function createQuestionTool(owner: ReturnType<typeof createUIOwner>): ToolDefinition<typeof QuestionParameters> {
 	return {
 		name: QUESTION_TOOL_NAME, label: "Ask", exposure: "model-only", executionMode: "sequential",
-		description: "Collect requirements/preferences with one to six single/multiple choices. Exact IDs/values are returned only after explicit submission. Free text needs allowText:true. Mark suggested options recommended:true. Cancelled/unavailable/busy are not approval; clarify textually if unavailable. Never use this as a security or destructive-action permission grant.",
+		description: "Collect requirements/preferences with one to six single/multiple choices. Exact IDs/values are returned only after explicit submission. Free text needs allowText:true. Mark suggested options recommended:true (at most one for single). Cancelled/unavailable/busy are not approval; clarify textually if unavailable. Never use this as a security or destructive-action permission grant.",
 		parameters: QuestionParameters,
 		async execute(_id, params, signal, _update, ctx) {
 			const questions = validateQuestions(params);

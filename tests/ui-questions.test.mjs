@@ -276,6 +276,7 @@ test("shouldPreserveOpaqueIdsAndValuesAndAllowCorrectionWhenNativeSingleChoiceSu
 	assert.doesNotMatch(stripVTControlCharacters(component.render(80).join("\n")), /\x1b/);
 	assert.equal(tool.exposure, "model-only");
 	assert.equal(tool.executionMode, "sequential");
+	assert.match(tool.description, /recommended:true \(at most one for single\)/); // The schema cannot express this cross-field limit.
 });
 
 for (const action of ["cancel", "abort", "session-change"]) {
