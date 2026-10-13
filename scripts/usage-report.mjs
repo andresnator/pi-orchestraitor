@@ -29,7 +29,7 @@ const NAME = /^[\w.:@/+-]{1,128}$/;
 const METHOD = [
 	"Metadata only: names, counts, sizes and native usage. Message, tool, script and path content is never emitted.",
 	"Usage is summed once from assistant messages, usage entries, compaction/branch summaries and top-level tool-result usage. details.results usage only attributes that aggregate and is never added.",
-	"Incomplete accounting (usageComplete false, invalid usage or uncollected background readers) makes totals a lower bound, never a zero.",
+	"Incomplete accounting (usageComplete false, invalid usage or uncollected background readers) makes totals a lower bound, never a zero. A background child left pending in one selected session counts as collected when another, such as a fork, collects it.",
 	"--since/--until select entries by their own timestamp; usage belongs to the entry that reports it, so a background child collected after --until counts in the later window.",
 	"Model time is Pi's durationMs or, in logs written before Pi recorded it, the assistant entry time minus the request start (message.timestamp). Tool time exists only where Pi recorded durationMs; timedResults counts those results.",
 	"Sessions are read oldest first. A fork copies its parent's entries with their ids and timestamps; a copy counts only when no older selected session holds it, and is otherwise replayed as state only.",
@@ -310,7 +310,7 @@ function recordOther(report, entry) {
 function analyzeSession(entries, fork, options, report, track) {
 	const nodes = new Map();
 	let previous, active = false;
-	Object.assign(track, { calls: new Map(), spills: [], pending: new Set(), collected: new Set(), children: new Set() });
+	Object.assign(track, { calls: new Map(), spills: [], children: new Set() });
 	entries.forEach((entry, index) => {
 		const id = typeof entry.id === "string" ? entry.id : `#${index}`;
 		const parent = "parentId" in entry ? (entry.parentId == null ? undefined : nodes.get(entry.parentId)) : previous;
@@ -330,7 +330,6 @@ function analyzeSession(entries, fork, options, report, track) {
 		else if (role === "toolResult") recordToolResult(report, entry.message, counted, track);
 		else if (counted) recordOther(report, entry);
 	});
-	report.usage.incomplete.uncollected += [...track.pending].filter(id => !track.collected.has(id)).length;
 	if (active) report.sources.sessions++;
 }
 
@@ -344,6 +343,7 @@ function finalize(report, track) {
 		for (const target of [cache, cause]) { target.count++; target.missedTokens += miss.missedTokens; target.missedCost += missedCost; }
 	}
 	const usage = report.usage;
+	usage.incomplete.uncollected = [...track.pending].filter(id => !track.collected.has(id)).length;
 	for (const part of [usage.assistant, ...Object.values(usage.usageEntries), ...Object.values(usage.summaries), ...Object.values(usage.toolResults)]) addUsage(usage.total, part);
 	usage.complete = Object.values(usage.incomplete).every(count => count === 0);
 	const turns = report.turns.assistant;
@@ -403,7 +403,8 @@ async function sessionFiles(root, sinceMs) {
 }
 
 async function buildReport(options) {
-	const report = createReport(options), track = { misses: [], prices: {}, seen: new Set() };
+	// Pending and collected children span sessions: a fork can collect what its parent left pending.
+	const report = createReport(options), track = { misses: [], prices: {}, seen: new Set(), pending: new Set(), collected: new Set() };
 	for (const path of await sessionFiles(options.sessions, options.sinceMs)) {
 		let header, invalid = 0;
 		const entries = [];

@@ -253,6 +253,30 @@ test("shouldCountForkHistoryOnceWhenItsParentIsNotSelected", async (t) => {
 	]);
 });
 
+test("shouldCountAChildAsCollectedWhenAForkCollectsWhatItsParentLeftPending", async (t) => {
+	// Given
+	const dir = await createWorkspace(t);
+	const parentPath = join(dir, "parent.jsonl");
+	const parent = session();
+	parent.add(user());
+	parent.add(assistant(1_000, 0, { content: [call("c1", "subagent_run", {})] }));
+	const leaf = parent.add(result("c1", "subagent_run", "{}", { details: { results: [], pending: ["child-1"], usageComplete: false } }));
+	const fork = session({ id: "s2", timestamp: "2026-10-05T11:00:00.000Z", parentSession: parentPath });
+	fork.lines.push(...parent.lines.slice(1));
+	fork.add(assistant(1_000, 1_000, { content: [call("c2", "subagent_collect", {})] }), { parent: leaf });
+	fork.add(result("c2", "subagent_collect", "{}", { usage: usage(2_000),
+		details: { results: [{ id: "child-1", role: "explore", usage: usage(2_000), usageComplete: true }], pending: [], usageComplete: true } }));
+	await write(parentPath, parent);
+	await write(join(dir, "fork.jsonl"), fork);
+	// When
+	const alone = report(parentPath);
+	const both = report(dir);
+	// Then
+	const accounting = json => ({ complete: json.usage.complete, uncollected: json.usage.incomplete.uncollected, input: json.usage.total.input });
+	assert.deepEqual([accounting(alone), accounting(both)],
+		[{ complete: false, uncollected: 1, input: 1_000 }, { complete: true, uncollected: 0, input: 4_000 }]);
+});
+
 test("shouldMeasureCodemodeSourcesOptionsAndSpillsWhenScriptsReturnOutput", async (t) => {
 	// Given
 	const dir = await createWorkspace(t);
