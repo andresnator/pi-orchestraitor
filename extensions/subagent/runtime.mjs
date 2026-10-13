@@ -17,7 +17,8 @@ export async function createChildRuntime(sdk, manifest, digest, report, temporar
 				appendSystemPrompt: [], systemPromptOverride: () => CHILD_SYSTEM_PROMPT,
 				appendSystemPromptOverride: () => [],
 				agentsFilesOverride: () => ({ agentsFiles: manifest.contextFiles }),
-				skillsOverride: () => ({ skills: manifest.skills, diagnostics: [] }),
+				// Selected skill bodies arrive in the task prompt. The guard reads their directories from the manifest.
+				skillsOverride: () => ({ skills: [], diagnostics: [] }),
 				promptsOverride: () => ({ prompts: [], diagnostics: [] }), themesOverride: () => ({ themes: [], diagnostics: [] }),
 			},
 		});

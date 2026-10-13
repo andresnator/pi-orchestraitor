@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdir, realpath, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
-import { createWorkspace, loadExtensions, packageRoot, pi } from "./helpers/pi-host.mjs";
+import { createWorkspace, importHost, loadExtensions, packageRoot, pi } from "./helpers/pi-host.mjs";
 import { REGISTRY_RESOLVE_EVENT } from "../extensions/skills/registry.mjs";
 
 const controllerKey = Symbol.for("pi-orchestraitor.subagent-controller");
@@ -136,6 +137,25 @@ test("shouldRejectUnavailableModelsAndDisabledParentToolsBeforeLaunch", async (t
 	assert.deepEqual(batches, []);
 });
 
+test("shouldDeriveOneClosableProviderSessionPerChildOnlyWhenParentSessionIsKnown", async (t) => {
+	// Given
+	const { tool, ctx, batches } = await fixture(t);
+	const { registerSessionResourceCleanup } = await importHost("node_modules/@earendil-works/pi-ai/dist/index.js");
+	const closed = [];
+	t.after(registerSessionResourceCleanup((id) => { closed.push(id); }));
+	const tasks = [{ role: "explore", instruction: "first" }, { role: "review", instruction: "second" }];
+	// When
+	await tool.execute("batch", { tasks }, undefined, undefined, { ...ctx, sessionManager: { getSessionId: () => "parent" } });
+	const sessions = batches[0].manifests.map(globalThis[controllerKey].options.providerSessionFor);
+	for (const session of sessions) session.close();
+	await tool.execute("anonymous", { tasks }, undefined, undefined, ctx);
+	// Then
+	const expected = batches[0].manifests.map(({ id }) => createHash("sha256").update(`parent:${id}`).digest("hex"));
+	assert.notEqual(expected[0], expected[1]);
+	assert.deepEqual({ ids: sessions.map(({ id }) => id), closed }, { ids: expected, closed: expected });
+	assert.deepEqual(batches[1].manifests.map(globalThis[controllerKey].options.providerSessionFor), [undefined, undefined]);
+});
+
 test("shouldPassOnlySelectedSkillBodiesWhenCapturingEffectiveCatalog", async (t) => {
 	// Given
 	const { cwd, tool, ctx, batches, capture } = await fixture(t);
@@ -147,7 +167,7 @@ test("shouldPassOnlySelectedSkillBodiesWhenCapturingEffectiveCatalog", async (t)
 	await tool.execute("batch", { tasks: [{ role: "explore", instruction: "inspect", skills: ["chosen"] }] }, undefined, undefined, ctx);
 	// Then
 	assert.deepEqual(batches[0].manifests[0].skills, [skill]);
-	assert.match(batches[0].prompts[0], /SELECTED_CONTENT/);
+	assert.ok(batches[0].prompts[0].includes(`Selected skill chosen:\nReferences are relative to ${skill.baseDir}.\n\nSELECTED_CONTENT`));
 	assert.doesNotMatch(batches[0].prompts[0], /unavailable/);
 	await assert.rejects(tool.execute("bad", { tasks: [{ role: "explore", instruction: "inspect", skills: ["missing"] }] }, undefined, undefined, ctx), /missing/);
 });
