@@ -1,6 +1,6 @@
 # See delegated work, tasks and decisions without replacing Pi
 
-The optional UI extension adds read-only agents/tasks panels, a compact task work header, one native-footer status and a unified question tool. Pi still owns the editor, application keybindings, native model/context/usage display and execution. This is presentation and branch-local task replay, not another scheduler or durable SDD recovery.
+The optional UI extension adds read-only agents/tasks panels, a compact task work header, one native-footer status, a unified question tool and a warning before a model or thinking switch re-bills cached context. Pi still owns the editor, application keybindings, native model/context/usage display and execution. This is presentation and branch-local task replay, not another scheduler or durable SDD recovery.
 
 The installer also registers the separate [pi-pretty companion](pi-pretty.md). It owns read/bash presentation and its prompt-editor/activity customization; this UI extension still owns only the harness widget, status and foreground interactions.
 
@@ -23,12 +23,15 @@ Only native TUI mode creates components. In RPC, JSON and print, tasks still wor
 | Task authority | Validated successful native `orchestraitor_tasks` results on the active branch, replayed by `extensions/ui/tasks.ts`. |
 | Requirements/preferences | One `orchestraitor_ask` schema and interaction in `extensions/ui/questions.ts`. |
 | Safe terminal display | Native `extensions/ui/display.ts`; original IDs and opaque values remain untouched. |
+| Cache warning before a switch | `extensions/ui/cache-notice.ts`; native notification only, never transcript or model context. |
 
 ## Panels and compact chrome
 
 The agents panel shows assignment order, IDs, roles, requested/effective model evidence, phases and bounded diagnostics. Starting/running/stopping are not failure or acceptance. Runtime completion is not parent acceptance; absent effective-model or nested historical evidence stays unavailable. Panels cannot launch, retry, grant, resume or cancel work.
 
 Tasks start collapsed as one row. Expanded chrome uses at most five rows; short terminals temporarily collapse it. Empty lists contribute no task row. Full detail remains in the task panel. The footer contributes one status with this precedence: known launch block, awaiting input, active agents; idle contributes nothing. Native counters are not repeated.
+
+Switching model or thinking level with at least 20k context tokens shows one warning once switching has settled for 1 second: the next request will likely re-bill that context, with the cost estimated from the new model's prices. Returning to the latest request's selection, restored selections, unknown context size after compaction and modes without UI stay silent. `hide` does not suppress it; disabling the extension does. See [performance](performance.md#model-and-thinking-switches) for the rule.
 
 Selection, scrolling, submission and cancellation use native configurable actions. Check `/hotkeys` and Pi's keybinding documentation rather than relying on a hardcoded shortcut. Read-only panels also close with Escape. The extension never replaces the main editor/header/footer, registers global shortcuts, or changes personal themes.
 

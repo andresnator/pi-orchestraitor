@@ -68,7 +68,7 @@ flowchart TB
 | L | [extensions/subagent/controller.mjs](../../extensions/subagent/controller.mjs), [extensions/subagent/child.mjs:18–28](../../extensions/subagent/child.mjs), [extensions/subagent/runtime.mjs:13–25](../../extensions/subagent/runtime.mjs). |
 | N | [extensions/context-budget.ts](../../extensions/context-budget.ts): lowers the output cap of top-level codemode scripts without options; the transcript keeps the original script. |
 
-**M:** [status-ui.ts](../../extensions/status-ui.ts) delegates to [agents](../../extensions/ui/agents.ts), [tasks](../../extensions/ui/tasks.ts) and [questions](../../extensions/ui/questions.ts). It uses native widgets/status/dialogs, not header/footer/editor factories. Task state comes only from successful active-branch native receipts; it cannot grant writes, accept child work or recover execution. See the [UI guide](../interactive-ui.md).
+**M:** [status-ui.ts](../../extensions/status-ui.ts) delegates to [agents](../../extensions/ui/agents.ts), [tasks](../../extensions/ui/tasks.ts), [questions](../../extensions/ui/questions.ts) and the [cache notice](../../extensions/ui/cache-notice.ts). It uses native widgets/status/dialogs/notifications, not header/footer/editor factories. Task state comes only from successful active-branch native receipts; it cannot grant writes, accept child work or recover execution. See the [UI guide](../interactive-ui.md).
 
 ## The distinctions that prevent confusion
 

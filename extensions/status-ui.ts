@@ -1,6 +1,7 @@
 import type { ExtensionAPI, ExtensionContext, ExtensionUIContext, KeybindingsManager, Theme } from "@earendil-works/pi-coding-agent";
 import type { Component, TUI } from "@earendil-works/pi-tui";
 import { classifyAgent, createAgentsPanel, createAgentsProjection } from "./ui/agents.ts";
+import { registerCacheNotice } from "./ui/cache-notice.ts";
 import { workStatus } from "./ui/display.ts";
 import { subagentLaunchesBlocked, SUBAGENT_PROGRESS_EVENT } from "./subagents.ts";
 import { compactTool } from "./compact-tools.ts";
@@ -180,6 +181,7 @@ export default function statusUI(pi: ExtensionAPI) {
 	pi.on("session_tree", (_event, ctx) => reconstruct(ctx));
 	pi.on("agent_settled", (_event, ctx) => refreshTasks(ctx));
 	pi.on("session_compact", (_event, ctx) => refreshTasks(ctx));
+	registerCacheNotice(pi);
 	for (const event of ["session_before_switch", "session_before_fork", "session_before_tree"] as const) {
 		pi.on(event, () => owner.cancelInteractions());
 	}
