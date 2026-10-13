@@ -1,6 +1,6 @@
 # See delegated work, tasks and decisions without replacing Pi
 
-The optional UI extension adds read-only agents/tasks panels, a compact task work header, one native-footer status and a unified question tool. Pi still owns the editor, application keybindings, native model/context/usage display and execution. This is presentation and branch-local task replay, not another scheduler or durable SDD recovery.
+The optional UI extension adds read-only agents/tasks panels, a compact task work header, one native-footer status, a unified question tool and a warning before a model or thinking switch re-bills cached context. Pi still owns the editor, application keybindings, native model/context/usage display and execution. This is presentation and branch-local task replay, not another scheduler or durable SDD recovery.
 
 The installer also registers the separate [pi-pretty companion](pi-pretty.md). It owns read/bash presentation and its prompt-editor/activity customization; this UI extension still owns only the harness widget, status and foreground interactions.
 
@@ -24,6 +24,7 @@ Only native TUI mode creates components. In RPC, JSON and print, tasks still wor
 | Task header and panel rendering | `extensions/ui/task-view.ts`; display-only, reads the replayed state and receipt history. |
 | Requirements/preferences | One `orchestraitor_ask` schema and interaction in `extensions/ui/questions.ts`. |
 | Safe terminal display | Native `extensions/ui/display.ts`; original IDs and opaque values remain untouched. |
+| Cache warning before a switch | `extensions/ui/cache-notice.ts`; native notification only, never transcript or model context. |
 
 ## Panels and compact chrome
 
@@ -34,6 +35,8 @@ Tasks start collapsed in at most four rows. The first row shows a status-colored
 The task panel is read-only. Selection keys move through tasks grouped by plan group, and page keys scroll the detail of the selected task. Wide terminals show the list and the detail side by side; narrow terminals stack them. The detail shows the title, group, time in the current status, evidence with its parent-reported caption, the reason, and the task's history on this branch. The panel header lists the plan binding, up to two live agents and the status distribution.
 
 Times and history come from the timestamps of the same validated receipts. They are display-only: they never enter task state, revision checks or the `list` response. The footer contributes one status with this precedence: known launch block, awaiting input, active agents; idle contributes nothing. Native counters are not repeated.
+
+Switching model or thinking level with at least 20k context tokens shows one warning once switching has settled for 1 second: the next request will likely re-bill that context, with the cost estimated from the new model's prices. Returning to the latest request's selection, restored selections, unknown context size after compaction and modes without UI stay silent. `hide` does not suppress it; disabling the extension does. See [performance](performance.md#model-and-thinking-switches) for the rule.
 
 Selection, scrolling, submission and cancellation use native configurable actions. Check `/hotkeys` and Pi's keybinding documentation rather than relying on a hardcoded shortcut. Read-only panels also close with Escape. The extension never replaces the main editor/header/footer, registers global shortcuts, or changes personal themes.
 
