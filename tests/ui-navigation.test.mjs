@@ -53,7 +53,7 @@ for (const action of ["tree-veto", "summary-abort", "switch-veto", "fork-veto"])
 		const { session, ctx, widgets, statuses, errors } = ui, runner = session.extensionRunner;
 		const target = await seed(ui);
 		const expanded = header(ui);
-		assert.equal(expanded.length, 2);
+		assert.equal(expanded.length, 3);
 		if (hidden) await runner.getCommand("orchestraitor:ui").handler("hide", runner.createCommandContext());
 		const branch = session.sessionManager.getBranch(), leaf = session.sessionManager.getLeafId();
 		const opened = Promise.withResolvers(), late = Promise.withResolvers();
@@ -128,7 +128,7 @@ test("shouldReconstructEffectiveBranchAfterCompletedNativeTreeNavigation", async
 	assert.equal(widgets.has(widgetKey), false);
 	assert.equal(statuses.has(statusKey), false);
 	assert.equal((await session.navigateTree(leaf)).cancelled, false);
-	assert.deepEqual(header(ui), ["Tasks · 0/1 done"]);
+	assert.match(header(ui)[0], /^Tasks \S+ 0\/1 done/);
 	assert.deepEqual(errors, []);
 });
 

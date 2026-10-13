@@ -277,7 +277,7 @@ test("shouldRenderCurrentThemeAndBoundRowsAtAllWidthsWithoutCachingForeignColors
 		component.invalidate();
 		for (const width of [1, 20, 40, 80, 120]) {
 			const lines = component.render(width);
-			assert.equal(lines.length, 5);
+			assert.equal(lines.length, 8);
 			assert.ok(lines.every((line) => visibleWidth(line) <= width && !line.includes("\x1b]52")));
 		}
 	}

@@ -4,7 +4,8 @@ import { classifyAgent, createAgentsPanel, createAgentsProjection } from "./ui/a
 import { workStatus } from "./ui/display.ts";
 import { subagentLaunchesBlocked, SUBAGENT_PROGRESS_EVENT } from "./subagents.ts";
 import { compactTool } from "./compact-tools.ts";
-import { checkTaskBinding, createTaskPanel, createTaskTool, emptyTasks, replayTasks, taskHeader, TASK_TOOL_NAME } from "./ui/tasks.ts";
+import { checkTaskBinding, createTaskTool, emptyTasks, replayTaskActivity, TASK_TOOL_NAME, type TaskActivity } from "./ui/tasks.ts";
+import { createTaskPanel, taskHeader } from "./ui/task-view.ts";
 import { createQuestionTool, QUESTION_TOOL_NAME } from "./ui/questions.ts";
 
 export const WORK_WIDGET_KEY = "orchestraitor:work";
@@ -122,6 +123,7 @@ export default function statusUI(pi: ExtensionAPI) {
 	const owner = createUIOwner(() => refreshStatus());
 	const agents = createAgentsProjection();
 	let tasks = emptyTasks();
+	let activity: TaskActivity = new Map();
 	let bindingCurrent = true;
 	let expanded = false;
 	let visible = true;
@@ -141,7 +143,8 @@ export default function statusUI(pi: ExtensionAPI) {
 		const generation = owner.generation;
 		const request = ++refreshRequest;
 		const leaf = ctx.sessionManager.getLeafId();
-		const state = taskManager === ctx.sessionManager && taskLeaf === leaf ? tasks : replayTasks(ctx.sessionManager.getBranch());
+		const replayed = taskManager === ctx.sessionManager && taskLeaf === leaf ? { state: tasks, activity } : replayTaskActivity(ctx.sessionManager.getBranch());
+		const state = replayed.state;
 		// Coalesce only concurrent checks. External plan edits must still be detected
 		// on later refreshes, even when the native branch has not changed.
 		if (!bindingCheck || bindingCheck.binding !== state.binding || bindingCheck.cwd !== ctx.cwd) {
@@ -151,12 +154,12 @@ export default function statusUI(pi: ExtensionAPI) {
 		}
 		const current = await bindingCheck.promise;
 		if (context !== activeContext || generation !== owner.generation || request !== refreshRequest || !owner.isCurrent(ctx)) return;
-		tasks = state;
+		tasks = state; activity = replayed.activity;
 		taskManager = ctx.sessionManager; taskLeaf = leaf;
 		bindingCurrent = current;
 		owner.setWidget(visible && tasks.tasks.length ? (tui, _theme) => ({
 			invalidate() {},
-			render: (width: number) => taskHeader(tasks, expanded, width, tui.terminal.rows, ctx.ui.theme, bindingCurrent),
+			render: (width: number) => taskHeader(tasks, expanded, width, tui.terminal.rows, ctx.ui.theme, bindingCurrent, activity),
 		}) : undefined);
 		owner.refresh();
 	};
@@ -164,7 +167,7 @@ export default function statusUI(pi: ExtensionAPI) {
 		context = ctx;
 		expanded = false;
 		visible = true;
-		tasks = emptyTasks();
+		tasks = emptyTasks(); activity = new Map();
 		taskManager = undefined; taskLeaf = undefined; bindingCheck = undefined;
 		agents.replay(ctx.sessionManager.getBranch(), ctx.sessionManager.getSessionId(), subagentLaunchesBlocked());
 		owner.activate(ctx);
@@ -184,7 +187,7 @@ export default function statusUI(pi: ExtensionAPI) {
 		pi.on(event, () => owner.cancelInteractions());
 	}
 	pi.on("session_shutdown", () => {
-		context = undefined; owner.dispose(); agents.replay([]); tasks = emptyTasks(); bindingCurrent = true;
+		context = undefined; owner.dispose(); agents.replay([]); tasks = emptyTasks(); activity = new Map(); bindingCurrent = true;
 		taskManager = undefined; taskLeaf = undefined; bindingCheck = undefined;
 	});
 	pi.on("tool_execution_start", async (event, ctx) => {
@@ -232,7 +235,7 @@ export default function statusUI(pi: ExtensionAPI) {
 			if (action) expanded = action === "expand";
 			await refreshTasks(ctx);
 			if (!action) await owner.modal("panel", (tui, theme, keys, done) =>
-				createTaskPanel(() => ({ state: tasks, bindingCurrent }), tui, theme, keys, done));
+				createTaskPanel(() => ({ state: tasks, bindingCurrent, activity, agents: agents.snapshot().live }), tui, theme, keys, done));
 		},
 	});
 	pi.registerCommand("orchestraitor:agents", {
