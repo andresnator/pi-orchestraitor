@@ -1,14 +1,14 @@
 ---
 name: jag-rfc
-description: "Create RFCs/technical proposals with design, alternatives, tradeoffs and open questions."
+description: "Create RFCs/technical proposals with design, alternatives, tradeoffs and open questions. Supports optional section review."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
-  pi_adaptation: "2.0.0"
-  modification_notice: "Modified for Pi by pi-orchestraitor."
+  pi_adaptation: "2.1.0"
+  modification_notice: "Modified for Pi by pi-orchestraitor; added optional section review."
   author: andresnator
   status: testing
-  version: "2.0.0"
+  version: "2.1.0"
 ---
 
 # RFC Creator
@@ -20,6 +20,18 @@ Create clear RFCs that explain a proposal, the problem it addresses, the design 
 Use this skill when the user asks for an RFC, request for comments, technical proposal, design document, feature proposal, or engineering proposal.
 
 Default to interview mode unless the user already supplied enough information to draft a complete RFC. Ask interview questions in the user's language. RFC artifact language is English unless the user explicitly asks for another language.
+
+## Optional Interactive Mode
+
+Use only on explicit requests for `interactive mode`, `section by section`, or equivalent intent. Otherwise keep defaults below. In this mode, replace draft timing and question limits only; preserve templates, validation, evidence, language, format and save/publication rules.
+
+1. Confirm section order. Reuse context; ask one missing-input question at a time and wait.
+2. Draft one section. Request approval or edits; wait for explicit approval before advancing. Answering intake questions, cancellation and unavailable UI are not approval. Use available Pi choice UI for closed choices, otherwise chat.
+3. Carry approved text and visible open items forward. Keep progress brief; do not reprint the whole draft.
+4. Reopen affected sections when earlier decisions change; never silently rewrite approved text.
+5. After all sections are approved and validation passes, assemble approved text into the complete document for final review. Approval never authorizes saving or publishing.
+
+Pause or exit on request; report approved/pending sections without inventing missing state.
 
 ## Hard Rules
 

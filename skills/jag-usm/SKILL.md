@@ -1,14 +1,14 @@
 ---
 name: jag-usm
-description: "Create journey-first USM/user story maps with MVP slicing and Mermaid; includes mapa de historias requests."
+description: "Create journey-first USM/user story maps with MVP slicing and Mermaid; includes mapa de historias requests. Supports optional section review."
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
-  pi_adaptation: "2.0.0"
-  modification_notice: "Modified for Pi by pi-orchestraitor."
+  pi_adaptation: "2.1.0"
+  modification_notice: "Modified for Pi by pi-orchestraitor; added optional section review."
   author: andresnator
   status: testing
-  version: "2.0.0"
+  version: "2.1.0"
 ---
 
 # User Story Mapping
@@ -18,6 +18,18 @@ metadata:
 Use this skill to interactively create a User Story Map for a raw idea, PRD, PRD Light, RFC, issue, notes, or other product context. Raw ideas are first-class input. Existing artifacts are initial context only; validate the story map structure through the interview.
 
 Always read `assets/usm-template.md` at the start of the session and use it as the final artifact skeleton.
+
+## Optional Interactive Mode
+
+Use only on explicit requests for `interactive mode`, `section by section`, or equivalent intent. Otherwise keep defaults below. In this mode, replace draft timing and question limits only; preserve templates, validation, evidence, language, format and save/publication rules.
+
+1. Confirm section order. Reuse context; ask one missing-input question at a time and wait.
+2. Draft one section. Request approval or edits; wait for explicit approval before advancing. Answering intake questions, cancellation and unavailable UI are not approval. Use available Pi choice UI for closed choices, otherwise chat.
+3. Carry approved text and visible open items forward. Keep progress brief; do not reprint the whole draft.
+4. Reopen affected sections when earlier decisions change; never silently rewrite approved text.
+5. After all sections are approved and validation passes, assemble approved text into the complete document for final review. Approval never authorizes saving or publishing.
+
+Pause or exit on request; report approved/pending sections without inventing missing state.
 
 ## Hard Rules
 

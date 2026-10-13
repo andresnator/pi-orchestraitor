@@ -42,6 +42,32 @@ These stable cases require user-run conversations; structural/native tests do no
 | GR1 | Stress-test an idea with dependent decisions and an inspectable fact | One question at a time; checks the fact directly, waits for the user's decision and revisits downstream assumptions. |
 | GR2 | Confirm the interview's understanding without authorizing implementation | Summarizes settled choices and limits, then stops; agreement does not initiate edits or Git delivery. |
 
+## Optional document authoring
+
+Build a document together by requesting `interactive mode`, `section by section`, or equivalent wording in your language. Supported skills:
+
+- `jag-docs`, `jag-prd`, `jag-prd-lite`, `jag-rfc`, `jag-adr`, `jag-usm`.
+- `jag-jira-story`, `jag-jira-task`, `jag-jira-spike`.
+
+```text
+/skill:jag-rfc interactive mode: propose asynchronous email delivery
+```
+
+Confirm the section order, answer one missing-input question at a time, and review each section's draft. The agent waits for explicit approval before advancing and carries approved text forward. Earlier decision changes reopen affected sections. After every section is approved and validation passes, the agent assembles the complete document for final review. Pause or leave the mode at any time.
+
+Existing defaults remain unchanged, including Jira Quick Creation and explicit Refinement. Templates, evidence, validation, artifact language and output formats still apply. Section approval does not authorize file writes or publication. No new command, skill or Test Plan skill is added. Local versions are 1.1.0 for `jag-docs` and 2.1.0 for the other eight; adaptation 2.1.0, status `testing`.
+
+### Manual coverage: DOC-SECTION-01
+
+Not run yet. For each supported skill, compare an explicit interactive request with a normal request:
+
+- Answer a question without approving the draft; expect no advancement. Edit and approve; expect the next section to reuse approved content.
+- Revise an earlier decision; expect affected sections to need approval again. Pause and continue from available context; expect no invented state.
+- Cancel a closed-choice prompt; expect no approval. Without choice UI, expect a chat question instead.
+- Complete the sections; expect the full document in its required format, preserved validation gates and no unauthorized save/publication. The normal request must retain its existing workflow.
+
+Structural tests check these instructions and preserved defaults, not live model behavior.
+
 ## Consolidated review lenses
 
 These ten names are no longer supplied as standalone skills or aliases by this package. Use the owning skill and request the named lens; it reads the matching reference only when relevant. Other native sources may still provide their own copies, which this package does not disable or move.
@@ -61,7 +87,7 @@ These ten names are no longer supplied as standalone skills or aliases by this p
 
 Run native `/reload` to remove stale package commands/catalog entries. Update explicit resource paths/filters and existing plan `Skills:` fields yourself; immutable plans and historical reports are not rewritten. A replacement name does not automatically satisfy an old plan's contract: check the assigned behavior and routing rules before changing it.
 
-The references retain evidence/confidence rules, caller-owned output, behavior preservation, validation/rollback, real-variation gates, temporal-coupling checks and characterization-test safeguards. They do not authorize code changes during a review. Jira, product/PRD/USM, reading, security, testing and legacy workflows are unchanged.
+The references retain evidence/confidence rules, caller-owned output, behavior preservation, validation/rollback, real-variation gates, temporal-coupling checks and characterization-test safeguards. They do not authorize code changes during a review. Default Jira, product/PRD/USM, reading, security, testing and legacy workflows remain unchanged; the optional document mode above adds section review only when requested.
 
 The `skills` array in [provenance](skills-provenance.json) lists active resources. `consolidatedSkills` retains each retired source's original metadata, last instruction fingerprint and replacement skill/path/section. These derived references remain Apache-2.0 even under MIT skill bodies. Structural tests verify retention, discovery and search; they do not prove equivalent model behavior or provider savings.
 
