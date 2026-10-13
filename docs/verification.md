@@ -1,6 +1,6 @@
 # Verification evidence
 
-The current deterministic baseline is Pi 1.0.4, Node 22.19+, and pnpm 12.9.1. Engram 3.0.0 is required only for memory. Development checks use the locked local host; rerun them before upgrading or distributing the package.
+The current deterministic baseline is Pi 1.2.0, Node 22.19+, and pnpm 12.9.1. Engram 3.0.0 is required only for memory. Development checks use the locked local host; rerun them before upgrading or distributing the package.
 
 | Command | Claim checked |
 | --- | --- |

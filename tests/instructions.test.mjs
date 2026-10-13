@@ -5,9 +5,14 @@ import test from "node:test";
 import { createWorkspace, importHost, loadExtensions, packageRoot } from "./helpers/pi-host.mjs";
 
 const { normalizeBuildSystemPromptOptions, buildSystemPrompt } = await importHost("dist/core/system-prompt.js");
+// Pi starts runs from a submitted prompt or from an idle custom message with triggerTurn.
+const TRIGGERS = {
+	UserPrompt: { messageType: "user", prompt: "Review only" },
+	CustomMessage: { messageType: "custom", message: { role: "custom", customType: "fixture", content: "Continue", display: false, timestamp: 0 } },
+};
 
-for (const mode of ["tui", "print", "json", "rpc"]) {
-	test(`shouldPreservePromptAndToolsWhenInstructionsRunIn${mode}`, async (t) => {
+for (const mode of ["tui", "print", "json", "rpc"]) for (const [trigger, fields] of Object.entries(TRIGGERS)) {
+	test(`shouldPreservePromptAndToolsWhen${trigger}StartsARunIn${mode}`, async (t) => {
 		// Given
 		const cwd = await createWorkspace(t);
 		const loaded = await loadExtensions([join(packageRoot, "extensions/instructions.ts")], cwd);
@@ -21,7 +26,7 @@ for (const mode of ["tui", "print", "json", "rpc"]) {
 			contextFiles: [{ path: "AGENTS.md", content: "Repository rule" }],
 		});
 		const original = structuredClone(options);
-		const event = { type: "before_agent_start", prompt: "Review only", systemPromptOptions: options };
+		const event = { type: "before_agent_start", ...fields, systemPromptOptions: options };
 		const handlers = loaded.extensions[0].handlers.get("before_agent_start");
 		// When
 		const results = [];
@@ -79,7 +84,7 @@ test("shouldKeepOnePersonalitySectionWhenTheInstructionsExtensionIsReloaded", as
 		const loaded = await loadExtensions([path], cwd);
 		assert.deepEqual(loaded.errors, []);
 		for (const handler of loaded.extensions[0].handlers.get("before_agent_start")) {
-			await handler({ type: "before_agent_start", prompt: "Hello", systemPromptOptions: options }, { cwd, mode: "print" });
+			await handler({ type: "before_agent_start", messageType: "user", prompt: "Hello", systemPromptOptions: options }, { cwd, mode: "print" });
 		}
 	}
 	// Then

@@ -60,7 +60,7 @@ async function worker(mode) {
 		const startupMs = performance.now() - started;
 		const promptOptions = session.extensionRunner.createCommandContext().getSystemPromptOptions();
 		const promptStarted = performance.now();
-		const prepared = await session.extensionRunner.emitBeforeAgentStart("Inspect a synthetic fixture", undefined, structuredClone(promptOptions));
+		const prepared = await session.extensionRunner.emitBeforeAgentStart({ messageType: "user", prompt: "Inspect a synthetic fixture" }, structuredClone(promptOptions));
 		const promptPreparationMs = performance.now() - promptStarted;
 		const prompt = buildSystemPrompt(prepared.systemPromptOptions);
 		const active = new Set(prepared.systemPromptOptions.selectedTools);
@@ -86,7 +86,7 @@ async function worker(mode) {
 			result.skillWorkflow = { matched: loadArgs.name, search: size(lookup.content[0].text), load: size(loaded.content[0].text),
 				calls: size(JSON.stringify([{ name: registryTool.name, arguments: searchArgs }, { name: registryTool.name, arguments: loadArgs }])),
 				registrySnapshot: size(await readFile(join(temporary, ".ai/skills/registry.md"), "utf8")) };
-			result.skillWorkflow.refreshMs = await timings(() => session.extensionRunner.emitBeforeAgentStart("Inspect a synthetic fixture", undefined, structuredClone(promptOptions)), SKILL_TIMING_OPTIONS);
+			result.skillWorkflow.refreshMs = await timings(() => session.extensionRunner.emitBeforeAgentStart({ messageType: "user", prompt: "Inspect a synthetic fixture" }, structuredClone(promptOptions)), SKILL_TIMING_OPTIONS);
 			result.skillWorkflow.searchMs = await timings(() => registryTool.execute("search", searchArgs, undefined, undefined, skillCtx), SKILL_TIMING_OPTIONS);
 			result.skillWorkflow.loadMs = await timings(() => registryTool.execute("load", loadArgs, undefined, undefined, skillCtx), SKILL_TIMING_OPTIONS);
 		} else {
