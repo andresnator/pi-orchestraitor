@@ -1,10 +1,8 @@
 import { createHash } from "node:crypto";
 import { lstat, readFile, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
-import type { ExtensionContext, KeybindingsManager, Theme, ToolDefinition } from "@earendil-works/pi-coding-agent";
-import { matchesKey, ScrollView, Text, truncateToWidth, type TUI } from "@earendil-works/pi-tui";
+import type { ExtensionContext, ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { sanitizeDisplay } from "./display.ts";
 
 export const TASK_TOOL_NAME = "orchestraitor_tasks";
 export const TASK_SCHEMA_VERSION = 1;
@@ -12,15 +10,16 @@ export const TASK_LIMIT = 50;
 export const TASK_TITLE_LIMIT = 200;
 export const TASK_NOTE_LIMIT = 1000;
 const ID_LIMIT = 80;
-const HEADER_ROWS = 5;
-const SHORT_TERMINAL_ROWS = 16;
-const PANEL_RESERVED_ROWS = 8;
+const ACTIVITY_LIMIT = 8;
 const TASK_STATUSES = ["pending", "in_progress", "blocked", "done"] as const;
 const OPERATIONS = ["replace", "add", "update", "list", "clear"] as const;
 export type TaskStatus = typeof TASK_STATUSES[number];
 export type Task = { id: string; title: string; status: TaskStatus; evidence?: string; reason?: string; group?: string };
 export type PlanBinding = { project: string; path: string; sha256: string; groups: string[] };
 export type TaskState = { version: number; revision: number; tasks: Task[]; binding?: PlanBinding };
+export type TaskEvent = { revision: number; at?: number; change: string };
+/** Keyed by task ID; `since` is when the current status began. */
+export type TaskActivity = Map<string, { since?: number; events: TaskEvent[] }>;
 export type TaskOperation = { operation: typeof OPERATIONS[number]; expectedRevision?: number; tasks?: Task[];
 	id?: string; changes?: Partial<Omit<Task, "id">>; binding?: PlanBinding };
 
@@ -112,9 +111,30 @@ export function applyTaskOperation(current: TaskState, params: TaskOperation): T
 	return next;
 }
 
-/** Only successful, schema-valid mutation receipts on the active branch are authoritative. */
-export function replayTasks(branch: any[]): TaskState {
+function describeChange(previous: Task | undefined, task: Task) {
+	const label = (status: TaskStatus) => status.replace("_", " ");
+	if (!previous) return `added as ${label(task.status)}`;
+	const changes = [];
+	if (previous.status !== task.status) changes.push(`${label(previous.status)} → ${label(task.status)}`);
+	if (previous.title !== task.title) changes.push("title edited");
+	if (previous.group !== task.group) changes.push(task.group ? `moved to ${task.group}` : "group removed");
+	for (const note of ["evidence", "reason"] as const) {
+		if (previous[note] !== task[note]) changes.push(`${note} ${!task[note] ? "removed" : previous[note] ? "updated" : "added"}`);
+	}
+	return changes.join(" · ") || undefined;
+}
+
+function receiptTime(entry: any, message: any) {
+	if (Number.isFinite(message.timestamp) && message.timestamp > 0) return message.timestamp as number;
+	const parsed = Date.parse(entry.timestamp);
+	return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+/** Only successful, schema-valid mutation receipts on the active branch are authoritative.
+ * Activity is display-only history derived from those same receipts; it never enters task state. */
+export function replayTaskActivity(branch: any[]): { state: TaskState; activity: TaskActivity } {
 	let state = emptyTasks();
+	let activity: TaskActivity = new Map();
 	for (const entry of branch) {
 		if (entry.type !== "message") continue;
 		const message = entry.message;
@@ -124,11 +144,23 @@ export function replayTasks(branch: any[]): TaskState {
 		try {
 			validateState(details.state);
 			for (const task of details.state.tasks) validateTransition(state.tasks.find(({ id }) => id === task.id), task, task);
+			const at = receiptTime(entry, message);
+			const next: TaskActivity = new Map();
+			for (const task of details.state.tasks as Task[]) {
+				const previous = state.tasks.find(({ id }) => id === task.id);
+				const record = previous && activity.get(task.id) || { events: [] };
+				const change = describeChange(previous, task);
+				next.set(task.id, { since: !previous || previous.status !== task.status ? at : record.since,
+					events: change ? [...record.events, { revision: details.state.revision, at, change }].slice(-ACTIVITY_LIMIT) : record.events });
+			}
 			state = structuredClone(details.state);
+			activity = next;
 		} catch { /* Invalid receipts never reset or advance the active projection. */ }
 	}
-	return state;
+	return { state, activity };
 }
+
+export function replayTasks(branch: any[]): TaskState { return replayTaskActivity(branch).state; }
 
 async function repositoryRoot(cwd: string, required = false) {
 	const original = await realpath(cwd);
@@ -186,52 +218,6 @@ export function createTaskTool(getGeneration: () => number): ToolDefinition {
 			};
 			return { content: [{ type: "text", text: JSON.stringify(response) }],
 				details: { version: TASK_SCHEMA_VERSION, operation: params.operation, state, bindingCurrent, projectIdentity } };
-		},
-	};
-}
-
-export function taskHeader(state: TaskState, expanded: boolean, width: number, height: number, theme: Theme, bindingCurrent: boolean) {
-	if (!state.tasks.length) return [];
-	const done = state.tasks.filter(({ status }) => status === "done").length;
-	const summary = `Tasks · ${done}/${state.tasks.length} done${bindingCurrent ? "" : " · plan binding stale"}`;
-	const rows = [summary];
-	if (expanded && height >= SHORT_TERMINAL_ROWS) {
-		for (const task of state.tasks.slice(0, HEADER_ROWS - 1)) rows.push(`${task.id} · ${task.status} · ${task.title}`);
-	}
-	return rows.map((row) => truncateToWidth(theme.fg("muted", sanitizeDisplay(row).replace(/\s+/gu, " ")), width));
-}
-
-export function createTaskPanel(getState: () => { state: TaskState; bindingCurrent: boolean }, tui: TUI, theme: Theme,
-	keys: KeybindingsManager, done: (result: { status: "closed" }) => void) {
-	const scroll = new ScrollView({ invalidate() {}, render(width) {
-		const { state, bindingCurrent } = getState();
-		const rows = [`Tasks · revision ${state.revision} · parent-reported evidence, not runtime certification`];
-		if (!bindingCurrent) rows.push("Plan binding stale or unavailable; old projection is not current.");
-		if (state.binding) rows.push(`Plan: ${state.binding.path} · SHA-256 ${state.binding.sha256}`);
-		if (!state.tasks.length) rows.push("No branch tasks.");
-		for (const task of state.tasks) {
-			rows.push(`${task.id} · ${task.status} · ${task.title}`);
-			if (task.group) rows.push(`  group: ${task.group}`);
-			if (task.evidence) rows.push(`  evidence: ${task.evidence}`);
-			if (task.reason) rows.push(`  reason: ${task.reason}`);
-		}
-		return new Text(theme.fg("text", sanitizeDisplay(rows.join("\n"))), 0, 0).render(Math.max(1, width));
-	} }, { scrollbar: "hidden" });
-	return {
-		invalidate() { scroll.invalidate(); },
-		handleInput(data: string) {
-			if (matchesKey(data, "escape") || keys.matches(data, "tui.select.cancel")) { done({ status: "closed" }); return; }
-			if (keys.matches(data, "tui.select.up")) scroll.scrollBy(-1);
-			else if (keys.matches(data, "tui.select.down")) scroll.scrollBy(1);
-			else if (keys.matches(data, "tui.select.pageUp")) scroll.scrollBy(-Math.max(1, scroll.viewportHeight - 1));
-			else if (keys.matches(data, "tui.select.pageDown")) scroll.scrollBy(Math.max(1, scroll.viewportHeight - 1));
-			tui.requestRender();
-		},
-		render(width: number) {
-			const rows = scroll.render(width);
-			const height = Math.max(1, tui.terminal.rows - PANEL_RESERVED_ROWS);
-			scroll.updateLayout(rows.length, height, () => tui.requestRender());
-			return [...rows.slice(scroll.scrollTop, scroll.scrollTop + height), truncateToWidth("Selection keys scroll · Escape closes", width)];
 		},
 	};
 }

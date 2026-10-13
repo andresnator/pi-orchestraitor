@@ -21,6 +21,7 @@ Only native TUI mode creates components. In RPC, JSON and print, tasks still wor
 | Harness widget/status keys and foreground modal | `extensions/status-ui.ts`; one owner, no foreign keys/factories replaced. |
 | Agent observations and bounded branch outcomes | `extensions/ui/agents.ts`; active batch plus at most 20 recent outcomes. |
 | Task authority | Validated successful native `orchestraitor_tasks` results on the active branch, replayed by `extensions/ui/tasks.ts`. |
+| Task header and panel rendering | `extensions/ui/task-view.ts`; display-only, reads the replayed state and receipt history. |
 | Requirements/preferences | One `orchestraitor_ask` schema and interaction in `extensions/ui/questions.ts`. |
 | Safe terminal display | Native `extensions/ui/display.ts`; original IDs and opaque values remain untouched. |
 
@@ -28,7 +29,11 @@ Only native TUI mode creates components. In RPC, JSON and print, tasks still wor
 
 The agents panel shows assignment order, IDs, roles, requested/effective model evidence, phases and bounded diagnostics. Starting/running/stopping are not failure or acceptance. Runtime completion is not parent acceptance; absent effective-model or nested historical evidence stays unavailable. Panels cannot launch, retry, grant, resume or cancel work.
 
-Tasks start collapsed as one row. Expanded chrome uses at most five rows; short terminals temporarily collapse it. Empty lists contribute no task row. Full detail remains in the task panel. The footer contributes one status with this precedence: known launch block, awaiting input, active agents; idle contributes nothing. Native counters are not repeated.
+Tasks start collapsed in at most four rows. The first row shows a status-colored progress bar, the done count, the counts by status, the plan check and the revision. Up to two rows follow for in-progress or blocked tasks, with time in the current status and any blocked reason. The last row names the most recently finished task and the next pending task. Expanded chrome adds the plan path and short hash, rules for each plan group with a done count, and evidence or reason rows. It uses half the terminal height, between five and 18 rows. It drops detail rows first and then ends with a `… N more` row. Terminals under 16 rows temporarily collapse it to one row. Empty lists contribute no task row.
+
+The task panel is read-only. Selection keys move through tasks grouped by plan group, and page keys scroll the detail of the selected task. Wide terminals show the list and the detail side by side; narrow terminals stack them. The detail shows the title, group, time in the current status, evidence with its parent-reported caption, the reason, and the task's history on this branch. The panel header lists the plan binding, up to two live agents and the status distribution.
+
+Times and history come from the timestamps of the same validated receipts. They are display-only: they never enter task state, revision checks or the `list` response. The footer contributes one status with this precedence: known launch block, awaiting input, active agents; idle contributes nothing. Native counters are not repeated.
 
 Selection, scrolling, submission and cancellation use native configurable actions. Check `/hotkeys` and Pi's keybinding documentation rather than relying on a hardcoded shortcut. Read-only panels also close with Escape. The extension never replaces the main editor/header/footer, registers global shortcuts, or changes personal themes.
 

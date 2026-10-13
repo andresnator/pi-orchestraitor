@@ -176,14 +176,102 @@ test("shouldAbortOrRejectChangedSessionWithoutCommittingWhenPlanVerificationIsPe
 
 test("shouldBoundCollapsedAndExpandedHeaderWhenTerminalIsNarrowOrShort", async (t) => {
 	// Given
-	const { taskHeader } = await taskModule(t);
+	const { taskHeader } = await loadUiModule(t, "extensions/ui/task-view.ts");
 	const state = { version: 1, revision: 1, tasks: Array.from({ length: 10 }, (_, index) => ({ ...pending(String(index)), title: "Unicode 你好 é \x1b]52;c;secret\x07" })) };
 	// When
 	const rows = [1, 20, 40, 80, 120].flatMap((width) => [false, true].map((expanded) => ({ width, expanded, lines: taskHeader(state, expanded, width, 24, plainTheme, true) })));
 	// Then
-	assert.ok(rows.every(({ width, expanded, lines }) => lines.length <= (expanded ? 5 : 1) && lines.every((line) => tui.visibleWidth(line) <= width && !line.includes("\x1b]52"))));
+	assert.ok(rows.every(({ width, expanded, lines }) => lines.length <= (expanded ? 12 : 4) && lines.every((line) => tui.visibleWidth(line) <= width && !line.includes("\x1b]52"))));
 	assert.equal(taskHeader(state, true, 80, 10, plainTheme, false).length, 1);
 	assert.deepEqual(taskHeader({ version: 1, revision: 0, tasks: [] }, true, 80, 24, plainTheme, true), []);
+});
+
+const timed = (at, state) => ({ ...receipt({ details: { version: 1, operation: "replace", state }, content: [] }), timestamp: new Date(at).toISOString() });
+const board = (revision, tasks) => ({ version: 1, revision, tasks, binding: { project: "/fixture", path: "plan.md", sha256: "a".repeat(60) + "e21b", groups: ["fix", "docs"] } });
+const stages = [
+	[{ id: "T1", title: "Fix config", status: "pending", group: "fix" }, { id: "T2", title: "Add regression", status: "pending", group: "fix" }, { id: "T3", title: "Update docs", status: "pending", group: "docs" }],
+	[{ id: "T1", title: "Fix config", status: "in_progress", group: "fix" }, { id: "T2", title: "Add regression", status: "pending", group: "fix" }, { id: "T3", title: "Update docs", status: "pending", group: "docs" }],
+	[{ id: "T1", title: "Fix config", status: "done", group: "fix", evidence: "pnpm test passed" }, { id: "T2", title: "Add regression", status: "blocked", group: "fix", reason: "Fixture HOME undecided" }, { id: "T3", title: "Update docs", status: "pending", group: "docs" }],
+];
+const activeBranch = stages.map((tasks, index) => timed(60_000 * index, board(index + 1, tasks)));
+
+test("shouldDeriveTaskHistoryFromReceiptsWithoutChangingReplayedStateWhenActivityIsRequested", async (t) => {
+	// Given
+	const { replayTaskActivity, replayTasks } = await taskModule(t);
+	// When
+	const { state, activity } = replayTaskActivity([...activeBranch, receipt({ details: { version: 1, operation: "clear", state: board(9, []) } })]);
+	// Then
+	assert.deepEqual(state, replayTasks(activeBranch));
+	assert.deepEqual(Object.fromEntries(activity), {
+		T1: { since: 120_000, events: [{ revision: 1, at: 0, change: "added as pending" }, { revision: 2, at: 60_000, change: "pending → in progress" },
+			{ revision: 3, at: 120_000, change: "in progress → done · evidence added" }] },
+		T2: { since: 120_000, events: [{ revision: 1, at: 0, change: "added as pending" }, { revision: 3, at: 120_000, change: "pending → blocked · reason added" }] },
+		T3: { since: 0, events: [{ revision: 1, at: 0, change: "added as pending" }] },
+	});
+});
+
+test("shouldRecordRemovedEvidenceWhenReplaceReopensTaskWithoutIt", async (t) => {
+	// Given
+	const { replayTaskActivity } = await taskModule(t);
+	const reopened = stages[2].map((task) => task.id === "T1" ? { id: "T1", title: "Fix config", status: "in_progress", group: "fix", reason: "Regression found" } : task);
+	// When
+	const { activity } = replayTaskActivity([...activeBranch, timed(180_000, board(4, reopened))]);
+	// Then
+	assert.deepEqual(activity.get("T1").events.at(-1), { revision: 4, at: 180_000, change: "done → in progress · evidence removed · reason added" });
+});
+
+test("shouldShowFocusTimingPlanAndNextTaskWhenRenderingCollapsedAndExpandedHeaders", async (t) => {
+	// Given
+	const { replayTaskActivity } = await taskModule(t);
+	const { taskHeader } = await loadUiModule(t, "extensions/ui/task-view.ts");
+	const { state, activity } = replayTaskActivity(activeBranch);
+	const now = 120_000 + 95_000;
+	// When
+	const collapsed = taskHeader(state, false, 120, 40, plainTheme, true, activity, now);
+	const expanded = taskHeader(state, true, 120, 40, plainTheme, true, activity, now);
+	const stale = taskHeader(state, false, 120, 40, plainTheme, false, activity, now);
+	// Then
+	assert.equal(collapsed.length, 3);
+	assert.match(collapsed[0], /^Tasks \S+ 1\/3 done · ⊘ 1 blocked  ○ 1 pending +plan ✓ · rev 3$/u);
+	assert.match(collapsed[1], /^ ⊘ T2  Add regression  — Fixture HOME undecided +blocked · 1m35s$/u);
+	assert.match(collapsed[2], /last ✓ T1 1m ago  ·  next ○ T3 Update docs +\/orchestraitor:tasks$/u);
+	assert.match(stale[0], /⚠ plan binding stale/u);
+	assert.doesNotMatch(stale[0], /plan ✓/u);
+	const expectedRows = [/^Tasks \S+ 1\/3 done · 33% · ⊘ 1 blocked  ○ 1 pending +rev 3$/u, /^plan  plan\.md  sha aaaaaa…e21b  ✓ matches the bound plan$/u,
+		/^fix ─+ 1\/2$/u, /^ ✓ T1  Fix config +done · 1m ago$/u, /^ {7}evidence  pnpm test passed$/u, /^ ⊘ T2  Add regression +blocked · 1m35s$/u,
+		/^ {7}reason  {3}Fixture HOME undecided$/u, /^docs ─+ 0\/1$/u, /^ ○ T3  Update docs +pending$/u, /\/orchestraitor:tasks collapse/u];
+	assert.equal(expanded.length, expectedRows.length);
+	expectedRows.forEach((pattern, index) => assert.match(expanded[index], pattern));
+	assert.ok(taskHeader(state, true, 120, 16, plainTheme, true, activity, now).every((line) => !/evidence|reason/u.test(line)), "Detail rows drop first on short budgets");
+});
+
+test("shouldMoveSelectionAndShowEvidenceReasonAndHistoryWhenPanelIsNavigated", async (t) => {
+	// Given
+	const { replayTaskActivity } = await taskModule(t);
+	const { createTaskPanel } = await loadUiModule(t, "extensions/ui/task-view.ts");
+	const { state, activity } = replayTaskActivity(activeBranch);
+	const keys = { matches: (data, name) => data === name };
+	let closed;
+	const agents = [{ role: "implement", label: "Fix isolated config", phase: "running", effectiveModel: "fixture-model" }];
+	const panel = createTaskPanel(() => ({ state, bindingCurrent: true, activity, agents }), { requestRender() {}, terminal: { rows: 40, columns: 120 } }, plainTheme, keys, (result) => { closed = result; });
+	// When
+	const blocked = panel.render(120).join("\n");
+	panel.handleInput("tui.select.up");
+	const done = panel.render(120).join("\n");
+	const narrow = panel.render(60);
+	panel.handleInput("tui.select.cancel");
+	// Then
+	assert.match(blocked, /▶⊘ T2 Add regression/u);
+	assert.match(blocked, /reason\s*│?\s*\n?.*Fixture HOME undecided/u);
+	assert.match(blocked, /agents  ▸ implement · running · fixture-model · Fix isolated config/u);
+	assert.match(blocked, /— none yet · required to mark done/u);
+	assert.match(done, /▶✓ T1 Fix config/u);
+	assert.match(done, /pnpm test passed/u);
+	assert.match(done, /parent-reported, not runtime certification/u);
+	assert.match(done, /rev 3 .*in progress → done · evidence added/u);
+	assert.ok(narrow.every((line) => tui.visibleWidth(line) <= 60));
+	assert.ok(narrow.some((line) => /^▶✓ T1 Fix config/u.test(line)));
+	assert.deepEqual(closed, { status: "closed" });
 });
 
 async function nativeTasks(t, calls, hooks = {}, options = {}) {
@@ -240,7 +328,8 @@ for (const nextTool of ["orchestraitor_ask", "subagent_run"]) for (const hidden 
 			for (let i = 0; i < gates.length; i++) {
 				await Promise.race([gates[i].entered.promise, running.then(() => { throw new Error("Waiting tool did not start"); })]);
 				assert.equal(turns, 0);
-				assert.deepEqual(renderHeader(ui), hidden || i === 2 ? [] : [`Tasks · ${i}/1 done`]);
+				if (hidden || i === 2) assert.deepEqual(renderHeader(ui), []);
+				else assert.match(renderHeader(ui)[0], new RegExp(`^Tasks \\S+ ${i}/1 done`));
 				gates[i].release.resolve();
 			}
 			await running;
@@ -264,7 +353,7 @@ for (const rejection of ["blocked", "transformed"]) {
 		const running = ui.session.prompt("Use local rejection fixture.");
 		try {
 			await Promise.race([started.promise, running.then(() => { throw new Error("Question did not open"); })]);
-			assert.deepEqual(renderHeader(ui), ["Tasks · 0/1 done"]);
+			assert.match(renderHeader(ui)[0], /^Tasks \S+ 0\/1 done/);
 			const { replayTasks } = await taskModule(t);
 			assert.deepEqual(replayTasks(ui.session.sessionManager.getBranch()).tasks.map(({ id }) => id), ["g1"]);
 			assert.deepEqual(ui.errors, []);
@@ -327,7 +416,7 @@ test("shouldAwaitBindingRefreshBeforeOpeningNextNativeQuestion", { timeout: 5000
 		assert.equal(opened, false);
 		releaseCheck.resolve();
 		await Promise.race([question.promise, running.then(() => { throw new Error("Question did not open"); })]);
-		assert.deepEqual(renderHeader(ui), ["Tasks · 0/1 done"]);
+		assert.match(renderHeader(ui)[0], /^Tasks \S+ 0\/1 done/);
 		assert.deepEqual(ui.errors, []);
 	} finally { releaseCheck.resolve(); releaseQuestion.resolve(); await running; }
 });
