@@ -148,7 +148,8 @@ function classify(state, message) {
 function createReport(options) {
 	return { version: VERSION, recordedAt: new Date().toISOString(),
 		window: { since: options.sinceMs === undefined ? null : new Date(options.sinceMs).toISOString(), until: options.untilMs === undefined ? null : new Date(options.untilMs).toISOString() },
-		filters: { cwd: options.cwd ?? null }, method: METHOD,
+		// Whether --cwd applied, never its path.
+		filters: { cwd: Boolean(options.cwd) }, method: METHOD,
 		sources: { files: 0, sessions: 0, forks: 0, entries: 0, inheritedEntries: 0, invalidLines: 0 },
 		usage: { total: emptyUsage(), complete: true, assistant: emptyUsage(), usageEntries: {}, summaries: {}, toolResults: {},
 			incomplete: { invalidUsage: 0, receipts: 0, children: 0, uncollected: 0 } },
@@ -424,7 +425,7 @@ function headline(report) {
 }
 function compareReports(before, report) {
 	const previous = headline(before), current = headline(report);
-	return { baseline: { recordedAt: before.recordedAt, window: before.window, filters: before.filters, complete: before.usage?.complete ?? null },
+	return { baseline: { recordedAt: before.recordedAt, window: before.window, filters: { cwd: Boolean(before.filters?.cwd) }, complete: before.usage?.complete ?? null },
 		sameMethodology: before.version === report.version,
 		metrics: Object.fromEntries(Object.keys(current).map(key => [key, changeOf(previous[key], current[key])])),
 		models: Object.fromEntries(Object.entries(report.models).map(([key, model]) => [key, before.models?.[key]?.perTurn

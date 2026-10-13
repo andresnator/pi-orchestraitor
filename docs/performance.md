@@ -36,7 +36,7 @@ pnpm run usage --since 2026-10-03 --until 2026-10-13 --output /tmp/usage-before.
 pnpm run usage --since 2026-10-20 --compare /tmp/usage-before.json
 ```
 
-`--sessions DIR|FILE` selects other logs, `--cwd PATH` keeps sessions started in that project or below it, and `--json` prints the report. `--output` accepts only new paths, as for the benchmark.
+`--sessions DIR|FILE` selects other logs, `--cwd PATH` keeps sessions started in that project or below it, and `--json` prints the report. The report records only that `--cwd` applied, never the path. `--output` accepts only new paths, as for the benchmark.
 
 - **Accounting.** Each session is replayed along its `parentId` tree, and a fork counts only entries recorded after the fork. Usage is the sum of assistant messages, `usage` entries, compaction and branch-summary usage, and top-level tool-result usage. Child `details.results[].usage` attributes that sum and is never added again. Invalid or incomplete usage marks the total as a lower bound, never as zero.
 - **Cache misses.** Pi's `/session` rule decides each miss: the previous request on the same branch, a 1,024-token floor, a reset after compaction or branch summary, and cache warming counted as a request. Each miss is attributed to the change before it: model, thinking level, system prompt, context edit, more than five idle minutes, or other.

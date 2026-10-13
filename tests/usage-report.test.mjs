@@ -341,12 +341,13 @@ test("shouldNeverEmitContentWhenLogsContainSecrets", async (t) => {
 		details: { results: [{ id: "child-1", role: "review", final: secret, usage: usage(1_000), usageComplete: true }], pending: [], usageComplete: true } }));
 	await write(join(dir, `${secret}.jsonl`), log);
 	// When
-	const outputs = [run(["--sessions", dir]), run(["--sessions", dir, "--json"])];
+	const outputs = [run(["--sessions", dir]), run(["--sessions", dir, "--json"]), run(["--sessions", dir, "--json", "--cwd", `/work/${secret}`])];
 	// Then
-	assert.deepEqual(outputs.map(output => output.includes(secret)), [false, false]);
-	const json = JSON.parse(outputs[1]);
-	assert.deepEqual({ turns: json.turns.assistant, models: Object.keys(json.models).sort(), sanitizedTool: json.tools["(other)"].calls, truncated: json.codemode.truncated.results },
-		{ turns: 2, models: ["test/(other)", "test/model-a"], sanitizedTool: 1, truncated: 1 });
+	assert.deepEqual(outputs.map(output => output.includes(secret)), [false, false, false]);
+	const [json, filtered] = outputs.slice(1).map(output => JSON.parse(output));
+	assert.deepEqual({ turns: json.turns.assistant, models: Object.keys(json.models).sort(), sanitizedTool: json.tools["(other)"].calls, truncated: json.codemode.truncated.results,
+		filtered: [filtered.filters, filtered.turns.assistant] },
+		{ turns: 2, models: ["test/(other)", "test/model-a"], sanitizedTool: 1, truncated: 1, filtered: [{ cwd: true }, 2] });
 });
 
 test("shouldRefuseOverwritesAndCompareWithTheBaselineWhenOutputAndCompareAreGiven", async (t) => {
@@ -386,7 +387,7 @@ test("shouldSelectSessionsInsideTheProjectWhenCwdIsGiven", async (t) => {
 	const json = JSON.parse(run(["--", "--sessions", dir, "--cwd", "/work/app", "--json"]));
 	// Then
 	assert.deepEqual({ filters: json.filters, files: json.sources.files, turns: json.turns.assistant },
-		{ filters: { cwd: "/work/app" }, files: 2, turns: 2 });
+		{ filters: { cwd: true }, files: 2, turns: 2 });
 });
 
 test("shouldRejectInvalidArgumentsBeforeReadingSessionsWhenArgumentsAreInvalid", () => {
