@@ -29,9 +29,9 @@ test("shouldReturnOnlyAffectedTasksAndKeepFullReceiptsWhenUpdatingLargeBoards", 
 	const wire = convertResponsesMessages({ provider: "openai-codex", api: "openai-responses", id: "fixture", input: ["text"] },
 		{ messages: [{ role: "toolResult", toolName: tool.name, toolCallId: "update", isError: false, timestamp: 0, ...result }] }, new Set(["openai-codex"]));
 	// Then
-	assert.deepEqual(JSON.parse(result.content[0].text), { operation: "update", revision: 2, bindingCurrent: true, projectIdentity: cwd,
+	assert.deepEqual(JSON.parse(result.content[0].text), { operation: "update", revision: 2,
 		tasks: [{ ...pending("t0"), status: "done", evidence: "Synthetic check passed" }] });
-	assert.deepEqual(JSON.parse(listed.content[0].text).state, replayTasks(ctx.sessionManager.getBranch()));
+	assert.deepEqual(JSON.parse(listed.content[0].text), { state: replayTasks(ctx.sessionManager.getBranch()), bindingCurrent: true, projectIdentity: cwd });
 	assert.equal(result.details.state.tasks.length, 20);
 	assert.ok(result.content[0].text.length < listed.content[0].text.length * 0.4);
 	assert.deepEqual(wire, [{ type: "function_call_output", call_id: "update", output: result.content[0].text }]);
@@ -147,6 +147,8 @@ test("shouldVerifyPlanHashAndRejectDriftBeforeMutationWhenTasksAreBound", async 
 	const tool = createTaskTool(() => 0);
 	const result = await tool.execute("bind", { operation: "replace", expectedRevision: 0, binding, tasks: [{ ...pending(), group: "group-1" }] }, undefined, undefined, ctx);
 	manager.appendMessage({ role: "toolResult", toolName: tool.name, toolCallId: "bind", isError: false, timestamp: Date.now(), ...result });
+	assert.deepEqual(JSON.parse(result.content[0].text), { operation: "replace", revision: 1, bindingCurrent: true,
+		tasks: [{ ...pending(), group: "group-1" }], binding });
 	// When
 	await writeFile(join(cwd, "plan.md"), "changed plan");
 	const readback = await tool.execute("list", { operation: "list" }, undefined, undefined, ctx);
@@ -350,6 +352,32 @@ test("shouldCommitEachSnapshotBeforeNextSequentialCallWhenNativeModelIssuesTasks
 		{ beforeCommit: [0, 1], revision: 2, status: "done", errors: [] });
 	assert.ok(widgets.has("orchestraitor:work"));
 	assert.equal(session.sessionManager.getBranch().filter(({ type }) => type === "custom").length, 0);
+});
+
+test("shouldChainRevisionsWhenTaskUpdatesShareAMessageWithWorkCalls", async (t) => {
+	// Given
+	const { replayTasks } = await taskModule(t);
+	const work = (id) => ({ type: "toolCall", name: "read", id, arguments: { path: "notes.txt" } });
+	const { session, errors } = await nativeTasks(t, [
+		{ operation: "replace", expectedRevision: 0, tasks: [{ ...pending("a"), status: "in_progress" }, pending("b")] },
+		work("read-a"),
+		{ operation: "update", expectedRevision: 1, id: "a", changes: { status: "done", evidence: "Earlier result inspected" } },
+		{ operation: "update", expectedRevision: 2, id: "b", changes: { status: "in_progress" } },
+		work("read-b"),
+	]);
+	await writeFile(join(session.sessionManager.getCwd(), "notes.txt"), "synthetic notes");
+	// When
+	await session.prompt("Use local batched task fixture.");
+	// Then
+	const receipts = session.messages.filter(({ role }) => role === "toolResult")
+		.map(({ toolName, isError, details }) => ({ toolName, isError, revision: details?.state?.revision }));
+	assert.deepEqual({ receipts, errors }, { receipts: [
+		{ toolName: "orchestraitor_tasks", isError: false, revision: 1 }, { toolName: "read", isError: false, revision: undefined },
+		{ toolName: "orchestraitor_tasks", isError: false, revision: 2 }, { toolName: "orchestraitor_tasks", isError: false, revision: 3 },
+		{ toolName: "read", isError: false, revision: undefined },
+	], errors: [] });
+	assert.deepEqual(replayTasks(session.sessionManager.getBranch()).tasks.map(({ id, status }) => ({ id, status })),
+		[{ id: "a", status: "done" }, { id: "b", status: "in_progress" }]);
 });
 
 test("shouldRejectStaleSiblingWriteWhenNativeCallsShareExpectedRevision", async (t) => {

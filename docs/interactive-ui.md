@@ -50,7 +50,7 @@ Before tree navigation, session switching or forking, the UI cancels its current
 }
 ```
 
-Mutation content returns `operation`, `revision`, `bindingCurrent`, `projectIdentity` and the affected `tasks` (empty after clear); a newly supplied binding is also returned. Reuse that revision for subsequent operations. `list` returns the complete `{state, bindingCurrent, projectIdentity}` view. Full versioned state remains in `details` for replay, native expansion and UI; historical receipts retain their meaning.
+Mutation content returns `operation`, `revision` and the affected `tasks` (empty after clear), plus `bindingCurrent` when a plan is bound; a newly supplied binding is also returned. Mutations fail on a stale binding. Reuse that revision for subsequent operations. The tool runs sequentially, so several mutations in one assistant message, alongside work calls, take consecutive revisions; sending them with work calls avoids turns spent only on tasks. `list` returns the complete `{state, bindingCurrent, projectIdentity}` view. Full versioned state remains in `details` for replay, native expansion and UI; historical receipts retain their meaning.
 
 Operations are `replace`, `add`, `update`, `list`, `clear`. IDs remain stable on replacement; explicit clear discards the list. Statuses are `pending`, `in_progress`, `blocked`, `done`. Limits: 50 tasks, 80-character IDs, 200-character titles and 1,000-character evidence/reason notes. Marking done requires evidence in that update; reopening requires a reason. Child success never completes a task automatically.
 
