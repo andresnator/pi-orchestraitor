@@ -60,7 +60,8 @@
     "test:personality": "node scripts/check-personality.mjs"
   },
   "config": {
-    "piPretty": "npm:@heyhuynhgiabuu/pi-pretty@0.6.30"
+    "piPretty": "npm:@heyhuynhgiabuu/pi-pretty@0.6.30",
+    "piClaudeBridge": "npm:pi-claude-bridge@0.9.2"
   },
   "dependencies": {
     "beautiful-mermaid": "1.1.3"

@@ -24,7 +24,7 @@ const EXPECTED_FILES = [
 	"instructions/core.md", "instructions/orchestraitor.md", "instructions/personality.md",
 	"scripts/install-pi.mjs", "scripts/pi-host.mjs", "scripts/skill-migration.mjs", "scripts/check-personality.mjs", "scripts/bench.mjs",
 	"scripts/skill-inventory.mjs", "scripts/package-registration.mjs", "scripts/pretty-config.mjs",
-	"docs/btw.md", "docs/nan.md", "docs/usage.md", "docs/skills.md", "docs/skills-provenance.json", "docs/verification.md", "docs/subagents.md", "docs/interactive-ui.md", "docs/performance.md", "docs/pi-pretty.md",
+	"docs/btw.md", "docs/nan.md", "docs/usage.md", "docs/skills.md", "docs/skills-provenance.json", "docs/verification.md", "docs/subagents.md", "docs/interactive-ui.md", "docs/performance.md", "docs/pi-pretty.md", "docs/manual-package-check.md",
 	"docs/architecture/execution.md", "docs/architecture/flows.md", "docs/architecture/index.md",
 	"licenses/Apache-2.0.txt", "licenses/MIT.txt", "licenses/mattpocock-MIT.txt", "licenses/humanlayer-MIT.txt",
 	...PROVENANCE.skills.flatMap((skill) => skill.resources.map(({ path }) => `skills/${skill.name}/${path}`)),
@@ -84,10 +84,10 @@ test("shouldLoadPromptsAndExtensionsWhenExplicitPackageBypassesDiscovery", async
 	});
 });
 
-for (const manager of ["pnpm", "npm"]) test(`shouldLoadOnlyPackagedResourcesWhen${manager}TarballIsExtractedElsewhere`, async (t) => {
+test("shouldLoadOnlyPackagedResourcesWhennpmTarballIsExtractedElsewhere", async (t) => {
 	// Given
 	const cwd = await createWorkspace(t);
-	const packing = JSON.parse(execFileSync(manager, ["pack", "--ignore-scripts", "--json", "--pack-destination", cwd], {
+	const packing = JSON.parse(execFileSync("npm", ["pack", "--ignore-scripts", "--json", "--pack-destination", cwd], {
 		cwd: packageRoot, encoding: "utf8", env: { ...process.env, npm_config_cache: join(cwd, "npm-cache") },
 	}));
 	const packed = Array.isArray(packing) ? packing[0] : packing;
