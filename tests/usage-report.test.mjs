@@ -202,21 +202,27 @@ test("shouldCountOnlyEntriesInsideTheWindowWhenSinceAndUntilAreGiven", async (t)
 	});
 });
 
-test("shouldCountCopiedHistoryOnceWhenAForkRepeatsItsParentEntries", async (t) => {
-	// Given
-	const dir = await createWorkspace(t);
+/** A two-turn parent and a fork of it that adds one turn; Pi forks copy every entry with its original id and timestamp under a newer header. */
+function forked(parentPath, header = {}) {
 	const parent = session();
 	parent.add(user());
 	parent.add(assistant(10_000, 0));
 	parent.add(user());
 	const leaf = parent.add(assistant(1_000, 10_000));
-	const parentPath = join(dir, "parent.jsonl");
-	await write(parentPath, parent);
-	// Pi forks copy every entry with its original id and timestamp under a newer header.
-	const fork = session({ id: "s2", timestamp: "2026-10-05T11:00:00.000Z", parentSession: parentPath });
+	const fork = session({ id: "s2", timestamp: "2026-10-05T11:00:00.000Z", parentSession: parentPath, ...header });
 	fork.lines.push(...parent.lines.slice(1));
 	fork.add(user(), { parent: leaf });
 	fork.add(assistant(1_000, 11_000));
+	return { parent, fork };
+}
+
+test("shouldCountCopiedHistoryOnceWhenAForkRepeatsItsParentEntries", async (t) => {
+	// Given
+	const dir = await createWorkspace(t);
+	const parentPath = join(dir, "parent.jsonl");
+	const { parent, fork } = forked(parentPath);
+	await write(parentPath, parent);
+	// The fork's name sorts first; sessions are read oldest first.
 	await write(join(dir, "fork.jsonl"), fork);
 	// When
 	const json = report(dir);
@@ -226,6 +232,25 @@ test("shouldCountCopiedHistoryOnceWhenAForkRepeatsItsParentEntries", async (t) =
 		sources: { files: 2, sessions: 2, forks: 1, entries: 6, inheritedEntries: 4, invalidLines: 0 }, turns: 3, input: 12_000,
 		coldStarts: { start: [1] }, transitions: { none: [2, 0] },
 	});
+});
+
+test("shouldCountForkHistoryOnceWhenItsParentIsNotSelected", async (t) => {
+	// Given
+	const dir = await createWorkspace(t);
+	// The parent lives in another project's directory, or was deleted.
+	const parentPath = join(dir, "other-project", "parent.jsonl");
+	const first = join(dir, "first.jsonl");
+	await write(first, forked(parentPath).fork);
+	await write(join(dir, "second.jsonl"), forked(parentPath, { id: "s3", timestamp: "2026-10-05T12:00:00.000Z" }).fork);
+	// When
+	const alone = report(first);
+	const siblings = report(dir);
+	// Then
+	const totals = json => ({ sources: json.sources, turns: json.turns.assistant, input: json.usage.total.input });
+	assert.deepEqual([totals(alone), totals(siblings)], [
+		{ sources: { files: 1, sessions: 1, forks: 1, entries: 6, inheritedEntries: 0, invalidLines: 0 }, turns: 3, input: 12_000 },
+		{ sources: { files: 2, sessions: 2, forks: 2, entries: 8, inheritedEntries: 4, invalidLines: 0 }, turns: 4, input: 13_000 },
+	]);
 });
 
 test("shouldMeasureCodemodeSourcesOptionsAndSpillsWhenScriptsReturnOutput", async (t) => {

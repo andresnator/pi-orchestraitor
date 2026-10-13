@@ -1,6 +1,6 @@
 // Read-only report over native Pi session logs: usage, prompt-cache misses, ceremony turns, codemode output and context residency.
 // Emits metadata only (names, counts, sizes and native usage), never message, tool, script or path content.
-import { readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { open, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve, sep } from "node:path";
 
@@ -32,7 +32,7 @@ const METHOD = [
 	"Incomplete accounting (usageComplete false, invalid usage or uncollected background readers) makes totals a lower bound, never a zero.",
 	"--since/--until select entries by their own timestamp; usage belongs to the entry that reports it, so a background child collected after --until counts in the later window.",
 	"Model time is Pi's durationMs or, in logs written before Pi recorded it, the assistant entry time minus the request start (message.timestamp). Tool time exists only where Pi recorded durationMs; timedResults counts those results.",
-	"Entries a fork copied from its parent session (timestamps before the fork header) are replayed as state but not counted again.",
+	"Sessions are read oldest first. A fork copies its parent's entries with their ids and timestamps; a copy counts only when no older selected session holds it, and is otherwise replayed as state only.",
 	"Cache misses follow Pi's cache-stats rule along each request's parentId branch rather than file order. Cold starts after session start, compaction or branch summary are reported separately.",
 	"estimatedTokens use characters/4 (images 4,800 characters). Residency spreads each request's paid prompt price over its estimated model-visible history, honoring compaction and context edits; the system prompt and tool declarations stay unattributed.",
 	"Codemode results count under every source their script or nested calls reference, so source shares overlap.",
@@ -307,7 +307,7 @@ function recordOther(report, entry) {
 }
 
 /** Replays one session tree in file order; each entry's cache state derives from its parent, so every branch is exact. */
-function analyzeSession(entries, forkedAt, options, report, track) {
+function analyzeSession(entries, fork, options, report, track) {
 	const nodes = new Map();
 	let previous, active = false;
 	Object.assign(track, { calls: new Map(), spills: [], pending: new Set(), collected: new Set(), children: new Set() });
@@ -318,7 +318,10 @@ function analyzeSession(entries, forkedAt, options, report, track) {
 		nodes.set(id, node);
 		previous = node;
 		const time = Date.parse(entry.timestamp);
-		const inherited = forkedAt !== undefined && time < forkedAt;
+		// A fork copies its parent's entries with their ids and timestamps; an older session that holds a copy already counted it.
+		const key = typeof entry.id === "string" ? `${entry.id}\n${entry.timestamp}` : undefined;
+		const inherited = fork && track.seen.has(key);
+		if (key !== undefined) track.seen.add(key);
 		const counted = !inherited && Number.isFinite(time) && (options.sinceMs === undefined || time >= options.sinceMs) && (options.untilMs === undefined || time < options.untilMs);
 		if (inherited) report.sources.inheritedEntries++;
 		if (counted) { active = true; report.sources.entries++; }
@@ -367,6 +370,21 @@ function finalize(report, track) {
 	return report;
 }
 
+/** Session start from a log's first line, where Pi writes the header; NaN for anything else. */
+async function startOf(path) {
+	const handle = await open(path);
+	try {
+		// A header holds at most two paths.
+		const { buffer, bytesRead } = await handle.read(Buffer.alloc(16_384), 0, 16_384, 0);
+		const header = JSON.parse(buffer.toString("utf8", 0, bytesRead).split("\n", 1)[0]);
+		return header?.type === "session" ? Date.parse(header.timestamp) : NaN;
+	} catch {
+		return NaN;
+	} finally {
+		await handle.close();
+	}
+}
+
 async function sessionFiles(root, sinceMs) {
 	if ((await stat(root)).isFile()) return [root];
 	const files = [];
@@ -375,15 +393,17 @@ async function sessionFiles(root, sinceMs) {
 			const path = join(directory, item.name);
 			if (item.isDirectory()) await walk(path);
 			// Entries are appended, so a file last modified before --since holds no entry inside the window.
-			else if (item.isFile() && item.name.endsWith(".jsonl") && (sinceMs === undefined || (await stat(path)).mtimeMs >= sinceMs)) files.push(path);
+			else if (item.isFile() && item.name.endsWith(".jsonl") && (sinceMs === undefined || (await stat(path)).mtimeMs >= sinceMs)) files.push({ path, start: await startOf(path) });
 		}
 	};
 	await walk(root);
-	return files.sort();
+	// Oldest first, so a parent precedes its forks; logs without a header follow by path.
+	const order = ({ start }) => (Number.isFinite(start) ? start : Infinity);
+	return files.sort((a, b) => order(a) - order(b) || (a.path < b.path ? -1 : a.path > b.path ? 1 : 0)).map(({ path }) => path);
 }
 
 async function buildReport(options) {
-	const report = createReport(options), track = { misses: [], prices: {} };
+	const report = createReport(options), track = { misses: [], prices: {}, seen: new Set() };
 	for (const path of await sessionFiles(options.sessions, options.sinceMs)) {
 		let header, invalid = 0;
 		const entries = [];
@@ -397,11 +417,11 @@ async function buildReport(options) {
 		}
 		const cwd = typeof header?.cwd === "string" ? resolve(header.cwd) : undefined;
 		if (options.cwd && !(cwd === options.cwd || cwd?.startsWith(options.cwd + sep))) continue;
-		const forkedAt = header?.parentSession ? Date.parse(header.timestamp) : NaN;
 		report.sources.files++;
 		report.sources.invalidLines += invalid;
-		if (Number.isFinite(forkedAt)) report.sources.forks++;
-		analyzeSession(entries, Number.isFinite(forkedAt) ? forkedAt : undefined, options, report, track);
+		const fork = Boolean(header?.parentSession);
+		if (fork) report.sources.forks++;
+		analyzeSession(entries, fork, options, report, track);
 	}
 	return finalize(report, track);
 }
