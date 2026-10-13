@@ -445,3 +445,28 @@ Providers are simulated locally and exercise the native Pi runtime and actual gu
 Every `/models-profiles` terminal selection uses Pi's public `Input`, `SelectList`, and `fuzzyFilter` components. Model searches include the provider, exact ID, and display name. RPC continues to use native selection dialogs.
 
 Five additional tests cover fuzzy token matching, no-match selection, Backspace, arrow wrapping, Escape, focus/cursor placement, Unicode, terminal widths 1/20/52/120 at heights 12/24, resizing without losing selection, scrollable details, and the actual registered command's searchable menus through edit/save/apply/duplicate/rename/refresh. Scripted native components verify persisted exact IDs and no assistant messages. The final suite passes **603/603**, pretty compatibility passes **8/8**, and `git diff --check` is clean. These are local component/runtime checks; no paid provider call or external visible terminal acceptance was needed.
+
+## Optional document authoring — 2026-10-13
+
+Nine existing skills add explicit, optional section review: `jag-docs`, `jag-prd`, `jag-prd-lite`, `jag-rfc`, `jag-adr`, `jag-usm` and the three Jira writers. Existing default instruction bodies are byte-identical after removing the new block; templates, upstream identities and unrelated skills are unchanged. No new skill, runtime dependency or configuration is added.
+
+The following results predate current-main integration; the later PR preparation checks are recorded below.
+
+- Structural RED: new `tests/document-authoring.test.mjs` passed 0/12 before implementation. GREEN: 12/12 afterward; combined native skill/resource checks pass 24/24 on locked Pi 1.0.4 and installed Pi 1.2.0.
+- Full locked-host runs: 645/646, then 644/646 passed, zero skipped. Extracted-package provisioning fails with `ERR_PNPM_NO_OFFLINE_META` for dependencies such as `@earendil-works/chord` or `@earendil-works/pi-ai`; the same offline-cache failure was reproduced against an untouched HEAD archive. No dependency fetch or policy bypass was attempted.
+- The second full run also failed the unchanged `shouldKeepObservedPoisonedControllerLockWhenNativeUiReloads` label check. Isolated reruns passed 1/1 on both this worktree and untouched HEAD. Its runtime and test were not modified; the full suite is not fully green.
+- The first full run could not resolve `beautiful-mermaid` because this worktree has no dependencies installed. Subsequent runs used command-local `NODE_PATH` pointing to the canonical checkout's existing 1.1.3 dependency, plus `PI_TEST_PACKAGE_DIR` selecting Pi 1.0.4. No installation or persistent environment change was made.
+- Parent checks verified 195 resource fingerprints and unchanged upstream/unselected provenance. Native registry lookup found exactly the nine section-review skills; inventory remains 56 total, 54 automatic and two manual-only.
+- `npm pack --dry-run --ignore-scripts`: 265 files, 56 skills, no tests, `.ai`, `.github` or `node_modules`. Local references pass; extracted-package acceptance remains blocked by the offline cache.
+
+These are instruction, discovery and packaging checks, not live conversational acceptance. Manual case `DOC-SECTION-01` in [the skill guide](skills.md#manual-coverage-doc-section-01) remains unperformed. No paid model, interactive reload or personal installation change was exercised.
+
+### Main integration and PR preparation
+
+With explicit user authorization, `docs` was rebased onto `main` at `4f0200d`. The catalog conflict retained both upstream productivity manual cases and the optional authoring guide. The diff remains scoped to 13 document-authoring paths.
+
+- Inventory RED after integration: 11/12 passed, with actual 57 skills versus the stale expectation of 56. Updating only that expectation restored focused GREEN: 29/29 on Pi 1.0.4 and Pi 1.2.0, including productivity compatibility.
+- Full locked-host `node --test tests/*.test.mjs`, using the existing dependency/host paths described above: 654/654 passed, zero failures or skips. The previously observed offline-cache and UI failures did not recur; no dependency fetch, policy bypass or unrelated runtime repair was made.
+- Parent checks verified 196 resource fingerprints against current main, preserving all upstream/unselected records. Inventory is 57 skills, 54 automatic and three explicit-only. `npm pack --dry-run --ignore-scripts`: 266 files, no prohibited resources; extracted-package acceptance also passed in the full suite.
+
+The user authorized commit/push and PR creation for this scope. Manual conversational acceptance remains pending; no PR merge or active installation change is included.

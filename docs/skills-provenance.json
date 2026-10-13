@@ -34,7 +34,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "5901f421219add3f9809080463d1dc79092526730843f4429a2a06faf214d6a9"
+          "sha256": "a2fc5db9906ccb85ec1d5d1623993f7263d64d4aab4b1975125463927c2f9504"
         },
         {
           "path": "assets/template-markdown.md",
@@ -229,7 +229,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "95fd174bbe1af72b30ba901971134987a531f967b168240878c94811b6ff7d40"
+          "sha256": "0ddcace78710775fbfbe2740c2b2bf042389a6214c4c848578c0406ca701f7c7"
         }
       ],
       "adaptations": [
@@ -758,7 +758,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "4939be6c07c3ffcadcce93ff5c06edb96db085f1c4b25c9fd0ebf6dfd43e9be7"
+          "sha256": "9410ba1481ba7eb5dd1d917e37cc081985774d0970211c72020442e977888f21"
         },
         {
           "path": "assets/quick-creation-template.md",
@@ -785,7 +785,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "52032697c810bb23b8da3bf3c432e0033f46eb7bc5a4001be296b48b281c6a4e"
+          "sha256": "3dbadf05e6e76a1518a6718c08c42c860bb745ad67309814a9e92f5c90a3ff6a"
         },
         {
           "path": "assets/quick-creation-template.md",
@@ -812,7 +812,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "7c7503fe71a64a0868ff42bb3fd15d712f58fb896ea104ae7184608df3c65a16"
+          "sha256": "483807baa929bbf7de4d143fad2e5c6d2860601c48b196fb74b7ed0a11a2820b"
         },
         {
           "path": "assets/quick-creation-template.md",
@@ -898,7 +898,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "c18642e9b18a76eb31d71b5d8f024e41f549776e6ab608b03ffb82bd1afb0b90"
+          "sha256": "ea7afebc3a78f612b153dde3ee70337a48182e5715ad7574511c32133dcde91b"
         },
         {
           "path": "assets/prd-template.md",
@@ -921,7 +921,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "775cee1634aebe2e595657a4b605c53ab61e331e1f0e9fa7bd3213ad6589d51b"
+          "sha256": "74464a4e3157693305d4cdca4f7547adf8848dcf00675d7d87ecc53ea6564504"
         },
         {
           "path": "assets/prd-light-template.md",
@@ -1317,7 +1317,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "b3555d99fa324a8b010c68da16b31c934b2273e352988ff493a1496c88268631"
+          "sha256": "a3e97106eb00e29f1b2d89237962c1d4dca91faf1ff337a0cbf169460e51d930"
         },
         {
           "path": "assets/template.md",
@@ -1535,7 +1535,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "db7c86df6ce0a957faca8924c4653ca346433cfeba358e4d8e7f1ed0a5ef8f75"
+          "sha256": "223acf3c677427841cb761ecc7f4fa8f31e299f8dc0cd924a5f6412b9673cacf"
         },
         {
           "path": "assets/usm-template.md",

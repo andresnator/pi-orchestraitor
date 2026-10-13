@@ -1,16 +1,16 @@
 ---
 name: jag-docs
-description: "Write guides, READMEs, RFCs, onboarding, architecture and review docs with low cognitive load."
+description: "Write guides, READMEs, RFCs, onboarding, architecture and review docs with low cognitive load. Supports optional section review."
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
-  pi_adaptation: "2.0.0"
-  modification_notice: "Modified for Pi by pi-orchestraitor."
+  pi_adaptation: "2.1.0"
+  modification_notice: "Modified for Pi by pi-orchestraitor; added optional section review."
   author: gentleman-programming
   adapted_by: andresnator
   source: gentleman-programming/gentle-ai
   status: testing
-  version: "1.0.2"
+  version: "1.1.0"
 ---
 
 ## When to Use
@@ -23,6 +23,18 @@ Use it especially for:
 - Contributor or maintainer guides.
 - Architecture, workflow, or onboarding docs.
 - Any doc that currently feels long, dense, or hard to scan.
+
+## Optional Interactive Mode
+
+Use only on explicit requests for `interactive mode`, `section by section`, or equivalent intent. Otherwise keep defaults below. In this mode, replace draft timing and question limits only; preserve templates, validation, evidence, language, format and save/publication rules.
+
+1. Confirm section order. Reuse context; ask one missing-input question at a time and wait.
+2. Draft one section. Request approval or edits; wait for explicit approval before advancing. Answering intake questions, cancellation and unavailable UI are not approval. Use available Pi choice UI for closed choices, otherwise chat.
+3. Carry approved text and visible open items forward. Keep progress brief; do not reprint the whole draft.
+4. Reopen affected sections when earlier decisions change; never silently rewrite approved text.
+5. After all sections are approved and validation passes, assemble approved text into the complete document for final review. Approval never authorizes saving or publishing.
+
+Pause or exit on request; report approved/pending sections without inventing missing state.
 
 ## Critical Patterns
 
