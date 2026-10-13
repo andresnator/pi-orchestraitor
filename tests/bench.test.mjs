@@ -38,3 +38,12 @@ test("shouldRejectUnboundedSamplesBeforeLoadingHostWhenBenchmarkArgumentsAreInva
 	assert.throws(() => execFileSync(process.execPath, [join(packageRoot, "scripts/bench.mjs"), "--samples", "31"],
 		{ cwd: packageRoot, encoding: "utf8", stdio: "pipe" }), /Samples must be between 1 and 30/);
 });
+
+test("shouldSkipThePnpmSeparatorAndRejectUnknownFlagsWhenBenchmarkArgumentsAreParsed", () => {
+	// Given
+	const run = args => () => execFileSync(process.execPath, [join(packageRoot, "scripts/bench.mjs"), ...args], { cwd: packageRoot, encoding: "utf8", stdio: "pipe" });
+	// When / Then
+	// Reaching the samples bound proves the forwarded "--" was skipped rather than rejected as usage.
+	assert.throws(run(["--", "--samples", "0"]), /Samples must be between 1 and 30/);
+	assert.throws(run(["--unknown", "1"]), /Usage: pnpm run bench/);
+});

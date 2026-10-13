@@ -176,7 +176,7 @@ Do not run blanket `approve-builds`, add wildcard approvals, or regenerate the l
 
 ## Verify
 
-The [efficiency guide](performance.md) documents compact model-facing task/child handoffs, projection reuse and the offline benchmark. Run `pnpm run bench --samples 7 --output /tmp/pi-benchmark.json` from a checkout; it makes no model/MCP requests. Observed character reductions are distinct from measured provider-token savings.
+The [efficiency guide](performance.md) documents compact model-facing task/child handoffs, projection reuse, the offline benchmark and the recorded-usage report. Run `pnpm run bench --samples 7 --output /tmp/pi-benchmark.json` from a checkout; it makes no model/MCP requests. `pnpm run usage` summarizes recorded Pi sessions from metadata only. Observed character reductions are distinct from measured provider-token savings.
 
 ```bash
 pnpm test

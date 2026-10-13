@@ -146,9 +146,11 @@ async function worker(mode) {
 
 async function main(args) {
 	const options = { samples: DEFAULT_SAMPLES };
-	for (let index = 0; index < args.length; index += 2) {
-		const key = args[index], value = args[index + 1];
-		if (!["--samples", "--output", "--compare"].includes(key) || !value) throw new Error("Usage: npm run bench -- [--samples 7] [--output FILE] [--compare FILE]");
+	// pnpm forwards a literal "--" separator to the script.
+	const values = args.filter(arg => arg !== "--");
+	for (let index = 0; index < values.length; index += 2) {
+		const key = values[index], value = values[index + 1];
+		if (!["--samples", "--output", "--compare"].includes(key) || !value) throw new Error("Usage: pnpm run bench [--samples 7] [--output FILE] [--compare FILE]");
 		options[key.slice(2)] = key === "--samples" ? Number(value) : value;
 	}
 	if (!Number.isInteger(options.samples) || options.samples < 1 || options.samples > 30) throw new Error("Samples must be between 1 and 30");

@@ -9,9 +9,9 @@ The ten-lens consolidation reduces standalone catalog entries, not necessarily p
 Run from a Git checkout:
 
 ```bash
-npm run bench -- --samples 7 --output /tmp/pi-before.json
+pnpm run bench --samples 7 --output /tmp/pi-before.json
 # Apply a change, then run the same fixtures and host.
-npm run bench -- --samples 7 --compare /tmp/pi-before.json --output /tmp/pi-after.json
+pnpm run bench --samples 7 --compare /tmp/pi-before.json --output /tmp/pi-after.json
 ```
 
 `pnpm run` measures the locked Pi host in `node_modules`; `node scripts/bench.mjs` measures the `pi` on PATH, and `PI_TEST_PACKAGE_DIR` selects another installed host. Prompt preparation calls Pi 1.2.0's `emitBeforeAgentStart(request, options)` form; earlier hosts take a different signature and are not measured correctly. Output files must be new paths; existing reports are never overwritten. Without `--output`, the command prints JSON. Reports include Node/Pi versions, platform, Git revision, a SHA-256 over tracked/unignored file names and contents (including dirty changes), raw samples, medians and p95 values. Rounds run each configuration in a separate process, sequentially, without concurrent tests. Do not compare different hosts as evidence of a code improvement.
@@ -25,6 +25,37 @@ npm run bench -- --samples 7 --compare /tmp/pi-before.json --output /tmp/pi-afte
 These benchmark modes load the harness alone, excluding the separately installed pi-pretty companion and its FFF index/highlighter. They do not measure the complete pretty-enabled profile. `test:pretty` checks that integration separately.
 
 Benchmarks use temporary agent state, disabled MCP transports and no provider calls. `characters` and UTF-8 `bytes` are measured. `estimatedTokens` is explicitly the characters/4 heuristic, not tokenizer output, observed provider usage or billing. Idle CPU and RSS are noisy process snapshots; these short offline samples do not establish interactive idle cost or a memory leak.
+
+## Recorded session usage
+
+`pnpm run usage` summarizes Pi session logs, `~/.pi/agent/sessions` by default. It reads names, sizes, counts, timestamps and provider-reported usage, never message, tool or file content; a label that is not a plain identifier is reported as `(other)`. It makes no model or MCP requests.
+
+```bash
+pnpm run usage --since 2026-10-03 --until 2026-10-13 --output /tmp/usage-before.json
+# After the change has handled comparable work:
+pnpm run usage --since 2026-10-20 --compare /tmp/usage-before.json
+```
+
+`--sessions DIR|FILE` selects other logs, `--cwd PATH` keeps sessions started in that project or below it, and `--json` prints the report. `--output` accepts only new paths, as for the benchmark.
+
+- **Accounting.** Each session is replayed along its `parentId` tree, and a fork counts only entries recorded after the fork. Usage is the sum of assistant messages, `usage` entries, compaction and branch-summary usage, and top-level tool-result usage. Child `details.results[].usage` attributes that sum and is never added again. Invalid or incomplete usage marks the total as a lower bound, never as zero.
+- **Cache misses.** Pi's `/session` rule decides each miss: the previous request on the same branch, a 1,024-token floor, a reset after compaction or branch summary, and cache warming counted as a request. Each miss is attributed to the change before it: model, thinking level, system prompt, context edit, more than five idle minutes, or other.
+- **Residency.** Each request's paid prompt cost (uncached input, cache reads and writes) is spread over its projected context (latest compaction, kept entries, latest context edits) by estimated tokens. System prompt, tool declarations and estimate error remain unattributed.
+- **Codemode and ceremony.** Codemode output is grouped by the sources a script references, with `@options` use, truncation and rereads of the spilled output. Ceremony-only turns are assistant turns whose only calls update tasks or memory.
+- **Time.** Model time is Pi's `durationMs` or, in logs written before Pi 1.2.0 recorded it, the entry time minus the request start. On 844 turns that had both, the two differed by at most 4 ms at p99. Tool time exists only where Pi recorded it.
+
+`--since` and `--until` filter entries by their own timestamps, so background child usage collected after `--until` belongs to the later window. Compare by model and per turn: a different model or task mix changes totals without any harness change.
+
+### First recorded baseline
+
+The maintainer's sessions from 2026-10-03 to 2026-10-13 are summarized privately in `.ai/verification/performance/usage-baseline.json`, next to `bench-before.json`. Personal spend and volume are not published. The report found:
+
+- Requests without a preceding change missed the cache 2.2% of the time. After a model change, 10 of 10 missed; after a thinking change, 17 of 25.
+- Codemode results carried an estimated half of the paid prompt cost. Scripts referencing Pi documentation, Pi `dist` files and Context7 each produced a quarter to a third of codemode output; one script can reference several.
+- About 15% of assistant turns only updated tasks or memory, and none combined those updates with other calls. The main Codex models almost never sent more than one tool call per message, although Pi allows parallel calls, so asking for batched calls may not remove those turns; fewer, grouped updates can.
+- One child receipt reported incomplete usage, so the totals are a lower bound.
+
+On Node 24.20.0 / Pi 1.2.0 / macOS, seven benchmark rounds recorded package startup at 328.9 ms (native 250.5 ms). Prompt plus tool declarations measured 20,008 characters with lazy skills versus 36,365 with native headers.
 
 ## Historical efficiency comparison
 
@@ -65,11 +96,11 @@ Seven sequential fresh-process rounds on Node 24.20.0 / Pi 1.0.3 / macOS, with 6
 
 The lazy workflow includes a five-result search and load, versus a native read; its additional lookup/call overhead is 1,485 characters. Micro-sample median-of-medians was approximately 35 ms for refresh, 33 ms for search and 33 ms for load. First prompt preparation medians were 40.8 ms lazy versus 0.35 ms native; startup was 335.9 versus 335.6 ms, not a speedup. Timings are local, noisy and scale with resource count.
 
-No provider benchmark has been run. Character savings omit provider-specific protocol wrappers and tokenization; cache behavior, repeated/missed searches, task quality and extra turns can change the result. Filesystem refresh adds work before requests and lookups rather than introducing an idle watcher. Native mode remains available.
+No controlled provider A/B has been run. `pnpm run usage` measures recorded sessions, whose tasks differ, so it shows where tokens go rather than proving that a change saved them. Character savings omit provider-specific protocol wrappers and tokenization; cache behavior, repeated/missed searches, task quality and extra turns can change the result. Filesystem refresh adds work before requests and lookups rather than introducing an idle watcher. Native mode remains available.
 
 ## Prepared model A/B protocol
 
-This protocol is ready for a separately authorized run. No live model work is part of `bench` or `npm test`.
+This protocol is ready for a separately authorized run. No live model work is part of `bench`, `usage` or `pnpm test`.
 
 Use the pre-change revision `058e89d` and the optimized tree recorded by the benchmark. Capture exact source identities before running. Use the same explicitly chosen provider/model and reasoning level, isolated workspaces/settings, fixed instructions, disabled unused services and no automatic model fallback. Preserve raw native receipts and test results locally. Model and maximum consumption budget must be set before launch.
 
