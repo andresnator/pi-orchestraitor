@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import { before, describe, it, mock } from "node:test";
 import {
 	initTheme, SessionManager, KeybindingsManager, TUI_KEYBINDINGS,
-	btw, WELCOME_TEXT, waitFor,
+	btw, WELCOME_TEXT, firstQuestion, waitFor,
 } from "./helpers/btw-harness.mjs";
 
 const MODEL = { id: "main-model", provider: "test", reasoning: true };
 const OTHER_MODEL = { id: "other-model", provider: "other", reasoning: true };
 const ANSWER = "Private answer";
-const theme = { fg: (_color, text) => text };
+const theme = { fg: (_color, text) => text, bg: (_color, text) => text, bold: text => text, getThinkingBorderColor: () => text => text };
 const user = (text) => ({ role: "user", content: text, timestamp: 1 });
 const response = { role: "assistant", content: [{ type: "text", text: ANSWER }], api: "openai-completions",
 	provider: MODEL.provider, model: MODEL.id, stopReason: "stop", timestamp: 1 };
@@ -87,12 +87,13 @@ describe("open, converse, discard", () => {
 		await running;
 		// Then
 		const firstRequest = streamSimple.mock.calls[0].arguments;
+		// BTW answers with low thinking by default, whatever the parent's level.
 		assert.partialDeepStrictEqual(firstRequest, [MODEL, {
-			tools: [], messages: [user("Main context"), { role: "user", content: [{ type: "text", text: "Private question" }] }],
-		}, { reasoning: "high" }]);
+			systemPrompt: "Main instructions", messages: [user("Main context"), { role: "user", content: firstQuestion("Private question") }],
+		}, { reasoning: "low" }]);
 		assert.deepEqual({ argumentCount: firstRequest.length, tools: firstRequest[1].tools,
 			messageCount: firstRequest[1].messages.length, questionBlocks: firstRequest[1].messages.at(-1).content.length },
-			{ argumentCount: 3, tools: [], messageCount: 2, questionBlocks: 1 });
+			{ argumentCount: 3, tools: undefined, messageCount: 2, questionBlocks: 2 });
 		assert.deepEqual({ entries: session.getEntries(), imports: pi.sendMessage.mock.calls.map(call => call.arguments),
 			modelChanges: pi.setModel.mock.calls.map(call => call.arguments), thinkingChanges: pi.setThinkingLevel.mock.calls.map(call => call.arguments),
 			waits: ctx.waitForIdle.mock.calls.map(call => call.arguments) },
@@ -122,12 +123,14 @@ describe("open, converse, discard", () => {
 		assert.deepEqual(panels[0].render(200), []);
 		const secondRequest = streamSimple.mock.calls[1].arguments;
 		assert.partialDeepStrictEqual(secondRequest, [OTHER_MODEL, {
-			messages: [user("Main context"), user("New parent context"), { role: "user", content: [{ type: "text", text: "New private question" }] }],
+			messages: [user("Main context"), user("New parent context"), { role: "user", content: firstQuestion("New private question") }],
 		}, { reasoning: "low" }]);
 		assert.deepEqual({ argumentCount: secondRequest.length, messageCount: secondRequest[1].messages.length,
 			questionBlocks: secondRequest[1].messages.at(-1).content.length },
-			{ argumentCount: 3, messageCount: 3, questionBlocks: 1 });
-		assert.notEqual(secondRequest[2].sessionId, streamSimple.mock.calls[0].arguments[2].sessionId);
+			{ argumentCount: 3, messageCount: 3, questionBlocks: 2 });
+		// Every opening reuses the parent's cache affinity over a connection of its own.
+		assert.deepEqual(streamSimple.mock.calls.map(call => [call.arguments[2].sessionId, call.arguments[2].transport]),
+			[[session.getSessionId(), "sse"], [session.getSessionId(), "sse"]]);
 	});
 
 	for (const method of ["close", "shutdown", "dispose"]) {

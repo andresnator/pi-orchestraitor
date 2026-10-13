@@ -1,6 +1,6 @@
 import { renderMermaidASCII } from "beautiful-mermaid";
 import { getMarkdownTheme, type Theme } from "@earendil-works/pi-coding-agent";
-import { Markdown, sliceByColumn, stripTerminalSequences, truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
+import { Markdown, sliceByColumn, stripTerminalSequences, truncateToWidth, visibleWidth, type Component, type DefaultTextStyle } from "@earendil-works/pi-tui";
 
 export const MAX_DIAGRAM_SOURCE = 12000;
 export const MAX_DIAGRAM_LINES = 80;
@@ -14,6 +14,14 @@ const TABLE_TOP_BORDER = /^┌[─┬]+┐$/;
 const TABLE_ROW_BORDER = /^[├└][─┼┴]+[┤┘]$/;
 const TABLE_CELL_BORDER_COLUMNS = 2;
 
+export interface BtwMarkdownLayout {
+	paddingX?: number;
+	/** Base color and background, as Pi styles its own messages. */
+	style?: DefaultTextStyle;
+	/** Blank rows after non-empty content, separating this block from the next. */
+	marginBottom?: number;
+}
+
 /** Local text-only renderer; unsupported, malformed, or oversized fences remain source code. */
 export class BtwMarkdown implements Component {
 	private text = "";
@@ -21,7 +29,7 @@ export class BtwMarkdown implements Component {
 	private cachedWidth = 0;
 	private cachedLines?: string[];
 	private readonly diagrams = new Map<string, string[]>();
-	constructor(private readonly theme: Theme) {}
+	constructor(private readonly theme: Theme, private readonly layout: BtwMarkdownLayout = {}) {}
 
 	setText(text: string): void {
 		if (text === this.text) return;
@@ -35,9 +43,9 @@ export class BtwMarkdown implements Component {
 		let ordinary: string[] = [];
 		const flush = () => {
 			if (ordinary.length) this.parts.push({
-				markdown: new Markdown(ordinary.join("\n"), 0, 0, getMarkdownTheme()),
+				markdown: new Markdown(ordinary.join("\n"), this.layout.paddingX ?? 0, 0, getMarkdownTheme(), this.layout.style),
 				// Reserve native prefixes while keeping logical search independent of terminal width.
-				logicalWidth: ordinary.reduce((width, line) => Math.max(width, visibleWidth(line)), 1) + LOGICAL_RENDER_PADDING,
+				logicalWidth: ordinary.reduce((width, line) => Math.max(width, visibleWidth(line)), 1) + LOGICAL_RENDER_PADDING + 2 * (this.layout.paddingX ?? 0),
 			});
 			ordinary = [];
 		};
@@ -88,6 +96,7 @@ export class BtwMarkdown implements Component {
 				lines.push("");
 			}
 		}
+		if (lines.length) lines.push(...Array.from({ length: this.layout.marginBottom ?? 0 }, () => ""));
 		this.cachedWidth = width;
 		this.cachedLines = lines.map(line => truncateToWidth(line, width, ""));
 		return this.cachedLines;

@@ -16,7 +16,7 @@ const PROVENANCE = JSON.parse(await readFile(join(packageRoot, "docs/skills-prov
 const EXPECTED_FILES = [
 	"LICENSE", "README.md", "THIRD_PARTY_NOTICES.md", "package.json",
 	"extensions/compact-tools.ts", "extensions/instructions.ts", "extensions/mcp.ts", "extensions/nan.ts", "extensions/subagents.ts",
-	...["index", "context", "conversation", "markdown", "popup", "transcript", "types"].map((name) => `extensions/btw/${name}.ts`),
+	...["index", "context", "conversation", "markdown", "popup", "status", "transcript", "types"].map((name) => `extensions/btw/${name}.ts`),
 	"extensions/skill-registry.ts", "extensions/skills/sources.mjs", "extensions/skills/registry.mjs", "extensions/skills/store.mjs", "extensions/skills/types.ts",
 	"extensions/status-ui.ts", "extensions/ui/display.ts", "extensions/ui/agents.ts", "extensions/ui/tasks.ts", "extensions/ui/questions.ts",
 	"extensions/models/store.mjs", "extensions/models/panel.mjs", "extensions/models/selector.ts", "extensions/subagent/bridge.mjs", "extensions/subagent/background.mjs",

@@ -6,20 +6,34 @@ const SYSTEM_PROMPT = "Main instructions";
 const user = (text) => ({ role: "user", content: text, timestamp: 1 });
 
 describe("current branch snapshot", () => {
-	it("shouldIsolateTheSnapshotAndRemoveToolsWhenOpening", () => {
+	it("shouldReplayTheParentPromptAndToolsInAnIsolatedSnapshotWhenOpening", () => {
 		// Given
 		const session = SessionManager.inMemory();
-		session.appendMessage({ role: "system", content: SYSTEM_PROMPT, timestamp: 1,
-			toolsAdded: [{ name: "dangerous", description: "Tool", parameters: {} }] });
+		const tool = { name: "dangerous", description: "Tool", parameters: {} };
+		session.appendMessage({ role: "system", content: SYSTEM_PROMPT, timestamp: 1, toolsAdded: [tool] });
 		session.appendMessage(user("Main question"));
 		const before = structuredClone(session.getEntries());
 		// When
 		const context = buildSideContext(session.getBranch(), SYSTEM_PROMPT);
-		context.messages[0].content = "Provider mutation";
+		context.messages[0].toolsAdded[0].description = "Provider mutation";
+		context.messages[1].content = "Provider mutation";
 		// Then
-		assert.deepEqual({ entries: session.getEntries(), tools: context.tools, roles: context.messages.map(m => m.role) },
-			{ entries: before, tools: [], roles: ["user"] });
-		assert.ok(context.systemPrompt.includes("Closing the window discards it completely."));
+		assert.deepEqual({ entries: session.getEntries(), roles: context.messages.map(m => m.role) },
+			{ entries: before, roles: ["system", "user"] });
+		// The parent's exact prefix keeps its prompt cache usable; BTW's instructions come later.
+		assert.deepEqual({ systemPrompt: context.systemPrompt, tools: context.tools }, { systemPrompt: undefined, tools: undefined });
+		assert.doesNotMatch(JSON.stringify(context), /side conversation/);
+	});
+
+	it("shouldUseTheEffectivePromptWhenTheBranchHasNoSystemMessage", () => {
+		// Given
+		const session = SessionManager.inMemory();
+		session.appendMessage(user("Main question"));
+		// When
+		const context = buildSideContext(session.getBranch(), SYSTEM_PROMPT);
+		// Then
+		assert.deepEqual({ systemPrompt: context.systemPrompt, roles: context.messages.map(m => m.role) },
+			{ systemPrompt: SYSTEM_PROMPT, roles: ["user"] });
 	});
 
 	it("shouldExcludeAbandonedBranchesWhenOpening", () => {

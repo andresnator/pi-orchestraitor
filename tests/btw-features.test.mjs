@@ -6,7 +6,7 @@ import {
 } from "./helpers/btw-harness.mjs";
 
 const QUESTION = "Pregunta lateral";
-const theme = { fg: (_color, text) => text };
+const theme = { fg: (_color, text) => text, bg: (_color, text) => text, bold: text => text, getThinkingBorderColor: () => text => text };
 const MODEL = { id: "main-model", provider: "test", reasoning: true };
 const SEARCH_TRAILING_CONTEXT = "After\n\n".repeat(20);
 before(() => initTheme("dark", false));
@@ -128,7 +128,7 @@ function popupFixture(answer = Array.from({ length: 100 }, (_, index) => `Line $
 	const tui = { terminal: { rows: 24 }, requestRender: mock.fn() };
 	const response = { role: "assistant", content: [{ type: "text", text: answer }] };
 	const streamSimple = mock.fn(() => (async function* () { yield { type: "done", message: response, reason: "stop" }; })());
-	const ctx = { model: MODEL, modelRegistry: { streamSimple } };
+	const ctx = { model: MODEL, modelRegistry: { streamSimple }, sessionManager: { getSessionId: () => "parent-session" } };
 	const conversation = new SideConversation(ctx, { messages: [] });
 	const done = mock.fn();
 	const popup = new BtwPopup(tui, theme, new KeybindingsManager(TUI_KEYBINDINGS), conversation, done);
