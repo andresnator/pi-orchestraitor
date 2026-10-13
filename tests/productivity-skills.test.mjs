@@ -29,8 +29,11 @@ test("grill/shouldKeepDecisionsSequentialAndSeparateAgreementFromAuthorityWhenIn
 		/yes.*accepts.*recommendation/i, /cancelled.*unavailable.*busy/i,
 		/summarize.*settled choices/i, /confirm.*shared understanding/i, /agreement.*not.*authorize.*implementation/i,
 	]) assert.match(body, criterion);
-	assert.match(body, /^  version: "2\.0\.1"$/m);
-	assert.match(body, /^  consulted_source_revision: "49dd158d1076134a641b33efb035946536778336"$/m);
+	assert.equal(body.split("\n---\n", 1)[0], [
+		"---", "name: jag-grill",
+		'description: "Interview the user to stress-test a plan or design; activates on grill requests."',
+		"license: MIT",
+	].join("\n"));
 	assert.doesNotMatch(body, /ask the whole frontier|call the Skill tool|dispatch a sub-agent/i);
 });
 
@@ -45,10 +48,11 @@ test("wait-what/shouldRestoreContextWithoutAdvancingWorkWhenTheUserRequestsReExp
 		/do not create.*domain documents/i, /inline explanation only/i,
 		/do not.*continue.*task/i, /change task status/i, /delegate/i, /write files/i, /compact.*switch sessions/i,
 	]) assert.match(body, criterion);
-	assert.match(body, /^disable-model-invocation: true$/m);
-	assert.match(body, /^  author: "Matt Pocock"$/m);
-	assert.match(body, /^  source_revision: "49dd158d1076134a641b33efb035946536778336"$/m);
-	assert.match(body, /^  version: "1\.0\.0"$/m);
+	assert.equal(body.split("\n---\n", 1)[0], [
+		"---", "name: jag-wait-what",
+		'description: "Re-explain a confusing answer with the missing context in plain language."',
+		"disable-model-invocation: true", "license: MIT",
+	].join("\n"));
 	assert.doesNotMatch(body, /ASD-STE100|call the Skill tool|load.*jag-domain/i);
 });
 
@@ -86,9 +90,10 @@ test("provenance/shouldRetainOriginalImportsAndPinNewConsultationsWhenProductivi
 		repository: wait.upstreamRepository, revision: wait.upstreamRevision, hash: wait.upstreamSha256, license: wait.license,
 	}, { name: "wait-what", paths: [WAIT_SOURCE_PATH], version: null, author: "Matt Pocock",
 		repository: SOURCE_REPOSITORY, revision: SOURCE_REVISION, hash: WAIT_SOURCE_HASH, license: "MIT" });
-	assert.deepEqual({ version: grill.upstreamVersion, hash: grill.upstreamSha256, paths: grill.upstreamPaths,
-		consultations: grill.sourceConsultations,
-	}, { version: "2.0.0", hash: "4e334f292673da288123775ea4d97ec625cef5070508037d112f63be24d97c13",
+	assert.deepEqual({ version: grill.upstreamVersion, author: grill.author, adaptedBy: grill.adaptedBy,
+		hash: grill.upstreamSha256, paths: grill.upstreamPaths, consultations: grill.sourceConsultations,
+	}, { version: "2.0.0", author: "Matt Pocock", adaptedBy: "pi-orchestraitor",
+		hash: "4e334f292673da288123775ea4d97ec625cef5070508037d112f63be24d97c13",
 		paths: ["domains/common/skills/grilling/SKILL.md", "domains/plan/skills/grilling/SKILL.md"],
 		consultations: [{ upstreamRepository: SOURCE_REPOSITORY, upstreamRevision: SOURCE_REVISION,
 			purpose: "Consulted for dependency, recommendation and authorization clarity; original import identity and sequential interaction retained.",

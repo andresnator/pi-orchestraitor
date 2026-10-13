@@ -474,11 +474,13 @@
       ],
       "upstreamVersion": "2.0.0",
       "license": "MIT",
+      "author": "Matt Pocock",
+      "adaptedBy": "pi-orchestraitor",
       "upstreamSha256": "4e334f292673da288123775ea4d97ec625cef5070508037d112f63be24d97c13",
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "51bcef551f52ed029489eabea133e7bb35bc8f82ce079ebbc1e2e39165a704a0"
+          "sha256": "3224a079c963f7a17de04f210e0982768ad719ecd466990a85418b15a1aadab7"
         }
       ],
       "adaptations": [
@@ -1821,7 +1823,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "f4f4ed40898c9e0dbaaf756de121a2e076b9521be14518140158e364a7d3f9b4"
+          "sha256": "b107a2f762a9136b8e3e198d863d2722e9ae61e2615deb02e3736aef9178a1a6"
         }
       ],
       "adaptations": [

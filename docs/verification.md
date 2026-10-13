@@ -10,6 +10,19 @@ The current deterministic baseline is Pi 1.0.4, Node 22.19+, and pnpm 12.9.1. En
 | `pnpm run install:pi --dry-run` | Complete lexical discovery inventory, including aliases hidden by native deduplication, and proposed standalone-skill moves, without migration or registration. |
 | `pnpm pack --dry-run --ignore-scripts` | Distributed resource inventory and exclusion of tests, local reports, and personal data. |
 
+## Productivity frontmatter follow-up — 2026-10-13
+
+At the user's request, `jag-grill` and `jag-wait-what` now keep only `name`, `description` and `license` in frontmatter, plus `disable-model-invocation: true` for `jag-wait-what`. Optional compatibility and metadata blocks are removed. Both instruction bodies are byte-identical to the preceding commit; authorship, source lineage, notices and refreshed resource fingerprints remain in the existing centralized records. This overrides the local skill-authoring template's metadata recommendations for these two skills only.
+
+Fresh checks, Node 24.20.0 / pnpm 12.9.1:
+
+- `node --test tests/productivity-skills.test.mjs`: RED, 2/5 passed before the header/provenance changes; the three expected failures covered the two minimal headers and centralized grilling credits.
+- `pnpm test`, locked Pi 1.0.4: GREEN, 639/639 passed, zero failures/cancellations/skips.
+- `node --test tests/productivity-skills.test.mjs tests/skill-resources.test.mjs tests/skill-adaptations.test.mjs tests/skill-consolidation.test.mjs`, with `PI_TEST_PACKAGE_DIR` selecting installed Pi 1.2.0: 21/21 passed.
+- All 196 resource fingerprints verified; skill bodies, prompts, handoff, runtime manifest, lockfile and license notices preserved. `git diff --check` passed.
+
+Receipts remain local under `.ai/verification/productivity-skills/metadata-*.log`. The full Pi 1.2.0 suite and live-model/manual scenarios were not rerun; its previously established compatibility failures are unchanged in scope. The implementation checkpoint below predates this header simplification and the separately authorized Git delivery.
+
 ## Productivity skills — 2026-10-13
 
 Implemented in the separate `feat/productivity-skills` worktree from `f61846ae5fc07070708429bf75cd43503708cd45`. The approved scope drops the proposed `/wait-what` prompt: `jag-wait-what` is explicit-only through `/skill:jag-wait-what`. The four existing prompt commands, runtime manifest and `jag-handoff` skill/template remain unchanged. Handoff's portable-context purpose is clarified in the catalog.
