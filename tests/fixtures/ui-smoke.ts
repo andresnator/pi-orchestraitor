@@ -119,7 +119,7 @@ function operation(action: string, state: ReturnType<typeof replayTasks>) {
 		return { name: "orchestraitor_tasks", arguments: arguments_ };
 	}
 	if (action === "single" || action === "form") {
-		const options = [{ label: "Alpha 原", value: "opaque/alpha" }, { label: "Beta é", value: "opaque/beta" }];
+		const options = [{ label: "Alpha 原", value: "opaque/alpha", recommended: true }, { label: "Beta é", value: "opaque/beta" }];
 		return { name: "orchestraitor_ask", arguments: { questions: action === "single" ? [{ id: "single/id", prompt: "Synthetic choice: choose a harmless marker", selection: "single", options }]
 			: [{ id: "multi/id", prompt: "Select explicit markers; then continue", selection: "multiple", options }, { id: "text/id", prompt: "Choose a marker or write synthetic text", selection: "single", allowText: true, options }] } };
 	}

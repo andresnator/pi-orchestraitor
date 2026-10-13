@@ -78,6 +78,23 @@ test("shouldJumpSwitchAndClearWithShortcutsWithoutApprovingHighlights", async (t
 	assert.deepEqual(outcomes, []);
 });
 
+test("shouldShowRecommendedOptionsInParenthesesWithoutPreselectingThem", async (t) => {
+	// Given
+	const { createQuestionnaire } = await setup(t);
+	const outcomes = [];
+	const theme = { ...plainTheme, fg: (token, text) => token === "muted" ? `\x1b[90m${text}\x1b[39m` : text };
+	const options = [{ label: "Alpha", value: "opaque/alpha" }, { label: "Beta", value: "opaque/beta", recommended: true }, { label: "Gamma", value: "opaque/gamma", recommended: true }];
+	const component = createQuestionnaire([{ ...choice(), selection: "multiple", options }], { terminal: { rows: 24 }, requestRender() {} }, () => theme, keys, result => outcomes.push(result));
+	const view = () => component.render(80).join("\n");
+	// When / Then
+	assert.match(stripVTControlCharacters(view()), /❯ □  Alpha +│/);
+	assert.match(view(), /□  Beta \x1b\[90m\(recommended\)\x1b\[39m +│/);
+	assert.match(view(), /□  Gamma \x1b\[90m\(recommended\)\x1b\[39m +│/);
+	component.handleInput(enter);
+	assert.match(view(), /Required: pick at least one/);
+	assert.deepEqual(outcomes, []);
+});
+
 test("shouldReserveNativeLayoutRowsWhenQuestionCardUsesAShortTerminal", async (t) => {
 	// Given
 	const { createQuestionnaire } = await setup(t);
@@ -218,6 +235,8 @@ for (const [input, pattern] of [
 	[{ questions: [{ ...choice(), prompt: "x".repeat(1001) }] }, /prompt/i],
 	[{ questions: [{ ...choice(), selection: "automatic" }] }, /selection/i],
 	[{ questions: [{ ...choice(), allowText: "yes" }] }, /allowText/i],
+	[{ questions: [{ ...choice(), options: [{ ...choice().options[0], recommended: "yes" }, choice().options[1]] }] }, /recommended/i],
+	[{ questions: [{ ...choice(), options: choice().options.map(option => ({ ...option, recommended: true })) }] }, /recommends at most one/i],
 ]) {
 	test(`shouldRejectBeforeOpeningUiWhenQuestionsAre${JSON.stringify(input).slice(0, 85)}`, async (t) => {
 		// Given
@@ -257,6 +276,7 @@ test("shouldPreserveOpaqueIdsAndValuesAndAllowCorrectionWhenNativeSingleChoiceSu
 	assert.doesNotMatch(stripVTControlCharacters(component.render(80).join("\n")), /\x1b/);
 	assert.equal(tool.exposure, "model-only");
 	assert.equal(tool.executionMode, "sequential");
+	assert.match(tool.description, /recommended:true \(at most one for single\)/); // The schema cannot express this cross-field limit.
 });
 
 for (const action of ["cancel", "abort", "session-change"]) {
@@ -304,6 +324,8 @@ test("shouldValidateRequiredAnswersAndExactOptionValuesWhenFormIsSubmitted", asy
 	assert.throws(() => validateAnswers(questions, [{ id: "unknown", values: [] }]), /unknown/i);
 	const answers = [{ id: questions[0].id, values: ["opaque/alpha"] }, { id: "text", values: [], text: "  原 é  " }];
 	assert.deepEqual(validateAnswers(questions, answers), answers);
+	const recommended = { ...choice("many"), selection: "multiple", options: choice().options.map(option => ({ ...option, recommended: true })) };
+	assert.deepEqual(validateQuestions({ questions: [recommended] }), [recommended]);
 });
 
 test("shouldUseNativeSelectionInputAndScrollWithoutImplicitApprovalWhenQuestionnaireIsCorrected", async (t) => {

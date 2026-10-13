@@ -14,14 +14,15 @@ const ID_LIMIT = 80;
 const CARD_NATIVE_LAYOUT_ROWS = 6; // Native footer, widget/status and chat spacing.
 const CARD_MIN_BORDERED_WIDTH = 10;
 const LABEL_MAX_LINES = 2;
-type Question = { id: string; prompt: string; selection: "single" | "multiple"; options: { label: string; value: string }[]; required?: boolean; allowText?: boolean };
+const RECOMMENDED = "(recommended)";
+type Question = { id: string; prompt: string; selection: "single" | "multiple"; options: { label: string; value: string; recommended?: boolean }[]; required?: boolean; allowText?: boolean };
 type Answer = { id: string; values: string[]; text?: string };
 type Answered = { status: "answered"; answers: Answer[] };
 type Outcome = Answered | { status: "cancelled" | "unavailable" | "busy" };
 const bounded = (limit: number) => Type.String({ minLength: 1, maxLength: limit });
 export const QuestionParameters = Type.Object({ questions: Type.Array(Type.Object({
 	id: bounded(ID_LIMIT), prompt: bounded(QUESTION_TEXT_LIMIT), selection: Type.Union([Type.Literal("single"), Type.Literal("multiple")]),
-	options: Type.Array(Type.Object({ label: bounded(QUESTION_LABEL_LIMIT), value: bounded(ANSWER_TEXT_LIMIT) }, { additionalProperties: false }), { minItems: 2, maxItems: OPTION_LIMIT }),
+	options: Type.Array(Type.Object({ label: bounded(QUESTION_LABEL_LIMIT), value: bounded(ANSWER_TEXT_LIMIT), recommended: Type.Optional(Type.Boolean()) }, { additionalProperties: false }), { minItems: 2, maxItems: OPTION_LIMIT }),
 	required: Type.Optional(Type.Boolean()), allowText: Type.Optional(Type.Boolean()),
 }, { additionalProperties: false }), { minItems: 1, maxItems: QUESTION_LIMIT }) }, { additionalProperties: false });
 
@@ -47,11 +48,13 @@ export function validateQuestions(params: { questions: Question[] }): Question[]
 		if (!Array.isArray(question.options) || question.options.length < 2 || question.options.length > OPTION_LIMIT) throw new Error(`Provide two to ${OPTION_LIMIT} options`);
 		const values = new Set<string>();
 		for (const option of question.options) {
-			object(option, ["label", "value"], "option");
+			object(option, ["label", "value", "recommended"], "option");
 			text(option.label, QUESTION_LABEL_LIMIT, "option label"); text(option.value, ANSWER_TEXT_LIMIT, "option value");
+			if (option.recommended !== undefined && typeof option.recommended !== "boolean") throw new Error("Invalid recommended");
 			if (values.has(option.value)) throw new Error("Option values must be unique");
 			values.add(option.value);
 		}
+		if (question.selection === "single" && question.options.filter((option) => option.recommended).length > 1) throw new Error("Single choice recommends at most one option");
 	}
 	return structuredClone(params.questions);
 }
@@ -84,7 +87,7 @@ const label = (value: string) => sanitizeDisplay(value).replace(/\s+/gu, " ");
 export function createQuestionTool(owner: ReturnType<typeof createUIOwner>): ToolDefinition<typeof QuestionParameters> {
 	return {
 		name: QUESTION_TOOL_NAME, label: "Ask", exposure: "model-only", executionMode: "sequential",
-		description: "Collect requirements/preferences with one to six single/multiple choices. Exact IDs/values are returned only after explicit submission. Free text needs allowText:true. Cancelled/unavailable/busy are not approval; clarify textually if unavailable. Never use this as a security or destructive-action permission grant.",
+		description: "Collect requirements/preferences with one to six single/multiple choices. Exact IDs/values are returned only after explicit submission. Free text needs allowText:true. Mark suggested options recommended:true (at most one for single). Cancelled/unavailable/busy are not approval; clarify textually if unavailable. Never use this as a security or destructive-action permission grant.",
 		parameters: QuestionParameters,
 		async execute(_id, params, signal, _update, ctx) {
 			const questions = validateQuestions(params);
@@ -232,7 +235,8 @@ export function createQuestionnaire(questions: Question[], tui: TUI, getTheme: (
 		const selected = question?.selection === "multiple" ? draft!.values.length : 0;
 		const glyph = (chosen: boolean) => question?.selection === "multiple" ? chosen ? "■" : "□" : chosen ? "●" : "○";
 		const typed = () => `“${label(draft!.text ?? "")}”`;
-		const rowLines = (row: Row) => row.kind === "option" ? Math.min(LABEL_MAX_LINES, wrapTextWithAnsi(label(question!.options[row.index].label), labelWidth).length)
+		const optionText = (index: number) => label(question!.options[index].label) + (question!.options[index].recommended ? ` ${RECOMMENDED}` : "");
+		const rowLines = (row: Row) => row.kind === "option" ? Math.min(LABEL_MAX_LINES, wrapTextWithAnsi(optionText(row.index), labelWidth).length)
 			: row.kind === "text" && !editing && draft!.text !== undefined ? Math.min(LABEL_MAX_LINES, wrapTextWithAnsi(typed(), labelWidth).length) : 1;
 
 		const renderRow = (row: Row, index: number, height: number): string[] => {
@@ -249,8 +253,11 @@ export function createQuestionnaire(questions: Question[], tui: TUI, getTheme: (
 				const chosen = row.kind === "option" ? draft!.values.includes(question!.options[row.index].value) : draft!.text !== undefined;
 				const marker = mark(glyph(chosen), chosen ? "accent" : lit ? "muted" : "dim");
 				if (row.kind === "text" && !chosen) return [line(pointer + marker + theme.fg("muted", clip("Type your own answer…", labelWidth)), fill)];
-				return wrap(row.kind === "option" ? label(question!.options[row.index].label) : typed(), height)
-					.map((value, at) => line((at ? " ".repeat(pointerWidth + markWidth) : pointer + marker) + strong(value), fill));
+				const lines = wrap(row.kind === "option" ? optionText(row.index) : typed(), height);
+				// The recommendation is a muted note after the label, unless truncation already cut it.
+				const note = row.kind === "option" && question!.options[row.index].recommended && lines.at(-1)!.endsWith(RECOMMENDED);
+				return lines.map((value, at) => line((at ? " ".repeat(pointerWidth + markWidth) : pointer + marker)
+					+ (note && at === lines.length - 1 ? strong(value.slice(0, -RECOMMENDED.length)) + theme.fg("muted", RECOMMENDED) : strong(value)), fill));
 			}
 			const room = content - pointerWidth;
 			if (row.kind === "review") {
