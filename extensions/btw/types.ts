@@ -5,6 +5,8 @@ export interface SideTurn {
 	question: string;
 	answer: string;
 	note?: string;
+	/** Measurements of the request that answered this question. */
+	progress?: SideProgress;
 }
 
 /** BTW's own reasoning choice; `inherit` follows the parent's level when each request starts. */

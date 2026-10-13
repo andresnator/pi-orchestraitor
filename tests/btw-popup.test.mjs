@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import { before, describe, it, mock } from "node:test";
 import {
 	initTheme, CURSOR_MARKER, KeybindingsManager, TUI_KEYBINDINGS, visibleWidth,
-	BtwPopup, BUSY_HELP, EMPTY_RESPONSE_TEXT, FOOTER_HELP, LOADING_TEXT, STATUS_TICK_MS, SideConversation, firstQuestion, waitFor,
+	BtwPopup, BUSY_HELP, COPIED_TEXT, EMPTY_RESPONSE_TEXT, FOOTER_HELP, LOADING_TEXT, STATUS_TICK_MS, SideConversation, firstQuestion, waitFor,
 } from "./helpers/btw-harness.mjs";
 
 const QUESTION = "¿Qué hemos decidido?";
 const ANSWER = "Usar una ventana emergente.";
 const MODEL = { id: "test-model", provider: "test-provider" };
-const theme = { fg: (_color, text) => text };
+const theme = { fg: (_color, text) => text, bg: (_color, text) => text, bold: text => text, getThinkingBorderColor: () => text => text };
 const user = (text) => ({ role: "user", content: [{ type: "text", text }], timestamp: 1 });
 const response = (text = ANSWER) => ({
 	role: "assistant", content: [{ type: "text", text }],
@@ -22,10 +22,11 @@ function fixture(streamSimple = mock.fn(() => streamEvents({ type: "done", messa
 	const tui = { terminal: { rows }, requestRender: mock.fn() };
 	const done = mock.fn();
 	const context = { messages: [user("Main question")], tools: [] };
-	const ctx = { model: MODEL, modelRegistry: { streamSimple } };
+	const ctx = { model: MODEL, modelRegistry: { streamSimple }, sessionManager: { getSessionId: () => "parent-session" } };
 	const conversation = new SideConversation(ctx, context);
-	const popup = new BtwPopup(tui, theme, new KeybindingsManager(TUI_KEYBINDINGS), conversation, done);
-	return { popup, tui, done, streamSimple, context, ctx };
+	const copy = mock.fn(async () => {});
+	const popup = new BtwPopup(tui, theme, new KeybindingsManager(TUI_KEYBINDINGS), conversation, done, copy);
+	return { popup, tui, done, streamSimple, context, ctx, copy };
 }
 
 describe("popup", () => {
@@ -266,7 +267,8 @@ describe("popup", () => {
 			popup.handleInput("abcdefgh");
 			const lines = popup.render(80);
 			const editorRow = lines.findIndex(line => line.includes("abcdefgh"));
-			const clickColumn = rows === 24 ? 5 : 4;
+			// One column for the frame when it shows, one for the editor's padding.
+			const clickColumn = rows === 24 ? 6 : 5;
 			// When
 			popup.handleMouse({ type: "click", button: "left", x: clickColumn, y: editorRow, width: 80, height: lines.length });
 			popup.handleInput("X");
@@ -276,6 +278,79 @@ describe("popup", () => {
 			assert.deepEqual(streamSimple.mock.calls[0].arguments[1].messages.at(-1).content, firstQuestion("abcdXefgh"));
 		});
 	}
+
+	it("shouldShowQuestionsWithoutHeadingsAndNumberEachFinishedAnswer", async () => {
+		// Given
+		const { popup } = fixture(mock.fn(() => streamEvents({
+			type: "done", message: { ...response(), usage: { input: 200, output: 25, cacheRead: 5200, cacheWrite: 0 } }, reason: "stop",
+		})));
+		// When
+		await popup.submit(QUESTION);
+		const lines = popup.render(100).map(line => line.trimEnd());
+		// Then
+		const at = (text) => lines.findIndex(line => line.includes(text));
+		assert.ok(at(QUESTION) < at(ANSWER) && at(ANSWER) < at("#1 · ✓ Done"));
+		assert.match(lines[at("#1 · ✓ Done")], /^│ #1 · ✓ Done \d\.\ds · cache 5\.2k\/5\.4k · 25 tok/);
+		assert.doesNotMatch(lines.join("\n"), /###|Assistant|Question 1/);
+	});
+
+	it("shouldCopyTheLatestFinishedAnswerWithCtrlXAndDismissTheNoticeOnTheNextKey", async () => {
+		// Given
+		let release;
+		const gate = new Promise(resolve => { release = resolve; });
+		const streamSimple = mock.fn(() => streamEvents({ type: "done", message: response(), reason: "stop" }));
+		const { popup, copy } = fixture(streamSimple);
+		await popup.submit(QUESTION);
+		streamSimple.mock.mockImplementationOnce(() => (async function* () {
+			yield { type: "text_delta", partial: response("Partial") };
+			await gate;
+			yield { type: "done", message: response("Second"), reason: "stop" };
+		})());
+		const running = popup.submit("Otra");
+		await waitFor(() => assert.ok(popup.render(100).join("\n").includes("Partial")));
+		// When
+		popup.handleInput("\x18");
+		await waitFor(() => assert.equal(copy.mock.calls.length, 1));
+		const copied = popup.render(100).join("\n");
+		popup.handleInput("x");
+		// Then
+		assert.deepEqual(copy.mock.calls[0].arguments, [ANSWER]);
+		assert.ok(copied.includes(COPIED_TEXT));
+		assert.ok(!popup.render(100).join("\n").includes(COPIED_TEXT));
+		release();
+		await running;
+	});
+
+	it("shouldExplainWhyNothingWasCopied", async () => {
+		// Given
+		const { popup, copy } = fixture();
+		// When
+		popup.handleInput("\x18");
+		await waitFor(() => assert.ok(popup.render(100).join("\n").includes("no answers yet")));
+		await popup.submit(QUESTION);
+		copy.mock.mockImplementationOnce(async () => { throw new Error("Clipboard unavailable"); });
+		popup.handleInput("\x18");
+		// Then
+		await waitFor(() => assert.ok(popup.render(100).join("\n").includes("Clipboard unavailable")));
+		assert.equal(copy.mock.calls.length, 1);
+	});
+
+	it("shouldOfferAndRetryTheFailedQuestionWithCtrlR", async () => {
+		// Given
+		const streamSimple = mock.fn(() => streamEvents({ type: "done", message: response(), reason: "stop" }));
+		streamSimple.mock.mockImplementationOnce(() => { throw new Error("Authentication unavailable"); });
+		const { popup } = fixture(streamSimple);
+		await popup.submit(QUESTION);
+		const failed = popup.render(100).join("\n");
+		// When
+		popup.handleInput("\x12");
+		await waitFor(() => assert.ok(popup.render(100).join("\n").includes(ANSWER)));
+		// Then
+		assert.ok(failed.includes("Enter: send · Ctrl+R: retry"));
+		const retried = popup.render(100).join("\n");
+		assert.ok(!retried.includes("Ctrl+R") && !retried.includes("Authentication unavailable"));
+		assert.deepEqual(streamSimple.mock.calls[1].arguments[1].messages.at(-1).content, firstQuestion(QUESTION));
+	});
 
 	it("shouldScrollThroughTheTranscriptWithoutMovingTheEditorCursor", async () => {
 		// Given

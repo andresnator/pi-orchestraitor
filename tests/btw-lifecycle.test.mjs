@@ -8,7 +8,7 @@ import {
 const MODEL = { id: "main-model", provider: "test", reasoning: true };
 const OTHER_MODEL = { id: "other-model", provider: "other", reasoning: true };
 const ANSWER = "Private answer";
-const theme = { fg: (_color, text) => text };
+const theme = { fg: (_color, text) => text, bg: (_color, text) => text, bold: text => text, getThinkingBorderColor: () => text => text };
 const user = (text) => ({ role: "user", content: text, timestamp: 1 });
 const response = { role: "assistant", content: [{ type: "text", text: ANSWER }], api: "openai-completions",
 	provider: MODEL.provider, model: MODEL.id, stopReason: "stop", timestamp: 1 };
@@ -128,7 +128,9 @@ describe("open, converse, discard", () => {
 		assert.deepEqual({ argumentCount: secondRequest.length, messageCount: secondRequest[1].messages.length,
 			questionBlocks: secondRequest[1].messages.at(-1).content.length },
 			{ argumentCount: 3, messageCount: 3, questionBlocks: 2 });
-		assert.notEqual(secondRequest[2].sessionId, streamSimple.mock.calls[0].arguments[2].sessionId);
+		// Every opening reuses the parent's cache affinity over a connection of its own.
+		assert.deepEqual(streamSimple.mock.calls.map(call => [call.arguments[2].sessionId, call.arguments[2].transport]),
+			[[session.getSessionId(), "sse"], [session.getSessionId(), "sse"]]);
 	});
 
 	for (const method of ["close", "shutdown", "dispose"]) {

@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { clampThinkingLevel, type AssistantMessage, type Context, type Message, type ModelThinkingLevel } from "@earendil-works/pi-ai";
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { SIDE_QUESTION_INSTRUCTIONS } from "./context.ts";
@@ -16,7 +15,6 @@ export const SIDE_THINKING_LEVELS: readonly SideThinking[] = ["off", "low", "inh
 export const DEFAULT_SIDE_THINKING: SideThinking = "low";
 
 export class SideConversation {
-	private readonly sessionId = randomUUID();
 	private history: Message[] = [];
 	private sideTurns: SideTurn[] = [];
 	private request?: AbortController;
@@ -36,6 +34,10 @@ export class SideConversation {
 	get busy(): boolean { return this.request !== undefined; }
 	get turns(): readonly SideTurn[] { return this.sideTurns; }
 	get pending(): readonly string[] { return this.queue; }
+	/** The last question ended without an answer: it failed or was cancelled. */
+	get canRetry(): boolean {
+		return !this.disposed && !this.busy && this.sideTurns.length > 0 && (this.status === CHAT_STATUS.error || this.status === CHAT_STATUS.cancelled);
+	}
 
 	/** Level the next request sends, after inheritance and the current model's limits. */
 	get thinkingLevel(): ModelThinkingLevel {
@@ -59,8 +61,8 @@ export class SideConversation {
 			return;
 		}
 		const controller = new AbortController();
-		const turn: SideTurn = { question, answer: "" };
 		const progress: SideProgress = { phase: "sending", startedAt: Date.now(), answerChars: 0, thinking: "" };
+		const turn: SideTurn = { question, answer: "", progress };
 		this.request = controller;
 		this.progress = progress;
 		this.sideTurns.push(turn);
@@ -79,9 +81,13 @@ export class SideConversation {
 				messages: structuredClone([...this.context.messages, ...this.history]),
 			}, {
 				signal: controller.signal,
-				// Side turns share an identity, never the main session's identity.
-				// The provider's default retention applies, as for the parent's requests.
-				sessionId: this.sessionId,
+				// Providers use the session only for prompt cache keys and affinity headers, so the
+				// parent's lets even the first side question reuse its cached prefix. The provider's
+				// default retention applies, as for the parent's requests.
+				sessionId: this.ctx.sessionManager.getSessionId(),
+				// Codex keeps per-session websockets with response continuations; SSE is stateless,
+				// so side turns never share the parent's connection.
+				transport: "sse",
 				reasoning: reasoning === "off" ? undefined : reasoning,
 			});
 			for await (const event of stream) {
@@ -136,6 +142,15 @@ export class SideConversation {
 				if (next !== undefined) void this.send(next);
 			}
 		}
+	}
+
+	/** Asks the last question again, in place of the attempt that failed or was cancelled. */
+	retry(): Promise<void> {
+		if (!this.canRetry) return Promise.resolve();
+		const failed = this.sideTurns.pop()!;
+		// Unanswered requests never add a reply, so the failed question is the newest history entry.
+		if (this.history.at(-1)?.role === "user") this.history.pop();
+		return this.send(failed.question);
 	}
 
 	private finish(progress: SideProgress, phase: SidePhase, status: string): void {

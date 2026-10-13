@@ -28,11 +28,13 @@ The title also reports the latest request:
 
 `~` marks estimates from visible text; Done uses the provider's reported usage. In narrow panels the title drops request details before the phase, queue, or thinking level, and the footer keeps sending and closing hints.
 
+Each finished answer ends with a dim summary of its own request, such as `#2 · ✓ Done 2.9s · cache 6.7k/6.8k · 38 tok`. The number is the one `/bring` uses.
+
 ### Prompt cache
 
 BTW replays the parent's system prompt and tool declarations unchanged and sends its own instructions once, with the first side question. The request therefore starts with the parent's exact prefix, so providers with prefix caching can reuse the parent's cache, and follow-ups reuse BTW's own. The provider's default cache retention applies, as for the parent. Expected limits:
 
-- BTW keeps its own provider session identity, so providers that route caching by session, such as OpenAI Codex, may miss on the first question and hit on follow-ups.
+- BTW sends the parent's session id, so providers that route caching by session, such as OpenAI Codex, can serve even the first question from the parent's cache. BTW always requests the stateless SSE transport, so it never shares the parent's websocket or response continuation.
 - Anthropic models with budget-based thinking key the message cache on the thinking settings; `inherit` maximizes reuse there.
 - Extensions that rewrite the parent's context before each request make the prefixes differ.
 
@@ -44,6 +46,8 @@ BTW replays the parent's system prompt and tool declarations unchanged and sends
 | Shift+Enter | Insert a newline |
 | Shift+Tab | Cycle BTW thinking: low, inherit, off |
 | Ctrl+T | Show or hide the reasoning preview |
+| Ctrl+X / Pi's copy keybinding | Copy the latest finished answer, as `/bring latest` would import it |
+| Ctrl+R | After an error or cancellation, ask the last question again in place of the failed attempt |
 | Ctrl+Q | Close, cancel, and discard everything |
 | Esc / Pi's interrupt keybinding | Cancel the response and clear the queue; close if idle |
 | Ctrl+F | Search; Esc leaves search |
@@ -52,7 +56,7 @@ BTW replays the parent's system prompt and tool declarations unchanged and sends
 | Alt+Home / Alt+End | Jump to the beginning / end |
 | Click `↓ latest answer` | Jump to the end |
 
-An error also discards queued questions. You can ask again without closing. Mouse controls require Pi's fullscreen mode.
+An error also discards queued questions. You can retry or ask again without closing. Copy and import notices clear on the next key. Mouse controls require Pi's fullscreen mode.
 
 ## Import into the parent
 
@@ -89,4 +93,4 @@ node --test tests/btw-*.test.mjs
 node --test tests/package.test.mjs
 ```
 
-The BTW cases use fake providers and Pi's native TypeScript/peer mapping. They cover context isolation, the replayed parent prefix, thinking levels, status phases, tool-request notices, model inheritance, FIFO, cancellation, disposal during streaming, empty reopening, explicit imports, Mermaid, search, focus, resize, and terminal bounds. Package tests cover registration, excluding a standalone copy, and dependency-backed loading from extracted tarballs. They do not replace visual acceptance in a real terminal or a live provider check.
+The BTW cases use fake providers and Pi's native TypeScript/peer mapping. They cover context isolation, the replayed parent prefix, the shared cache session, thinking levels, status phases, copy, retry, tool-request notices, model inheritance, FIFO, cancellation, disposal during streaming, empty reopening, explicit imports, Mermaid, search, focus, resize, and terminal bounds. Package tests cover registration, excluding a standalone copy, and dependency-backed loading from extracted tarballs. They do not replace visual acceptance in a real terminal or a live provider check.
