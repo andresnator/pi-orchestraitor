@@ -4,11 +4,50 @@ The current deterministic baseline is Pi 1.0.4, Node 22.19+, and pnpm 12.9.1. En
 
 | Command | Claim checked |
 | --- | --- |
-| `pnpm test` | Native tool regressions, instructions and personality injection, tarball resources and 56 native / 54 automatic / two explicit-only skill names, adapted workflow contracts/credits, consolidated review criteria/discovery, prompt expansion, MCP overrides, migration, rollback, and restoration. |
+| `pnpm test` | Native tool regressions, instructions and personality injection, tarball resources and 57 native / 54 automatic / three explicit-only skill names, adapted workflow contracts/credits, consolidated review criteria/discovery, prompt expansion, MCP overrides, migration, rollback, and restoration. |
 | `pnpm run test:mcp` | Real Context7 and Engram calls through native codemode, extension hooks, and project separation in temporary memory storage. |
 | `pnpm run test:personality` | Configured-model responses in fresh isolated sessions, with predefined criteria and synthetic receipts for manual scoring. |
 | `pnpm run install:pi --dry-run` | Complete lexical discovery inventory, including aliases hidden by native deduplication, and proposed standalone-skill moves, without migration or registration. |
 | `pnpm pack --dry-run --ignore-scripts` | Distributed resource inventory and exclusion of tests, local reports, and personal data. |
+
+## Productivity frontmatter follow-up — 2026-10-13
+
+At the user's request, `jag-grill` and `jag-wait-what` now keep only `name`, `description` and `license` in frontmatter, plus `disable-model-invocation: true` for `jag-wait-what`. Optional compatibility and metadata blocks are removed. Both instruction bodies are byte-identical to the preceding commit; authorship, source lineage, notices and refreshed resource fingerprints remain in the existing centralized records. This overrides the local skill-authoring template's metadata recommendations for these two skills only.
+
+Fresh checks, Node 24.20.0 / pnpm 12.9.1:
+
+- `node --test tests/productivity-skills.test.mjs`: RED, 2/5 passed before the header/provenance changes; the three expected failures covered the two minimal headers and centralized grilling credits.
+- `pnpm test`, locked Pi 1.0.4: GREEN, 639/639 passed, zero failures/cancellations/skips.
+- `node --test tests/productivity-skills.test.mjs tests/skill-resources.test.mjs tests/skill-adaptations.test.mjs tests/skill-consolidation.test.mjs`, with `PI_TEST_PACKAGE_DIR` selecting installed Pi 1.2.0: 21/21 passed.
+- All 196 resource fingerprints verified; skill bodies, prompts, handoff, runtime manifest, lockfile and license notices preserved. `git diff --check` passed.
+
+Receipts remain local under `.ai/verification/productivity-skills/metadata-*.log`. The full Pi 1.2.0 suite and live-model/manual scenarios were not rerun; its previously established compatibility failures are unchanged in scope. The implementation checkpoint below predates this header simplification and the separately authorized Git delivery.
+
+## Productivity skills — 2026-10-13
+
+Implemented in the separate `feat/productivity-skills` worktree from `f61846ae5fc07070708429bf75cd43503708cd45`. The approved scope drops the proposed `/wait-what` prompt: `jag-wait-what` is explicit-only through `/skill:jag-wait-what`. The four existing prompt commands, runtime manifest and `jag-handoff` skill/template remain unchanged. Handoff's portable-context purpose is clarified in the catalog.
+
+`jag-grill` 2.0.1 preserves one-question interaction while clarifying dependencies, recommendations, fact ownership and the understanding/authorization boundary. `jag-wait-what` 1.0.0 re-explains in the user's language using optional canonical vocabulary, without advancing work. The consulted Matt Pocock source is pinned at `49dd158d1076134a641b33efb035946536778336`; original import identities, copyright notices and unchanged source fingerprints are preserved.
+
+Fresh parent-run evidence, Node 24.20.0 / pnpm 12.9.1:
+
+| Check | Observed result |
+| --- | --- |
+| Baseline adaptation/resource/consolidation checks, installed Pi 1.2.0 | 16/16 passed before implementation. |
+| New productivity contract checks before the skill/contract edits | RED: 0/5 passed, with expected missing contracts/files/provenance/documentation. |
+| Focused productivity/native/inventory checks, Pi 1.2.0 | GREEN: 21/21 passed; 57 native / 54 automatic / three manual skills; explicit expansion works with/without arguments and registry invocation is rejected. |
+| Full suite, locked Pi 1.0.4 | 639/639 passed, zero failures/cancellations/skips, including extracted npm-package resources and fingerprints. |
+| Full suite, installed Pi 1.2.0 | 627/639 passed, 12 failed, zero cancellations/skips. Full 1.2.0 compatibility is not claimed. |
+| Unchanged `main` comparison | Pi 1.0.4: 634/634 passed. Pi 1.2.0: 622/634 passed, with the same 12 failing test names and host API/fixture errors. These pre-existing compatibility failures were not repaired in this skill change. |
+| Package/contract recheck after documentation, Pi 1.0.4 | 10/10 passed, including extracted-package loading and the five new productivity checks. |
+| `npm pack --dry-run --ignore-scripts --json` | 266 files, 57 skill bodies and four unchanged prompts; no tests, `.ai` or development dependency links included. |
+| Preservation and delivery checks | All 196 materialized skill-resource fingerprints verified; main and the original audit unchanged; prompt files, handoff skill/template and manifest byte-identical to main. `git diff --check` passed and nothing is staged. |
+
+The initial full worktree check also found a development-setup `EISDIR`: a root `node_modules` symlink was not ignored and the Git-inventory benchmark tried reading it as a file. It was replaced by a real ignored directory with selected links to already installed local dependencies; no benchmark source, lockfile or dependency version changed. An initial UI timing assertion failed once, then passed its targeted rerun and final locked-host suite without UI edits. Initial failures are retained, not presented as acceptance runs.
+
+Logs are local under `.ai/verification/productivity-skills/` in the implementation worktree. Existing audit/handoff artifacts and main checkout files were preserved. All implementation changes remain unstaged and uncommitted. No personal configuration change, skill installation, live-model/live-service test or automatic reload was performed. Existing package tests provision locked runtime dependencies offline in temporary extraction directories.
+
+Not performed: the user-run WW1/WW2/GR1/GR2 conversations in [the catalog](skills.md#manual-productivity-checks-not-run-automatically), real-model explanation-quality checks, interactive activation/reload, manual pnpm tarball validation, live service tests, remote CI or publication. Structural/native tests do not prove general model obedience or clarity. Pi must load the new worktree/package before its new skill command can be used; the current profile was not redirected from main.
 
 ## Manual pnpm tarball validation
 

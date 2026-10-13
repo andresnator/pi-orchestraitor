@@ -51,7 +51,7 @@ test("shouldMigrateAndLoadAllSkillsWhenNativeInstallationRunsInTemporaryConfigur
 		packageRegistered: nativeConfig.packages.some((entry) => resolve(dirname(join(cwd, ".pi", "settings.json")), typeof entry === "string" ? entry : entry.source) === resolve(packageRoot)),
 		previewRestorationDidNotMove: stillMoved, restored: await exists(projectSkill) && await exists(ancestorSkill),
 	}, {
-		previewMoves: [ancestorSkill, projectSkill].sort(), blockers: [], verified: 56, count: 56, diagnostics: [],
+		previewMoves: [ancestorSkill, projectSkill].sort(), blockers: [], verified: 57, count: 57, diagnostics: [],
 		packageRegistered: true, previewRestorationDidNotMove: true, restored: true,
 	});
 	assert.match(repeated, /"moves": \[\]/);
@@ -128,7 +128,7 @@ syncBuiltinESMExports();
 	// Then
 	assert.deepEqual(JSON.parse(await readFile(callsPath, "utf8")), [["install", "--local", "--approve", packageRoot], ["install", "--local", "--approve", source], ["install", "--local", "--approve", "npm:pi-claude-bridge@0.9.2"]]);
 	assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")).packages, [packageRoot, source, "npm:pi-claude-bridge@0.9.2"]);
-	assert.equal(receipt.verifiedSkills, 56);
+	assert.equal(receipt.verifiedSkills, 57);
 	assert.deepEqual(receipt.companionPackages, [source, "npm:pi-claude-bridge@0.9.2"]);
 	assert.deepEqual(JSON.parse(await readFile(join(agentDir, "pi-pretty.json"), "utf8")), { disableTools: ["bash"] });
 	const settingsBefore = await readFile(settingsPath, "utf8");

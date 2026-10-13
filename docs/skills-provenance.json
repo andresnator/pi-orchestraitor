@@ -474,15 +474,30 @@
       ],
       "upstreamVersion": "2.0.0",
       "license": "MIT",
+      "author": "Matt Pocock",
+      "adaptedBy": "pi-orchestraitor",
       "upstreamSha256": "4e334f292673da288123775ea4d97ec625cef5070508037d112f63be24d97c13",
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "606a7ceea97ad1b3508131bc2c1465bad188062f83aef841c35f08320e1a2a93"
+          "sha256": "3224a079c963f7a17de04f210e0982768ad719ecd466990a85418b15a1aadab7"
         }
       ],
       "adaptations": [
         "SKILL.md"
+      ],
+      "sourceConsultations": [
+        {
+          "upstreamRepository": "https://github.com/mattpocock/skills",
+          "upstreamRevision": "49dd158d1076134a641b33efb035946536778336",
+          "purpose": "Consulted for dependency, recommendation and authorization clarity; original import identity and sequential interaction retained.",
+          "resources": [
+            {
+              "path": "skills/productivity/grilling/SKILL.md",
+              "sha256": "befdff1e27a1dfe2a294d5871169ac1afe16d983911daa4f32627514a48c1e15"
+            }
+          ]
+        }
       ]
     },
     {
@@ -1784,6 +1799,35 @@
         "assets/mission-template.md",
         "assets/reference-template.md",
         "assets/resources-template.md"
+      ]
+    },
+    {
+      "name": "jag-wait-what",
+      "upstreamName": "wait-what",
+      "upstreamPaths": [
+        "skills/productivity/wait-what/SKILL.md"
+      ],
+      "upstreamVersion": null,
+      "license": "MIT",
+      "author": "Matt Pocock",
+      "adaptedBy": "pi-orchestraitor",
+      "upstreamRepository": "https://github.com/mattpocock/skills",
+      "upstreamRevision": "49dd158d1076134a641b33efb035946536778336",
+      "upstreamSha256": "d961bb37defd975c539427edb8f450cdbccdcdd552e213c1ece46676a7970905",
+      "upstreamResources": [
+        {
+          "path": "skills/productivity/wait-what/SKILL.md",
+          "sha256": "d961bb37defd975c539427edb8f450cdbccdcdd552e213c1ece46676a7970905"
+        }
+      ],
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "b107a2f762a9136b8e3e198d863d2722e9ae61e2615deb02e3736aef9178a1a6"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md"
       ]
     }
   ],
