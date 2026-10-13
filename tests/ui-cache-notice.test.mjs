@@ -15,7 +15,7 @@ async function noticeHarness(t) {
 	const handlers = new Map();
 	registerCacheNotice({ on: (event, handler) => handlers.set(event, handler) }, SETTLE_MS);
 	const notices = [];
-	const state = { model: SOL, thinkingLevel: "medium", tokens: 120_000, hasUI: true, stale: false };
+	const state = { model: SOL, thinkingLevel: "medium", tokens: 120_000, hasUI: true, stale: false, branch: [] };
 	// Pi's context getters throw once the session is replaced.
 	const live = (value) => { if (state.stale) throw new Error("stale ctx"); return value; };
 	const ctx = {
@@ -23,6 +23,7 @@ async function noticeHarness(t) {
 		get model() { return live(state.model); },
 		get thinkingLevel() { return live(state.thinkingLevel); },
 		getContextUsage: () => live(state.tokens === undefined ? undefined : { tokens: state.tokens, contextWindow: 272_000, percent: null }),
+		sessionManager: { getBranch: () => live(state.branch) },
 		ui: { notify: (message, level) => notices.push({ message, level }) },
 	};
 	const emit = (type, fields = {}) => handlers.get(type)({ type, ...fields }, ctx);
@@ -106,6 +107,31 @@ test("shouldCompareWithTheLatestRequestWhenTheUserSwitchesBack", async (t) => {
 	await settle();
 	// Then
 	assert.deepEqual(notices.map(({ message }) => message.split(":")[0]), ["Thinking high", "Thinking medium"]);
+});
+
+test("shouldCompareWithTheDestinationBranchLatestRequestWhenTreeNavigationChangesBranch", async (t) => {
+	// Given
+	const reply = (provider, model, thinkingLevel) => ({ type: "message", message: { role: "assistant", provider, model, ...(thinkingLevel ? { thinkingLevel } : {}) } });
+	const opusHigh = [{ type: "thinking_level_change", thinkingLevel: "high" }, reply("anthropic", "opus", "high")];
+	const scenarios = {
+		matchedTheBranch: { branch: opusHigh, act: ({ select }) => { select.model(OPUS); select.thinking("high"); } },
+		keptTheLeftSelection: { branch: opusHigh, act: ({ select }) => { select.thinking("low"); select.thinking("medium"); } },
+		branchWithoutRequests: { branch: [], act: ({ select }) => select.thinking("high") },
+		requestWithoutItsLevel: { branch: [{ type: "thinking_level_change", thinkingLevel: "high" }, reply("openai-codex", "sol")], act: ({ select }) => select.thinking("high") },
+	};
+	// When
+	const outcomes = {};
+	for (const [name, { branch, act }] of Object.entries(scenarios)) {
+		const harness = await noticeHarness(t);
+		harness.state.branch = branch;
+		harness.emit("session_tree", { newLeafId: "destination", oldLeafId: "left" });
+		act(harness);
+		await harness.settle();
+		outcomes[name] = harness.notices.map(({ message }) => message);
+	}
+	// Then
+	assert.deepEqual(outcomes, { matchedTheBranch: [], branchWithoutRequests: [], requestWithoutItsLevel: [],
+		keptTheLeftSelection: [`Model openai-codex/sol, thinking medium: the next request will likely re-bill 120k context tokens (~$0.23). ${ADVICE}`] });
 });
 
 test("shouldWarnThroughTheStatusUIWithoutTouchingTheTranscriptWhenAPromptedSessionChangesThinking", async (t) => {

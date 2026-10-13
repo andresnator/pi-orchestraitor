@@ -10,7 +10,7 @@ type Prices = { input: number; cacheRead: number; cacheWrite: number };
 
 /** Warn before the next request re-bills a cached context under another model or thinking level. Only the UI sees it. */
 export function registerCacheNotice(pi: ExtensionAPI, settleMs = SETTLE_MS) {
-	// The selection of the latest request, or of a resumed session's last one. Pi picks it before each turn_start.
+	// The selection of the latest request on the current branch, or of a resumed session's last one. Pi picks it before each turn_start.
 	let sent: Selection | undefined;
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	const cancel = () => { clearTimeout(timer); timer = undefined; };
@@ -33,6 +33,8 @@ export function registerCacheNotice(pi: ExtensionAPI, settleMs = SETTLE_MS) {
 	};
 	pi.on("session_start", (_event, ctx) => { cancel(); sent = selection(ctx); });
 	pi.on("turn_start", (_event, ctx) => { sent = selection(ctx); });
+	// Tree navigation keeps the active model and thinking level, but the cached context becomes the new branch's.
+	pi.on("session_tree", (_event, ctx) => { sent = latestRequest(ctx); });
 	pi.on("model_select", (event, ctx) => { if (event.source !== "restore") schedule(ctx); });
 	pi.on("thinking_level_select", (_event, ctx) => schedule(ctx));
 	pi.on("session_shutdown", () => { cancel(); sent = undefined; });
@@ -40,6 +42,18 @@ export function registerCacheNotice(pi: ExtensionAPI, settleMs = SETTLE_MS) {
 
 function selection(ctx: ExtensionContext): Selection {
 	return { model: ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : "none", thinking: ctx.thinkingLevel ?? "off" };
+}
+
+/** The selection of the branch's latest request, or undefined when the branch holds none. */
+function latestRequest(ctx: ExtensionContext): Selection | undefined {
+	let thinking = "off", latest: Selection | undefined;
+	for (const entry of ctx.sessionManager.getBranch()) {
+		if (entry.type === "thinking_level_change") thinking = entry.thinkingLevel;
+		else if (entry.type === "message" && entry.message.role === "assistant") {
+			latest = { model: `${entry.message.provider}/${entry.message.model}`, thinking: entry.message.thinkingLevel ?? thinking };
+		}
+	}
+	return latest;
 }
 
 function notice(sent: Selection, next: Selection, tokens: number, prices?: Prices) {

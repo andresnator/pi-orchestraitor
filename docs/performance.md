@@ -83,7 +83,7 @@ The main Codex models rarely sent several calls per message, so fewer turns depe
 
 The first request after a model or thinking switch usually misses the prompt cache and pays for the whole context again. In the baseline, every request sent right after a model switch missed the cache, as did about two thirds of those after a thinking switch, against about 2% of the others. Pi's optional `showCacheMissNotices` setting reports a miss after it happens. `extensions/ui/cache-notice.ts` warns before the request, while the switch can still be undone:
 
-- It waits until switching has settled for 1 second, then compares the selection with the latest request's. Switching back is silent, and so are selections Pi restores.
+- It waits until switching has settled for 1 second, then compares the selection with the latest request's on the current branch. After `/tree` moves to another branch, it compares with that branch's latest request, since tree navigation keeps the active selection. Switching back is silent, and so are selections Pi restores.
 - It warns only when the context holds at least 20k tokens, the floor of Pi's own notice, and stays silent while the size is unknown, such as right after compaction.
 - The estimated cost is the context tokens times the new model's input price, or its cache-write price when higher, minus its cache-read price. It is shown from $0.01.
 - The warning goes through `ctx.ui.notify`. It never reaches the transcript or the model and adds nothing to the prompt.
