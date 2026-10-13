@@ -118,8 +118,9 @@ function describeChange(previous: Task | undefined, task: Task) {
 	if (previous.status !== task.status) changes.push(`${label(previous.status)} → ${label(task.status)}`);
 	if (previous.title !== task.title) changes.push("title edited");
 	if (previous.group !== task.group) changes.push(task.group ? `moved to ${task.group}` : "group removed");
-	if (task.evidence && previous.evidence !== task.evidence) changes.push(previous.evidence ? "evidence updated" : "evidence added");
-	if (task.reason && previous.reason !== task.reason) changes.push(previous.reason ? "reason updated" : "reason added");
+	for (const note of ["evidence", "reason"] as const) {
+		if (previous[note] !== task[note]) changes.push(`${note} ${!task[note] ? "removed" : previous[note] ? "updated" : "added"}`);
+	}
 	return changes.join(" · ") || undefined;
 }
 

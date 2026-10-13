@@ -210,6 +210,16 @@ test("shouldDeriveTaskHistoryFromReceiptsWithoutChangingReplayedStateWhenActivit
 	});
 });
 
+test("shouldRecordRemovedEvidenceWhenReplaceReopensTaskWithoutIt", async (t) => {
+	// Given
+	const { replayTaskActivity } = await taskModule(t);
+	const reopened = stages[2].map((task) => task.id === "T1" ? { id: "T1", title: "Fix config", status: "in_progress", group: "fix", reason: "Regression found" } : task);
+	// When
+	const { activity } = replayTaskActivity([...activeBranch, timed(180_000, board(4, reopened))]);
+	// Then
+	assert.deepEqual(activity.get("T1").events.at(-1), { revision: 4, at: 180_000, change: "done → in progress · evidence removed · reason added" });
+});
+
 test("shouldShowFocusTimingPlanAndNextTaskWhenRenderingCollapsedAndExpandedHeaders", async (t) => {
 	// Given
 	const { replayTaskActivity } = await taskModule(t);
