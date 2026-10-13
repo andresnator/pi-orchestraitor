@@ -6,7 +6,7 @@ A personal [Pi](https://pi.dev) package for practical coding workflows: 57 bundl
 
 ## Install
 
-Requires **pnpm 12.9.1**, **Node 22.19+**, and GitHub access to this private repository. The checkout uses Pi 1.0.4 from the lockfile.
+Requires **pnpm 12.9.1**, **Node 22.19+**, and GitHub access to this private repository. The checkout uses Pi 1.2.0 from the lockfile.
 
 ```bash
 gh repo clone andresnator/pi-orchestraitor
@@ -58,7 +58,7 @@ For native Git installation, use `pi update --extensions`. Recheck compatibility
 
 ## Verify
 
-For development, use **pnpm 12.9.1** to install the locked Pi 1.0.4 test host:
+For development, use **pnpm 12.9.1** to install the locked Pi 1.2.0 test host:
 
 ```bash
 pnpm install --frozen-lockfile

@@ -6,7 +6,7 @@ The ten-lens consolidation reduces standalone catalog entries, not necessarily p
 
 ## Local benchmark
 
-Run from a Git checkout with a compatible Pi host on PATH:
+Run from a Git checkout:
 
 ```bash
 npm run bench -- --samples 7 --output /tmp/pi-before.json
@@ -14,7 +14,7 @@ npm run bench -- --samples 7 --output /tmp/pi-before.json
 npm run bench -- --samples 7 --compare /tmp/pi-before.json --output /tmp/pi-after.json
 ```
 
-Output files must be new paths; existing reports are never overwritten. Without `--output`, the command prints JSON. Reports include Node/Pi versions, platform, Git revision, a SHA-256 over tracked/unignored file names and contents (including dirty changes), raw samples, medians and p95 values. Rounds run each configuration in a separate process, sequentially, without concurrent tests. Do not compare different hosts as evidence of a code improvement.
+`pnpm run` measures the locked Pi host in `node_modules`; `node scripts/bench.mjs` measures the `pi` on PATH, and `PI_TEST_PACKAGE_DIR` selects another installed host. Prompt preparation calls Pi 1.2.0's `emitBeforeAgentStart(request, options)` form; earlier hosts take a different signature and are not measured correctly. Output files must be new paths; existing reports are never overwritten. Without `--output`, the command prints JSON. Reports include Node/Pi versions, platform, Git revision, a SHA-256 over tracked/unignored file names and contents (including dirty changes), raw samples, medians and p95 values. Rounds run each configuration in a separate process, sequentially, without concurrent tests. Do not compare different hosts as evidence of a code improvement.
 
 - **Native / package / package-native:** isolated SDK resource/session startup, prepared prompt and model-visible tool declaration sizes, RSS/heap and CPU over a 100 ms idle interval. Package defaults to lazy skills; package-native loads the same 56-skill catalog (54 automatic and two explicit-only) after the public native-mode command. Startup includes host import/resources/mode setup, not first prompt preparation or time to first model token; preparation is reported separately. These samples use print mode.
 - **Skills:** actual bounded search/load plus native read of jag-code; one warmup and five refresh/search/load timings per package sample. Initial and one-selected-skill character totals include schema and lookup/call overhead. The full diagnostic file is measured separately, never added to model context. This single deterministic English query does not evaluate selector quality.

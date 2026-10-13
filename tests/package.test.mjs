@@ -110,7 +110,7 @@ test("shouldLoadOnlyPackagedResourcesWhennpmTarballIsExtractedElsewhere", async 
 	});
 	const { session, errors } = await startSession(t, workspace, resources);
 	await mcpStatus(session);
-	const result = await session.extensionRunner.emitBeforeAgentStart("Make a scoped change", undefined, {
+	const result = await session.extensionRunner.emitBeforeAgentStart({ messageType: "user", prompt: "Make a scoped change" }, {
 		cwd: workspace, customPrompt: "Host instructions", selectedTools: ["read", "bash", "edit", "write"],
 		sections: { existing: "Project-specific instructions" },
 	});
