@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
-import { realpath, writeFile } from "node:fs/promises";
+import { mkdir, realpath, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
 import { childBridge, parentBridge, publicModel, MAX_BRIDGE_RECORD } from "../extensions/subagent/bridge.mjs";
@@ -232,4 +232,56 @@ test("cancellation releases outstanding snapshot credit so finalized usage can d
 		abort.abort();
 		assert.deepEqual(await stream.result(), final);
 	} finally { dispose(); }
+});
+
+test("parent keys every child request with its assigned provider session and closes it on dispose", async () => {
+	const { parent, child } = channels();
+	const options = [];
+	const registry = { streamSimple(_model, _context, streamOptions) { options.push(streamOptions); return finalStream(assistant([{ type: "text", text: "ok" }])); } };
+	let closed = 0;
+	const dispose = parentBridge(parent, registry, model, undefined, assert.fail, { id: "derived", close: () => closed++ });
+	const request = childBridge(child, createAssistantMessageEventStream, model);
+	await request(model, { messages: [] }).result();
+	// A child cannot choose another provider session.
+	const answered = new Promise(resolve => child.on("message", message => { if (message.id === "chosen") resolve(); }));
+	child.send({ type: "model_request", id: "chosen", context: { messages: [] }, reasoning: "off", sessionId: "child-chosen" });
+	await answered;
+	await request(model, { messages: [] }).result();
+	assert.equal(closed, 0);
+	dispose();
+	assert.deepEqual({ sessions: options.map(({ sessionId }) => sessionId), closed }, { sessions: ["derived", "derived", "derived"], closed: 1 });
+});
+
+test("parent without an assigned provider session sends none, and a failing close still disposes", async () => {
+	const { parent, child } = channels();
+	const options = [];
+	const registry = { streamSimple(_model, _context, streamOptions) { options.push(streamOptions); return finalStream(assistant([{ type: "text", text: "ok" }])); } };
+	const dispose = parentBridge(parent, registry, model, undefined, assert.fail);
+	try { await childBridge(child, createAssistantMessageEventStream, model)(model, { messages: [] }).result(); } finally { dispose(); }
+	assert.equal("sessionId" in options[0], false);
+	parentBridge(parent, registry, model, undefined, assert.fail, { id: "derived", close() { throw new Error("already closed"); } })();
+	assert.equal(parent.listenerCount("message"), 0);
+});
+
+test("native child reuses its parent-assigned provider session without a skills catalog", { timeout: 20000 }, async t => {
+	const cwd = await realpath(await createWorkspace(t));
+	await writeFile(join(cwd, "target.txt"), "fixture");
+	const skillsRoot = await realpath(await createWorkspace(t));
+	await mkdir(join(skillsRoot, "chosen"));
+	const skill = { name: "chosen", description: "Selected", filePath: join(skillsRoot, "chosen/SKILL.md"), baseDir: join(skillsRoot, "chosen"), disableModelInvocation: false };
+	await writeFile(skill.filePath, "Chosen skill");
+	const requests = [], closed = [];
+	const registry = { streamSimple(_model, context, options) {
+		requests.push({ sessionId: options.sessionId, context: JSON.stringify(context) });
+		return finalStream(requests.length === 1 ? assistant([{ type: "toolCall", id: "read", name: "read", arguments: { path: "target.txt" } }], 30, "toolUse")
+			: assistant([{ type: "text", text: "done" }]));
+	} };
+	const providerSessionFor = ({ id }) => ({ id: `derived-${id}`, close: () => closed.push(id) });
+	const [result] = await new BatchController({ sdkRoot: hostRoot, registry, modelFor: () => model, providerSessionFor, stopGrace: 100 })
+		.run([{ ...manifest(cwd), skills: [skill] }], () => "inspect");
+	assert.equal(result.status, "completed", result.diagnostic);
+	assert.deepEqual({ sessions: requests.map(({ sessionId }) => sessionId), closed }, { sessions: ["derived-bridge", "derived-bridge"], closed: ["bridge"] });
+	assert.doesNotMatch(requests[0].context, /available_skills|SKILL\.md/);
+	assert.deepEqual(result.usage, usage(60));
+	assert.equal(result.usageComplete, true);
 });

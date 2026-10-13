@@ -90,6 +90,14 @@ The first request after a model or thinking switch usually misses the prompt cac
 
 Switch at session start or right after compaction, when the context is not cached anyway.
 
+## Subagent requests
+
+Children were under 3% of the baseline's cost, so these changes stay narrow:
+
+- Child requests carried no provider session. Each child now has its own, derived in the parent from the parent's session and the task id. Providers that support sessions key prompt caching or request affinity on it. On Codex it also keys the cached websocket, which the parent closes when the child finishes instead of leaving it open for five idle minutes. The parent's own session is never reused, because that would put the child under the parent's cache key and Codex connection. In the baseline, explore and review children read about 62% and 74% of their prompt tokens from cache; compare `subagents.byRole` with `pnpm run usage --compare`.
+- A child's system prompt no longer lists the selected skills or tells the child to read their files, because the task prompt already carries each body. Each body now names the directory its relative references resolve against.
+- Guarded `search` shows at most 500 characters of each matching line, like Pi's `grep`, so one minified line no longer fills the 32 KiB output.
+
 ## Historical efficiency comparison
 
 Before removal of the optional workbench on 2026-10-05, Node 24.20.0 and Pi 1.0.2 on macOS, seven fresh-process rounds per configuration produced:

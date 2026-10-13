@@ -1,10 +1,10 @@
-import { getSupportedThinkingLevels, clampThinkingLevel } from "@earendil-works/pi-ai/compat";
+import { cleanupSessionResources, getSupportedThinkingLevels, clampThinkingLevel } from "@earendil-works/pi-ai/compat";
 import { paths, readConfiguration, resolveAssignment } from "./models/store.mjs";
 import { profilesPanel } from "./models/panel.mjs";
 import { selectProfileOption } from "./models/selector.ts";
 import { BackgroundTasks, RECEIPT, recoverReceipts, collectedIds } from "./subagent/background.mjs";
 import { publicModel } from "./subagent/bridge.mjs";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { realpath, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { getAgentDir, getPackageDir, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -23,6 +23,14 @@ export const SUBAGENT_PROGRESS_EVENT = "orchestraitor:subagent-progress";
 /** Read-only observation of the existing controller's retained safety lock. */
 export function subagentLaunchesBlocked(): boolean {
 	return (globalThis as any)[CONTROLLER_KEY]?.blocked === true || (globalThis as any)[Symbol.for("pi-orchestraitor.subagent-background")]?.blocked === true;
+}
+
+/** Each child's own provider cache session, derived from the parent's. Pi closes only the parent's when it disposes it. */
+function providerSession(parentSessionId: string | undefined, childId: string) {
+	if (!parentSessionId) return undefined;
+	// 64 hex characters: the longest prompt cache key OpenAI accepts, so providers never truncate it.
+	const id = createHash("sha256").update(`${parentSessionId}:${childId}`).digest("hex");
+	return { id, close: () => cleanupSessionResources(id) };
 }
 
 /** Fresh bounded children with durable accounting receipts and explicit result collection. */
@@ -188,12 +196,13 @@ export default function subagents(pi: ExtensionAPI) {
 				manifests.push(manifest);
 				models.set(manifest.id, model);
 			}
-			controller.options = { sdkRoot: getPackageDir(), credentialDir: getAgentDir(), registry: ctx.modelRegistry, modelFor: (manifest) => models.get(manifest.id) };
+			const sessionId = ctx.sessionManager?.getSessionId();
+			controller.options = { sdkRoot: getPackageDir(), credentialDir: getAgentDir(), registry: ctx.modelRegistry, modelFor: (manifest) => models.get(manifest.id),
+				providerSessionFor: (manifest) => providerSession(sessionId, manifest.id) };
 			const combinedSignal = signal && ctx.signal ? AbortSignal.any([signal, ctx.signal]) : signal ?? ctx.signal;
 			let sequence = 0;
 			let batchStarted = false;
 			let detached = false;
-			const sessionId = ctx.sessionManager?.getSessionId();
 			const progress = manifests.map((manifest) => Object.freeze({ id: manifest.id, role: manifest.role,
 				label: manifest.instruction.slice(0, PROGRESS_LABEL_LIMIT), requestedModel: manifest.model.slice(0, PROGRESS_LABEL_LIMIT), phase: "preparing" }));
 			const publish = (observation?: any) => {
@@ -215,11 +224,12 @@ export default function subagents(pi: ExtensionAPI) {
 			};
 			publish();
 			// Selected skill bodies are explicit context; unrelated catalogs never reach children.
+			// Children get no skill list to load them from again, only each body's directory, as Pi gives for an invoked skill.
 			const prompts = new Map<string, string>();
 			for (const manifest of manifests) {
 				const bodies = await Promise.all(manifest.skills.map(async (skill) => {
 					await validatePath(manifest, skill.filePath);
-					return `Selected skill ${skill.name}:\n${resolvedBodies.get(skill.filePath) ?? await readFile(skill.filePath, "utf8")}`;
+					return `Selected skill ${skill.name}:\nReferences are relative to ${skill.baseDir}.\n\n${resolvedBodies.get(skill.filePath) ?? await readFile(skill.filePath, "utf8")}`;
 				}));
 				const scope = manifest.role === "implement"
 					? `Editable files (exact project-relative paths):\n${JSON.stringify(manifest.files, null, 2)}\nEdit only these files.`
