@@ -77,9 +77,21 @@ Example model input:
 
 Use one to six unique IDs, `single` or `multiple`, two to eight distinct values per choice. Questions default to required; `required:false` permits skipping. Free text needs explicit `allowText:true`. Prompts/values/answers are bounded to 1,000 characters and labels to 200. IDs/option values are returned exactly, separately from sanitized labels.
 
-Simple and rich questions use the same bordered, padded native Pi card, composing selection, text input and scrolling with correction before explicit final submission. Radio marks represent single choice, checkboxes represent multiple choice, and text-entry focus, warnings, progress, actions and final review are distinct. Cards use Pi's current theme and configured native key hints. No option is approved just because it is highlighted. Results have version 1 and `answered` plus answers, or `cancelled`, `unavailable`, `busy` without submitted answers. Abort/session change discards drafts. An active question is not displaced by another panel/question. Questions collect requirements, not native trust or operation permissions.
+Simple and rich questions use the same rounded card in Pi's current theme. The top border names the question (`Question 2 of 3`, `Review`) and what it accepts (`pick one`, `pick any or type`); the bottom border lists the native key hints that fit, dropping the least important first. With several questions, a strip shows answered (`✓`), pending (`○`) and current questions plus review. The whole prompt is shown and wrapped; when the terminal is too short, it scrolls with page up/down and a `↓ N more lines` indicator. Option labels wrap to two lines, radio marks (`○ ●`) represent single choice and squares (`□ ■`) multiple choice. Highlighting an option never approves it. Results have version 1 and `answered` plus answers, or `cancelled`, `unavailable`, `busy` without submitted answers. Abort/session change discards drafts. An active question is not displaced by another panel/question. Questions collect requirements, not native trust or operation permissions.
 
-Form transitions synchronize controls and text focus immediately, including when multiple keystrokes arrive before the next render. Enter after the last text answer opens review; another Enter acts on the newly focused review row, without implicit submission. Submission, cancellation and disposal end input handling, and the result callback runs at most once.
+| Key | Question | Review |
+|---|---|---|
+| ↑ ↓ | Move the highlight | Move between answers and Submit |
+| Enter | Single choice: choose and continue. Multiple choice: continue. Text row: start typing | Change the highlighted answer, or submit |
+| Space | Multiple choice: toggle the option. Text row: start typing | — |
+| 1–9 | Highlight that row without choosing it | — |
+| ← → | Previous / next question (→ on the last one opens review) | ← returns to the last question |
+| Backspace | Clear this question's answer | — |
+| Esc | Cancel the whole questionnaire; while typing, return to the options | Cancel |
+
+With `allowText:true`, a `Type your own answer…` row edits inline: Enter saves the text and continues; Esc returns to the options without saving the draft. Typed text replaces any chosen option. Enter on a required multiple choice asks for at least one toggle first, and review keeps `Submit` disabled while a required question is unanswered, naming the missing IDs. Reopening an answer from review returns there after the change.
+
+Form transitions synchronize the highlight and text focus immediately, including when several keystrokes arrive before the next render. Choosing, saving text and opening review never submit; only Enter on the focused `Submit` row does. Submission, cancellation and disposal end input handling, and the result callback runs at most once.
 
 ## Disable safely and account for host limitations
 

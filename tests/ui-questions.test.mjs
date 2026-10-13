@@ -5,24 +5,77 @@ import { createUISession, fakeUIContext, importHost, loadUiModule, plainTheme, t
 
 const choice = (id = "opaque-id") => ({ id, prompt: "Pick a marker", selection: "single", options: [{ label: "Alpha", value: "opaque/alpha" }, { label: "Beta", value: "opaque/beta" }] });
 const keys = { matches: (data, action) => ({ "tui.select.cancel": "\x1b", "tui.select.pageDown": "\x1b[6~", "tui.select.pageUp": "\x1b[5~" })[action] === data };
-const down = "\x1b[B", enter = "\r";
+const up = "\x1b[A", down = "\x1b[B", left = "\x1b[D", right = "\x1b[C", enter = "\r", pageDown = "\x1b[6~";
 
-test("shouldRenderApprovedBorderedRadioCheckboxTextAndReviewCards", async (t) => {
+test("shouldRenderRoundedCardWithRadioCheckboxInlineTextAndReview", async (t) => {
 	// Given
 	const { createQuestionnaire } = await setup(t);
 	const frame = selection => createQuestionnaire([{ ...choice(), selection, allowText: true }], { terminal: { rows: 24 }, requestRender() {} }, () => plainTheme, keys, () => {});
 	const single = frame("single"), multiple = frame("multiple");
+	const view = component => component.render(80).join("\n");
 	// When / Then
-	assert.match(single.render(80).join("\n"), /╭.*QUESTION/);
-	assert.match(single.render(80).join("\n"), /\( \)/);
-	assert.match(multiple.render(80).join("\n"), /\[ \]/);
-	single.handleInput(enter); assert.match(single.render(80).join("\n"), /\(●\)/);
-	for (const key of [down, down, enter]) single.handleInput(key);
-	single.focused = true;
-	assert.match(single.render(80).join("\n"), /TEXT ENTRY/);
+	assert.match(single.render(80)[0], /^╭─ Question ─+ pick one or type ─╮$/);
+	assert.match(view(single), /❯ ○  Alpha/);
+	assert.match(single.render(80).at(-1), /^╰─ ↑↓ move · enter choose · 1–3 jump · esc cancel ─+╯$/);
+	assert.doesNotMatch(view(single), /CHOICES|ACTIONS|Continue|Clear answer|Highlight is not approval|TEXT ENTRY/);
+	assert.match(view(multiple), /□  Alpha/);
+	multiple.handleInput(" "); assert.match(view(multiple), /■  Alpha/);
+	single.handleInput(down); single.handleInput(down);
+	assert.match(view(single), /❯ ○  Type your own answer…/);
+	single.handleInput(enter); single.focused = true;
+	assert.match(single.render(80).at(-1), /enter save · esc back to options/);
 	single.handleInput("Exact draft"); single.handleInput(enter);
-	assert.match(single.render(80).join("\n"), /REVIEW/);
-	assert.match(single.render(80).join("\n"), /Submit answers/);
+	assert.match(single.render(80)[0], /^╭─ Review ─+ nothing sent yet ─╮$/);
+	assert.match(view(single), /“Exact draft” typed/);
+	assert.match(view(single), /❯  Submit 1 answer /);
+});
+
+test("shouldShowWholePromptWrapLongLabelsAndScrollWhenTerminalIsShort", async (t) => {
+	// Given
+	const { createQuestionnaire } = await setup(t);
+	const prompt = Array.from({ length: 40 }, (_, index) => `word${index}`).join(" ");
+	const question = { ...choice(), prompt, options: [{ label: `Long ${"label ".repeat(12)}tail`, value: "long" }, choice().options[1]] };
+	const card = rows => createQuestionnaire([question], { terminal: { rows }, requestRender() {} }, () => plainTheme, keys, () => {});
+	const tall = card(40), short = card(12);
+	// When
+	const lines = tall.render(48), clipped = short.render(48).join("\n");
+	for (let page = 0; page < 20; page++) short.handleInput(pageDown);
+	const scrolled = short.render(48).join("\n");
+	// Then
+	assert.match(lines.join("\n"), /word0 /);
+	assert.match(lines.join("\n"), /word39/);
+	assert.doesNotMatch(lines.join("\n"), /more line/);
+	const label = lines.findIndex(line => line.includes("Long label"));
+	assert.match(lines[label + 1], /^│ {7}\S.*…\s*│$/);
+	assert.match(clipped, /↓ \d+ more lines · pgdn/);
+	assert.doesNotMatch(clipped, /word39/);
+	assert.match(scrolled, /word39/);
+	assert.match(scrolled, /above · pgup/);
+	assert.ok(short.render(48).length <= 6);
+});
+
+test("shouldJumpSwitchAndClearWithShortcutsWithoutApprovingHighlights", async (t) => {
+	// Given
+	const { createQuestionnaire } = await setup(t);
+	const outcomes = [];
+	const component = createQuestionnaire([choice("first"), choice("second")], { terminal: { rows: 24 }, requestRender() {} }, () => plainTheme, keys, result => outcomes.push(result));
+	const view = () => component.render(80).join("\n");
+	// When / Then
+	component.handleInput("2");
+	assert.match(view(), /❯ ○  Beta/); // Jumping only highlights.
+	component.handleInput(enter);
+	assert.match(component.render(80)[0], /Question 2 of 2/);
+	assert.match(view(), /✓ first/);
+	component.handleInput(left);
+	assert.match(view(), /❯ ●  Beta/);
+	component.handleInput("\x7f");
+	assert.match(view(), /❯ ○  Beta/);
+	component.handleInput(right); component.handleInput(right);
+	assert.match(component.render(80)[0], /Review/);
+	assert.match(view(), /first +not answered/);
+	component.handleInput(enter);
+	assert.match(view(), /Required: answer first, second first/);
+	assert.deepEqual(outcomes, []);
 });
 
 test("shouldReserveNativeLayoutRowsWhenQuestionCardUsesAShortTerminal", async (t) => {
@@ -34,7 +87,7 @@ test("shouldReserveNativeLayoutRowsWhenQuestionCardUsesAShortTerminal", async (t
 	const lines = component.render(64);
 	// Then
 	assert.ok(lines.length <= 6, "Native footer, status/widget and chat spacing must remain outside the card");
-	assert.match(lines[0], /QUESTION/);
+	assert.match(lines[0], /^╭─ Question/);
 	assert.match(lines.at(-1), /^╰/);
 	assert.deepEqual(outcomes, []);
 });
@@ -64,13 +117,12 @@ test("shouldSynchronizeEveryTransitionWithoutRenderBetweenQuestionnaireKeystroke
 	const press = (...inputs) => inputs.forEach((data) => component.handleInput(data));
 	component.focused = true;
 	component.render(40);
-	press(enter, down, down, enter); // Answer first and advance without rendering.
-	press(down, down, enter, "free text", enter, enter); // Save last text, then reopen first review row.
-	assert.deepEqual(outcomes, []); // Neither Enter submits the form implicitly.
-	press(down, enter, down, enter); // Correct first answer to Beta, advance again.
-	press(down, down, down, enter); // Keep last text and enter review.
+	press(enter); // Choose Alpha for first and advance without rendering.
+	press(down, down, enter, "free text", enter); // Save last as text, which opens review.
+	assert.deepEqual(outcomes, []); // Choosing and saving never submit the form implicitly.
+	press(up, up, enter, down, enter); // Reopen first, correct it to Beta and return to review.
 	assert.deepEqual(outcomes, []);
-	press(down, down, enter); // Explicit submission on the new review controls.
+	press(enter); // Explicit submission on the focused review control.
 	assert.deepEqual(outcomes, [{ status: "answered", answers: [
 		{ id: "first", values: ["opaque/beta"] }, { id: "last", values: [], text: "free text" },
 	] }]);
@@ -90,7 +142,7 @@ test("shouldBackOutOfTextEntryBeforeCancellingWhenNativeEscapeBindingsOverlap", 
 	// When
 	component.handleInput("\x1b");
 	// Then
-	assert.match(component.render(80).join("\n"), /CHOICES/);
+	assert.match(component.render(80).join("\n"), /❯ ○  Type your own answer…/);
 	assert.deepEqual(outcomes, []);
 	component.handleInput("\x1b");
 	assert.deepEqual(outcomes, [{ status: "cancelled" }]);
@@ -124,7 +176,7 @@ test("shouldTransferTextFocusImmediatelyWhenEditingStartsAndEndsWithoutRender", 
 	assert.equal(editor.focused, true);
 	component.handleInput("\x1b");
 	assert.equal(editor.focused, false);
-	component.handleInput(enter); // Escape kept the selection on Write text.
+	component.handleInput(enter); // Escape kept the highlight on the text row.
 	component.handleInput("saved");
 	assert.equal(editor.focused, true);
 	component.handleInput(enter);
@@ -137,7 +189,7 @@ for (const ending of ["submit", "cancel", "dispose"]) {
 		const outcomes = [];
 		const component = createQuestionnaire([choice()], { terminal: { rows: 20 }, requestRender() {} },
 			() => plainTheme, keys, (value) => outcomes.push(value));
-		for (const data of [enter, down, down, enter, down]) { component.render(40); component.handleInput(data); }
+		for (const data of [down, enter, up, down]) { component.render(40); component.handleInput(data); } // Choose Beta, then move within review.
 		component.render(40);
 		if (ending === "dispose") component.dispose();
 		else component.handleInput(ending === "submit" ? enter : "\x1b");
@@ -197,8 +249,8 @@ test("shouldPreserveOpaqueIdsAndValuesAndAllowCorrectionWhenNativeSingleChoiceSu
 	const component = dialogs.at(-1)?.component;
 	assert.ok(component, "Simple questions must use the same native card");
 	// When
-	for (const key of [down, enter, down, enter, enter]) component.handleInput(key); // Choose Beta, review, then correct.
-	for (const key of [enter, down, down, enter, down, enter]) component.handleInput(key); // Choose Alpha, review and explicitly submit.
+	for (const key of [down, enter, up, enter]) component.handleInput(key); // Choose Beta, review, then reopen it.
+	for (const key of [up, enter, enter]) component.handleInput(key); // Correct to Alpha, return to review and explicitly submit.
 	const result = await pending;
 	// Then
 	assert.deepEqual(result.details, { version: 1, status: "answered", answers: [{ id: question.id, values: ["opaque/alpha"] }] });
@@ -263,19 +315,18 @@ test("shouldUseNativeSelectionInputAndScrollWithoutImplicitApprovalWhenQuestionn
 	const component = createQuestionnaire(questions, { terminal, requestRender() {} }, () => plainTheme, keys, (value) => { result = value; });
 	const input = (data) => { component.render(40); component.handleInput(data); };
 	// When
-	input(enter); // Explicitly choose first option.
-	input(down); input(enter); // Explicitly choose second option.
-	input(down); input(enter); // Continue to text question.
-	input(down); input(down); input(enter); // Write text.
+	input(" "); // Explicitly toggle the first option.
+	input(down); input(" "); // Explicitly toggle the second option.
+	input(enter); // Continue to the text question.
+	input(down); input(down); input(enter); // Open inline text entry.
 	component.focused = true;
 	input("原é");
 	const cursor = component.render(40).join("\n");
-	input(enter); // Commit draft text, then review.
-	input(enter); // Reopen first answer for correction.
-	input(enter); // Remove first selected option.
-	input(down); input(down); input(enter); // Continue to second question.
-	input(down); input(down); input(down); input(enter); // Keep text and review.
-	input(down); input(down); input(enter); // Submit answers explicitly.
+	input(enter); // Save the draft text, which opens review.
+	input(up); input(up); input(enter); // Reopen the first answer for correction.
+	input(" "); // Remove the first selected option.
+	input(enter); // Return straight to review.
+	input(enter); // Submit answers explicitly.
 	// Then
 	assert.ok(cursor.includes(tui.CURSOR_MARKER));
 	assert.deepEqual(result, { status: "answered", answers: [{ id: "many", values: ["opaque/beta"] }, { id: "text", values: [], text: "原é" }] });
@@ -291,11 +342,14 @@ test("shouldBlockRequiredSubmissionAndDiscardDraftsWhenQuestionnaireCancels", as
 		{ terminal: { rows: 12 }, requestRender() {} }, () => plainTheme, keys, (value) => { result = value; });
 	const input = (data) => { component.render(20); component.handleInput(data); };
 	// When
-	input(down); input(down); input(enter); // Continue without choosing.
-	input(down); input(enter); // Attempt explicit submission.
+	input(enter); // Enter alone never picks a multiple-choice option.
+	const pick = component.render(20).map(stripVTControlCharacters).join("\n");
+	input(right); // Move to review without choosing.
+	input(enter); // Attempt explicit submission.
 	const warning = component.render(20).map(stripVTControlCharacters).join("\n");
 	input("\x1b");
 	// Then
+	assert.match(pick, /required/i);
 	assert.match(warning, /required/i);
 	assert.deepEqual(result, { status: "cancelled" });
 	component.dispose();
@@ -324,7 +378,7 @@ for (const action of ["submit", "abort", "session-change", "unavailable"]) {
 		const original = ctx.ui.custom;
 		ctx.ui.custom = (factory, options) => {
 			const pending = original(factory, options); entered();
-			if (action === "submit") for (const key of [enter, down, down, enter, down, enter]) dialogs.at(-1).component.handleInput(key);
+			if (action === "submit") for (const key of [enter, enter]) dialogs.at(-1).component.handleInput(key); // Choose Alpha, then submit from review.
 			return pending;
 		};
 		// When
