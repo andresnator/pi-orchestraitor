@@ -1,6 +1,16 @@
 # Pi supplies runtime peers; only the development host is installed here.
 autoInstallPeers: false
 minimumReleaseAge: 1440
+# User-authorized exceptions for the pinned Pi/subagents adoption only.
+minimumReleaseAgeExclude:
+  - '@earendil-works/pi-agent-core@1.2.0'
+  - '@earendil-works/pi-ai@1.2.0'
+  - '@earendil-works/pi-codemode@1.2.0'
+  - '@earendil-works/pi-coding-agent@1.2.0'
+  - '@earendil-works/pi-mcp@1.2.0'
+  - '@earendil-works/pi-telemetry@1.2.0'
+  - '@earendil-works/pi-tui@1.2.0'
+  - 'pi-subagents@0.78.0'
 blockExoticSubdeps: true
 strictDepBuilds: true
 # Published artifacts/platform packages are sufficient for the verified toolchain.

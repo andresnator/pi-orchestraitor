@@ -1,17 +1,20 @@
+> Current adoption (2026-10-13): Pi 1.2.0 is locked and installed. The user authorized exact-version cooldown exceptions for its seven packages and pi-subagents 0.78.0. Native plugin acceptance and daily activation remain separate gates; see [the absorb](../.ai/absorb/2026-10-13-pi-subagents.md).
+
 # Usage and operations
 
 A personal Pi package with **56 development/workflow skills** (54 automatic, two explicit-only), a lazy native-authorized skill registry, compact tool output, temporary `/btw` side conversations, optional interactive work UI, a bundled NaN model provider, Context7, Engram, and Orchestraitor for scoped changes and sequential plan execution. It automatically loads the source harness's Colombian architect personality: direct answers, practical explanations, respectful disagreement, and occasional Colombian expressions when the conversation supports them.
 
 ## Install
 
-Use **pnpm 12.9.1** and **Node 22.19+**. The checkout's lockfile supplies **Pi 1.0.4**; it is not installed globally or bundled in the distributed package. Engram **3.0.0** is required only for memory. See [development security](#development-security) for the install policy.
+Use **pnpm 12.9.1** and **Node 22.19+**. The target development host is **Pi 1.2.0**; it is not installed globally or bundled in the distributed package. Engram **3.0.0** is required only for memory. See [development security](#development-security) for the install policy.
 
 From this repository:
 
 ```bash
 pnpm install --frozen-lockfile # Once on a fresh checkout
 pnpm run install:pi --dry-run
-pnpm run install:pi
+pnpm run test:subagents
+pnpm run install:pi --subagents-validation .ai/absorb/pi-subagents-validation.json
 ```
 
 `pnpm run` puts the local Pi CLI on PATH. The installer recognizes its `.bin` shim and resolves the linked package's canonical SDK root; no `PI_TEST_PACKAGE_DIR` override is needed. The selected executable still controls host discovery, so npm-style symlink/global installations continue to work. Keep the checkout available; use `pnpm exec pi` if you want to start the local CLI.
@@ -95,14 +98,14 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 | `extensions/instructions.ts` | Adds core, execution, and personality sections while preserving Pi and project instructions. |
 | `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. |
 | `extensions/nan.ts` | Native NaN API-key login/environment fallback and seven documented chat models; no default changes or startup requests. |
-| `extensions/subagents.ts` | Model profiles, bounded sync/background readers, child guards, collection and native usage. |
+| `agents/` and the pinned `pi-subagents` companion | Native specialists, Git worktrees, Fleet, artifacts and separate child accounting. |
 | `extensions/skill-registry.ts` | Bounded search/load, native snapshot refresh and atomic diagnostic publication; lazy/native exposure. |
 | `extensions/status-ui.ts` | One owner for agents/tasks panels, unified questions and compact work-header/native-footer chrome. |
 | `skills/` | 56 unique skills and their supporting resources, with short `jag-*` names. |
 | `prompts/` | `/orchestraitor`, `/plan`, `/review`, and `/absorb`, with explicit arguments. |
 | `scripts/install-pi.mjs` | Migration, native package registration, verification, and restoration. |
 
-The harness preserves personal model, theme, editor, credentials, and MCP overrides. The separately installed pretty companion supplies its own prompt-editor and activity presentation; see the [pretty integration guide](pi-pretty.md). It provides bounded subagents through `subagent_run`. It does not implement independent verification, resumable SDD, dual review, TCR, or persistent Caveman. Its scope and personality instructions are behavioral rules; they are not a filesystem sandbox.
+The harness preserves personal model, theme, editor, credentials, and MCP overrides. The separately installed pretty companion supplies its own prompt-editor and activity presentation; see the [pretty integration guide](pi-pretty.md). Delegation uses the separately pinned `pi-subagents` companion through `subagent` and `bg_wait`. It does not implement independent verification, resumable SDD, dual review, TCR, or persistent Caveman. Its scope and personality instructions are behavioral rules; they are not a filesystem sandbox.
 
 ## NaN model provider
 
@@ -155,7 +158,7 @@ This changes only that invocation. Personal and project MCP settings still apply
 
 ## Development security
 
-Use pnpm 12.9.1 with the committed lockfile. Pi 1.0.4 is a development dependency only; runtime peers remain host-provided and neither the host nor `node_modules` is packed. BTW's pinned `beautiful-mermaid@1.1.3` is a separate runtime dependency; local checkouts install it here, while Pi installs it for native Git/npm sources.
+Use pnpm 12.9.1 with the committed lockfile. Pi 1.2.0 is a development dependency only; runtime peers remain host-provided and neither the host nor `node_modules` is packed. BTW's pinned `beautiful-mermaid@1.1.3` is a separate runtime dependency; local checkouts install it here, while Pi installs it for native Git/npm sources.
 
 ```bash
 pnpm install --frozen-lockfile
@@ -164,7 +167,8 @@ pnpm install --frozen-lockfile
 | Policy | Effect |
 | --- | --- |
 | Frozen lockfile | CI cannot silently resolve new dependency versions. |
-| `minimumReleaseAge: 1440` | Newly published versions must age for 24 hours; do not bypass the cooldown. |
+| `minimumReleaseAge: 1440` | Newly published versions must age for 24 hours except for the explicitly authorized pinned adoption versions. |
+| Version-qualified `minimumReleaseAgeExclude` | Only the seven Pi 1.2.0 packages and pi-subagents 0.78.0 bypass the release-age window; no future version or unrelated dependency is exempt. |
 | `autoInstallPeers: false` | Do not automatically install host-provided peers. |
 | `blockExoticSubdeps: true` | Reject exotic transitive sources, such as Git or arbitrary URLs. |
 | `strictDepBuilds: true` | A new dependency with an unreviewed lifecycle script stops installation. |
@@ -193,15 +197,15 @@ pnpm run test:personality
 - `test:personality` makes bounded calls to the configured Pi model in isolated sessions. It writes synthetic transcripts for manual scoring; it uses the configured account and consumes model quota.
 - Packing includes extensions, instructions, skills, scripts, docs, and licenses. Tests, `.ai` reports, personal settings, credentials, and memory databases are excluded.
 
-Tests prefer the canonical Pi development host installed by pnpm and propagate its SDK root to installer subprocesses. `pnpm test` also puts the local CLI on PATH. Private dependency fixtures resolve through the host's module tree rather than assuming nested `node_modules`. Set `PI_TEST_PACKAGE_DIR` to explicitly test another installed host root; without a local host, tests fall back to Pi on PATH. Automated packing integration covers npm; pnpm extracted-package validation is manual. See the [console guide](manual-package-check.md), including the offline metadata-cache limitation. The installer inventory adapter and some integration checks depend on host internals and need revalidation after a Pi upgrade. The adapter checks that its required host hooks exist before migration. Peers use `*` because Pi supplies them; the original baseline used Pi 1.0.0 and current deterministic checks run on Pi 1.0.4, with the codemode fixture updated to supply the host's prompt-guidelines callback. Historical live UI evidence retains its recorded host version. Revalidate on upgrades. The UI guide documents native dynamic-selection versus persistent-exclusion behavior on reload. The established test convention is `node:test` with `node:assert`.
+Tests prefer the canonical Pi development host installed by pnpm and propagate its SDK root to installer subprocesses. `pnpm test` also puts the local CLI on PATH. Private dependency fixtures resolve through the host's module tree rather than assuming nested `node_modules`. Set `PI_TEST_PACKAGE_DIR` to explicitly test another installed host root; without a local host, tests fall back to Pi on PATH. Automated packing integration covers npm; pnpm extracted-package validation is manual. See the [console guide](manual-package-check.md), including the offline metadata-cache limitation. The installer inventory adapter and some integration checks depend on host internals and need revalidation after a Pi upgrade. The adapter checks that its required host hooks exist before migration. Peers use `*` because Pi supplies them; the original baseline used Pi 1.0.0 and current deterministic checks run on Pi 1.2.0, with the codemode fixture updated to supply the host's prompt-guidelines callback. Historical live UI evidence retains its recorded host version. Revalidate on upgrades. The UI guide documents native dynamic-selection versus persistent-exclusion behavior on reload. The established test convention is `node:test` with `node:assert`.
 
 See [verification evidence](verification.md) and [attribution](../THIRD_PARTY_NOTICES.md).
 
 ## Subagents and verification
 
-Use `/models-profiles` to configure named profiles per role and scope. Use `subagent_run` for up to two pending readers or one exclusive synchronous implementer, and `subagent_collect` to retrieve background results. Each task gets a fresh process/session; the parent runs commands and checks the result. See [subagent input, isolation and lifecycle](subagents.md) for file restrictions, model selection, cancellation, output fields and pending real-model checks.
+Use native `subagent`, `bg_wait`, `/subagents-fleet` and `/subagent-cost`; see [native subagents](subagents.md) for configuration, clean/fork context, worker worktrees and acceptance status. Old profiles are inactive and are not migrated.
 
-Normal tools use one unboxed line. `codemode` shows nested-call counts and the currently running tool, and `subagent_run` shows task counts, roles and completion counts. Script source, nested-call arguments and successful output stay hidden until Pi's configurable `app.tools.expand` action (`Ctrl+O` by default) expands the tool. Expansion restores codemode's native code/result view and the complete subagent response.
+Normal tools use one unboxed line. `codemode` shows nested-call counts and the currently running tool. Script source, nested-call arguments and successful output stay hidden until Pi's configurable `app.tools.expand` action (`Ctrl+O` by default) expands the tool. Expansion restores codemode's native code/result view and native codemode results.
 
 Errors remain visible: the header plus up to three visual rows, including caught nested-call failures and failed, timed-out or cancelled children. Codemode shows the start of the error cause; other tools show the error tail. Normal rows have no filled background; error rows keep the error background. Presentation does not truncate or change model-facing results. Codemode is decorated through Pi's public factory only when its native tool is present, preserves inactive/disabled selection, and leaves foreign tools with a different parameter schema unchanged. Restart Pi or run `/reload` after changing the package.
 

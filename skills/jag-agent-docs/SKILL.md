@@ -2,7 +2,7 @@
 name: jag-agent-docs
 description: "Audit or author agent-consumed documents: skills, agent instructions, context pointers, workflow steps and shared references."
 license: MIT
-compatibility: "Pi 1.0.4; use only available tools and native-authorized skills."
+compatibility: "Pi 1.2.0; use only available tools and native-authorized skills."
 metadata:
   author: "Matt Pocock"
   adapted_by: "pi-orchestraitor"

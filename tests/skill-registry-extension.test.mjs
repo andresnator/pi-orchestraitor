@@ -26,7 +26,7 @@ async function fixture(t, skillsOverride, source = ".config/opencode/skills") {
 	await loader.reload();
 	const { session, errors } = await startSession(t, cwd, { loader, settingsManager });
 	assert.deepEqual([...loader.getExtensions().errors, ...errors], []);
-	const prepare = () => session.extensionRunner.emitBeforeAgentStart("Work on the fixture", undefined,
+	const prepare = () => session.extensionRunner.emitBeforeAgentStart({ messageType: "user", prompt: "Work on the fixture" },
 		session.extensionRunner.createCommandContext().getSystemPromptOptions());
 	const ctx = () => session.extensionRunner.createContext();
 	const execute = (params) => session.getToolDefinition("skill_registry").execute("registry-fixture", params, undefined, undefined, ctx());
@@ -44,29 +44,7 @@ test("shouldHonorTheNativeToolSignalWhenASkillLookupIsCancelled", async (t) => {
 	await assert.rejects(session.getToolDefinition("skill_registry").execute("cancelled", { operation: "search", query: "java" }, controller.signal, undefined, ctx), /abort/i);
 });
 
-test("shouldDelegateRefreshedProjectSkillBodiesWhenTheRealRegistryResolvesNames", async (t) => {
-	// Given
-	const key = Symbol.for("pi-orchestraitor.subagent-controller");
-	const previous = globalThis[key];
-	const batches = [];
-	globalThis[key] = { async cancel() {}, async run(manifests, promptFor) { batches.push({ manifests, prompts: manifests.map(promptFor) }); return []; } };
-	const { root, session, prepare } = await fixture(t, undefined, ".agents/skills");
-	t.after(() => { globalThis[key] = previous; });
-	await prepare();
-	await writeFile(join(root, NAME, "SKILL.md"), `---\nname: ${NAME}\ndescription: Java fixture testing.\n---\nFresh project body after native registration.\n`);
-	const model = { provider: "fixture", id: "registry" };
-	const ctx = { ...session.extensionRunner.createContext(), model, modelRegistry: { getAvailable: () => [model] } };
-	// When
-	await session.getToolDefinition("subagent_run").execute("registry-project", { tasks: [{ role: "review", instruction: "inspect", skills: [NAME] }] }, undefined, undefined, ctx);
-	// Then
-	assert.match(batches[0].prompts[0], /Fresh project body after native registration/);
-	assert.doesNotMatch(batches[0].prompts[0], new RegExp(BODY));
-});
-
-test("shouldSearchLoadAndDelegateAnUnnamedNativeAliasAcrossReloads", async (t) => {
-	const key = Symbol.for("pi-orchestraitor.subagent-controller"), previous = globalThis[key], batches = [];
-	globalThis[key] = { async cancel() {}, async run(manifests, promptFor) { batches.push({ manifests, prompts: manifests.map(promptFor) }); return []; } };
-	t.after(() => { globalThis[key] = previous; });
+test("shouldSearchAndLoadAnUnnamedNativeAliasAcrossReloads", async (t) => {
 	const { cwd, root, session, loader, prepare, execute } = await fixture(t, undefined, ".agents/skills");
 	const target = join(cwd, "vendor", "original"), alias = join(root, "chosen");
 	await mkdir(target, { recursive: true });
@@ -82,11 +60,7 @@ test("shouldSearchLoadAndDelegateAnUnnamedNativeAliasAcrossReloads", async (t) =
 		assert.deepEqual(JSON.parse(search.content[0].text).matches.map(({ name }) => name), ["chosen"]);
 		const loaded = await execute({ operation: "load", name: "chosen" });
 		assert.match(loaded.content[0].text, /SELECTED_ALIAS_BODY/);
-		const ctx = { ...session.extensionRunner.createContext(), model, modelRegistry: { getAvailable: () => [model] } };
-		await session.getToolDefinition("subagent_run").execute("alias", { tasks: [{ role: "review", instruction: "inspect", skills: ["chosen"] }] }, undefined, undefined, ctx);
-		assert.equal(batches.at(-1).manifests[0].skills[0].filePath, canonicalFile);
-		assert.equal(batches.at(-1).manifests[0].skills[0].name, "chosen");
-		assert.match(batches.at(-1).prompts[0], /SELECTED_ALIAS_BODY/);
+
 	}
 });
 
@@ -158,6 +132,28 @@ test("shouldRequireNativeReloadWhenANewNameAppearsInAConfiguredSource", async (t
 	await prepare();
 	const loaded = await execute({ operation: "load", name: "new-fixture" });
 	assert.match(loaded.content[0].text, new RegExp(BODY));
+});
+
+test("delegation preserves the native name and exact file when directory names differ", async t => {
+	const { root, session, prepare, execute } = await fixture(t);
+	const directory = join(root, "fixture-dir");
+	await mkdir(directory);
+	await writeFile(join(directory, "SKILL.md"), "---\nname: native-name\ndescription: Authoritative selected skill.\n---\nNATIVE_SELECTED_BODY\n");
+	const selectedFile = await realpath(join(directory, "SKILL.md"));
+	for (let reload = 0; reload < 2; reload++) {
+		await session.reload();
+		await prepare();
+		const loaded = await execute({ operation: "load", name: "native-name" });
+		assert.equal(loaded.details.name, "native-name");
+		assert.equal(loaded.details.filePath, selectedFile);
+		assert.deepEqual(loaded.details.delegation.options, { skill: false });
+		assert.ok(loaded.details.delegation.taskPrefix.includes(JSON.stringify(selectedFile)));
+		assert.match(loaded.details.delegation.taskPrefix, /native-name/);
+		assert.ok(loaded.content[0].text.includes(JSON.stringify(loaded.details.delegation)));
+		await assert.rejects(execute({ operation: "load", name: "fixture-dir" }), /unavailable/);
+	}
+	await rm(join(directory, "SKILL.md"));
+	await assert.rejects(execute({ operation: "load", name: "native-name" }), /unavailable/);
 });
 
 test("shouldKeepHostExcludedSkillsUnavailableWhenNativeReloadReappliesPolicy", async (t) => {

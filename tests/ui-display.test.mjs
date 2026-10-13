@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { loadUiModule } from "./helpers/ui-harness.mjs";
 
-test("shouldPrioritizeKnownLocksThenInputThenAgentsWithoutRepeatingNativeCountersWhenChromeIsComposed", async (t) => {
+test("shouldContributeOnlyQuestionStatusAndLeaveAgentChromeToNativeFleet", async (t) => {
 	// Given
 	const { workStatus } = await loadUiModule(t, "extensions/ui/display.ts");
 	const inputs = [{ launchBlocked: true, awaitingInput: true, activeAgents: 2 }, { launchBlocked: false, awaitingInput: true, activeAgents: 2 },
@@ -10,7 +10,7 @@ test("shouldPrioritizeKnownLocksThenInputThenAgentsWithoutRepeatingNativeCounter
 	// When
 	const outcomes = inputs.map(workStatus);
 	// Then
-	assert.deepEqual(outcomes, ["Agents blocked", "Awaiting input", "Agents · 2 active", undefined]);
+	assert.deepEqual(outcomes, ["Awaiting input", "Awaiting input", undefined, undefined]);
 	assert.ok(outcomes.every((value) => !value || !/tokens|cost|context|model/i.test(value)));
 });
 

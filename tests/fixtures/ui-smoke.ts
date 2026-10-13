@@ -1,6 +1,5 @@
 /** Test-only native UI driver. Never load with personal configuration or ship in a package. */
 import { createHash, randomUUID } from "node:crypto";
-import { createServer, type Server, type ServerResponse } from "node:http";
 import { mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -9,7 +8,7 @@ import { createAssistantMessageEventStream, type AssistantMessage } from "@earen
 import { replayTasks } from "../../extensions/ui/tasks.ts";
 
 const MODEL = "ui-smoke/model";
-const ACTIONS = ["two", "writer", "failure", "cancel", "retry", "tasks-create", "tasks-start", "tasks-block", "tasks-done", "tasks-reopen", "single", "form"];
+const ACTIONS = ["tasks-create", "tasks-start", "tasks-block", "tasks-done", "tasks-reopen", "single", "form"];
 const MARKER = "marker: SYNTHETIC-UI-47\nunknown: 7319\nnote: synthetic only\n";
 const INITIAL_TYPO = "synthetic tpyo\n";
 const ZERO_COST = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 };
@@ -24,7 +23,6 @@ const messageText = (message: any) => typeof message?.content === "string" ? mes
 export default function smoke(pi: ExtensionAPI) {
 	if (process.env.UI_SMOKE_ENABLED !== "1" || !process.env.UI_SMOKE_ROOT) throw new Error("UI smoke fixture requires explicit UI_SMOKE_ENABLED=1 and a fresh isolated UI_SMOKE_ROOT");
 	const root = process.env.UI_SMOKE_ROOT;
-	let server: Server | undefined;
 	let branch: () => any[] = () => [];
 
 	pi.registerProvider("ui-smoke", {
@@ -73,23 +71,6 @@ export default function smoke(pi: ExtensionAPI) {
 			catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
 		}
 		await mkdir(join(ctx.cwd, ".git"), { recursive: true });
-		if (!server) {
-			server = createServer((request, response) => {
-				let body = "";
-				request.on("data", (chunk) => { body += chunk; if (body.length > 1024 * 1024) request.destroy(); });
-				request.on("end", () => { void childResponse(JSON.parse(body), response).catch(() => response.destroy()); });
-			});
-			await new Promise<void>((resolve, reject) => { server!.once("error", reject); server!.listen(0, "127.0.0.1", resolve); });
-			const port = (server.address() as { port: number }).port;
-			const path = join(getAgentDir(), "models.json");
-			try {
-				const existing = await readFile(path, "utf8"), owner = shared[PROFILE_KEY];
-				if (owner?.root !== root || owner.digest !== digest(existing)) throw new Error("UI smoke fixture will not overwrite an existing or externally modified models.json");
-			} catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
-			const models = JSON.stringify({ providers: { "ui-smoke": { api: "openai-completions", baseUrl: `http://127.0.0.1:${port}/v1`, apiKey: "fixture", models: [MODEL_DEFINITION] } } });
-			await writeFile(path, models);
-			shared[PROFILE_KEY] = { root, digest: digest(models) };
-		}
 		if (ctx.mode === "tui") {
 			ctx.ui.setWidget("ui-smoke:foreign-widget", ["Foreign fixture widget"], { placement: "belowEditor" });
 			ctx.ui.setStatus("ui-smoke:foreign-status", "Foreign fixture status");
@@ -97,8 +78,6 @@ export default function smoke(pi: ExtensionAPI) {
 	});
 	pi.on("session_shutdown", async (_event, ctx) => {
 		if (ctx.mode === "tui") { ctx.ui.setWidget("ui-smoke:foreign-widget", undefined); ctx.ui.setStatus("ui-smoke:foreign-status", undefined); }
-		const current = server; server = undefined;
-		if (current) { current.closeAllConnections(); await new Promise<void>((resolve) => current.close(() => resolve())); }
 	});
 	pi.registerCommand("ui-smoke", {
 		description: "Test-only synthetic driver; all feature tools run through native model calls",
@@ -123,27 +102,5 @@ function operation(action: string, state: ReturnType<typeof replayTasks>) {
 		return { name: "orchestraitor_ask", arguments: { questions: action === "single" ? [{ id: "single/id", prompt: "Synthetic choice: choose a harmless marker", selection: "single", options }]
 			: [{ id: "multi/id", prompt: "Select explicit markers; then continue", selection: "multiple", options }, { id: "text/id", prompt: "Choose a marker or write synthetic text", selection: "single", allowText: true, options }] } };
 	}
-	const writer = action === "writer" || action === "cancel";
-	const task = { role: writer ? "implement" : "explore", instruction: writer ? "Change only typo.txt using the synthetic provider; inspect no other resources" : "Inspect marker.txt and report actual native read evidence", model: MODEL, reasoning: "off", context: `ui-smoke:${action}`, ...(writer ? { files: ["typo.txt"] } : {}) };
-	return { name: "subagent_run", arguments: { tasks: action === "two" ? [task, { ...task, role: "review", instruction: "Read marker.txt independently and report actual native read evidence" }] : [task] } };
-}
-
-async function childResponse(payload: any, response: ServerResponse) {
-	const conversation = JSON.stringify(payload.messages);
-	const abort = new AbortController();
-	response.once("close", () => abort.abort());
-	const last = payload.messages.at(-1);
-	const afterTool = last?.role === "tool";
-	await delay(afterTool && conversation.includes("ui-smoke:cancel") ? 30000 : 400, undefined, { signal: abort.signal });
-	if (conversation.includes("ui-smoke:failure")) {
-		response.writeHead(400, { "Content-Type": "application/json" }); response.end(JSON.stringify({ error: { message: "Synthetic fixture child failure", type: "invalid_request_error" } })); return;
-	}
-	const writer = conversation.includes("Role: implement");
-	const delta = afterTool ? { content: writer ? "Observed native write to typo.txt; synthetic completion only" : `Observed marker.txt:1–3 from native read: ${messageText(last).slice(-300)}` }
-		: { role: "assistant", tool_calls: [{ index: 0, id: "synthetic-file-call", type: "function", function: { name: writer ? "write" : "read", arguments: JSON.stringify(writer ? { path: "typo.txt", content: conversation.includes("ui-smoke:cancel") ? "partial before cancellation\n" : "synthetic typo fixed\n" } : { path: "marker.txt" }) } }] };
-	response.writeHead(200, { "Content-Type": "text/event-stream" });
-	const chunk = (data: object) => response.write(`data: ${JSON.stringify(data)}\n\n`);
-	chunk({ id: "synthetic", object: "chat.completion.chunk", created: 1, model: "model", choices: [{ index: 0, delta, finish_reason: null }] });
-	chunk({ id: "synthetic", object: "chat.completion.chunk", created: 1, model: "model", choices: [{ index: 0, delta: {}, finish_reason: afterTool ? "stop" : "tool_calls" }], usage: { prompt_tokens: 20, completion_tokens: 5, total_tokens: 25 } });
-	response.end("data: [DONE]\n\n");
+	return undefined;
 }

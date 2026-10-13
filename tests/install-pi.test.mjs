@@ -1,3 +1,4 @@
+import { installerFixture } from "./helpers/installer-fixture.mjs";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { mkdir, readFile, readdir, readlink, realpath, rm, symlink, writeFile } from "node:fs/promises";
@@ -6,6 +7,24 @@ import { dirname, join, resolve } from "node:path";
 import test from "node:test";
 import { exists } from "../scripts/skill-migration.mjs";
 import { createWorkspace, packageRoot, pi } from "./helpers/pi-host.mjs";
+
+test("npm 10 is rejected before moving skills or modifying native settings", async t => {
+	const root = await realpath(await createWorkspace(t)), cwd = join(root, "consumer"), agentDir = join(root, "agent");
+	await mkdir(join(cwd, ".git"), { recursive: true });
+	await mkdir(agentDir);
+	const settingsPath = join(agentDir, "settings.json"), original = JSON.stringify({ theme: "retained", skills: [`!${join(process.env.HOME ?? homedir(), ".agents/skills")}/**`] });
+	await writeFile(settingsPath, original);
+	const skill = join(cwd, ".pi/skills/jag-plan");
+	await mkdir(skill, { recursive: true });
+	await writeFile(join(skill, "SKILL.md"), "---\nname: jag-plan\ndescription: Original skill.\n---\nORIGINAL\n");
+	const installer = await installerFixture(root, { npmVersion: "10.9.3" });
+	assert.throws(() => execFileSync(process.execPath, [join(packageRoot, "scripts/install-pi.mjs"), "--without-pretty", "--subagents-validation", installer.validation], {
+		cwd, encoding: "utf8", stdio: "pipe", env: { ...process.env, ...installer.env, PI_CODING_AGENT_DIR: agentDir },
+	}), /npm 10\.9\.3: Release-age exceptions require npm >=11\.19\.0 or pnpm 12\.9\.1/);
+	assert.equal(await readFile(settingsPath, "utf8"), original);
+	assert.equal(await exists(skill), true);
+	assert.deepEqual(await readdir(agentDir), ["settings.json"]);
+});
 
 test("shouldMigrateAndLoadAllSkillsWhenNativeInstallationRunsInTemporaryConfiguration", async (t) => {
 	// Given
@@ -24,14 +43,15 @@ test("shouldMigrateAndLoadAllSkillsWhenNativeInstallationRunsInTemporaryConfigur
 		await mkdir(path, { recursive: true });
 		await writeFile(join(path, "SKILL.md"), `---\nname: ${name}\ndescription: Temporary original.\n---\nOriginal fixture.\n`);
 	}
-	const run = (...args) => execFileSync(process.execPath, [join(packageRoot, "scripts/install-pi.mjs"), ...args, ...(args.includes("--restore") ? [] : ["--without-pretty"])], {
-		cwd, encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: agentDir, PRETTY_CONFIG_DIR: agentDir, PRETTY_DISABLE_TOOLS: "read" },
+	const installer = await installerFixture(root);
+	const run = (...args) => execFileSync(process.execPath, [join(packageRoot, "scripts/install-pi.mjs"), ...args, ...(args.includes("--restore") ? [] : ["--without-pretty", "--subagents-validation", installer.validation])], {
+		cwd, encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: agentDir, PRETTY_CONFIG_DIR: agentDir, PRETTY_DISABLE_TOOLS: "read", ...installer.env },
 	});
 	// When
 	const preview = JSON.parse(run("--local", "--dry-run"));
 	// Stop before mutation if the host discovers any path outside this fixture.
 	assert.deepEqual(preview.moves.map(({ original }) => original).sort(), [ancestorSkill, projectSkill].sort());
-	assert.deepEqual(preview.companionPackages, ["npm:pi-claude-bridge@0.9.2"]);
+	assert.deepEqual(preview.companionPackages, ["npm:pi-claude-bridge@0.9.2", "npm:pi-subagents@0.78.0"]);
 	assert.equal(await exists(projectSkill), true);
 	const installed = run("--local");
 	const receipt = JSON.parse(installed.slice(installed.lastIndexOf('{\n  "installed"')));
@@ -111,31 +131,32 @@ fs[method] = async (path, ...args) => {
 };
 syncBuiltinESMExports();
 `);
+	const installer = await installerFixture(root, { stubPi: false });
 	let failPretty = false;
-	const runWithEnv = (env, ...args) => execFileSync(process.execPath, [...(env.PRETTY_TEST_CONFIG_FAULT ? ["--import", faultModule] : []), join(packageRoot, "scripts/install-pi.mjs"), "--local", ...args], {
+	const runWithEnv = (env, ...args) => execFileSync(process.execPath, [...(env.PRETTY_TEST_CONFIG_FAULT ? ["--import", faultModule] : []), join(packageRoot, "scripts/install-pi.mjs"), "--local", "--subagents-validation", installer.validation, ...args], {
 		cwd, encoding: "utf8", stdio: "pipe", env: { ...process.env, PI_CODING_AGENT_DIR: agentDir, PI_TEST_PACKAGE_DIR: hostRoot,
-			PATH: `${bin}:${process.env.PATH}`, PRETTY_TEST_FAIL: failPretty ? "1" : "0", PRETTY_CONFIG_DIR: agentDir, PRETTY_DISABLE_TOOLS: "", ...env },
+			PATH: `${bin}:${installer.bin}:${process.env.PATH}`, PRETTY_TEST_FAIL: failPretty ? "1" : "0", PRETTY_CONFIG_DIR: agentDir, PRETTY_DISABLE_TOOLS: "", ...env },
 	});
 	const run = (...args) => runWithEnv({}, ...args);
 	// When
 	const preview = JSON.parse(run("--dry-run"));
-	assert.deepEqual({ moves: preview.moves, blockers: preview.blockers, companions: preview.companionPackages }, { moves: [], blockers: [], companions: [source, "npm:pi-claude-bridge@0.9.2"] });
+	assert.deepEqual({ moves: preview.moves, blockers: preview.blockers, companions: preview.companionPackages }, { moves: [], blockers: [], companions: [source, "npm:pi-claude-bridge@0.9.2", "npm:pi-subagents@0.78.0"] });
 	assert.equal(await exists(callsPath), false);
 	assert.deepEqual(preview.prettyConfig, { path: join(agentDir, "pi-pretty.json"), disableTools: ["bash"], changed: true });
 	assert.equal(await exists(join(agentDir, "pi-pretty.json")), false);
 	const output = run();
 	const receipt = JSON.parse(output.slice(output.lastIndexOf('{\n  "installed"')));
 	// Then
-	assert.deepEqual(JSON.parse(await readFile(callsPath, "utf8")), [["install", "--local", "--approve", packageRoot], ["install", "--local", "--approve", source], ["install", "--local", "--approve", "npm:pi-claude-bridge@0.9.2"]]);
-	assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")).packages, [packageRoot, source, "npm:pi-claude-bridge@0.9.2"]);
+	assert.deepEqual(JSON.parse(await readFile(callsPath, "utf8")), [["install", "--local", "--approve", packageRoot], ["install", "--local", "--approve", source], ["install", "--local", "--approve", "npm:pi-claude-bridge@0.9.2"], ["install", "--local", "--approve", "npm:pi-subagents@0.78.0"]]);
+	assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")).packages, [packageRoot, source, "npm:pi-claude-bridge@0.9.2", "npm:pi-subagents@0.78.0"]);
 	assert.equal(receipt.verifiedSkills, 56);
-	assert.deepEqual(receipt.companionPackages, [source, "npm:pi-claude-bridge@0.9.2"]);
+	assert.deepEqual(receipt.companionPackages, [source, "npm:pi-claude-bridge@0.9.2", "npm:pi-subagents@0.78.0"]);
 	assert.deepEqual(JSON.parse(await readFile(join(agentDir, "pi-pretty.json"), "utf8")), { disableTools: ["bash"] });
 	const settingsBefore = await readFile(settingsPath, "utf8");
 	const prettyPath = join(agentDir, "pi-pretty.json"), prettyBefore = await readFile(prettyPath, "utf8");
 	run();
 	assert.equal(await readFile(prettyPath, "utf8"), prettyBefore);
-	assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")).packages, [packageRoot, source, "npm:pi-claude-bridge@0.9.2"]);
+	assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")).packages, [packageRoot, source, "npm:pi-claude-bridge@0.9.2", "npm:pi-subagents@0.78.0"]);
 	const callsBefore = await readFile(callsPath, "utf8");
 	assert.throws(() => runWithEnv({ PRETTY_DISABLE_TOOLS: " read,grep " }), /PRETTY_DISABLE_TOOLS overrides.*No files were changed/);
 	assert.equal(await readFile(callsPath, "utf8"), callsBefore);
@@ -180,7 +201,7 @@ syncBuiltinESMExports();
 	// Restore the ordinary fixture before the remaining registration cases.
 	await rm(prettyPath);
 	await writeFile(prettyPath, JSON.stringify({ ...originalPretty, theme: "concurrent", disableTools: ["ls", "grep"] }));
-	assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")), { packages: [packageRoot, source, "npm:pi-claude-bridge@0.9.2", "npm:unrelated-concurrent"], theme: "concurrent" });
+	assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")), { packages: [packageRoot, source, "npm:pi-claude-bridge@0.9.2", "npm:pi-subagents@0.78.0", "npm:unrelated-concurrent"], theme: "concurrent", subagents: preview.nativeConfig[0].values.subagents });
 	// Exercise the actual installer transaction, including staging failures
 	// before registration and failures while recovering after registration.
 	for (const existing of [false, true]) {
@@ -205,7 +226,7 @@ syncBuiltinESMExports();
 			assert.deepEqual(JSON.parse(await readFile(prettyPath, "utf8")), {
 				...originalPretty, ...(concurrent ? { theme: "concurrent" } : {}), disableTools: ["ls", "bash", ...(concurrent ? ["grep"] : [])],
 			});
-			if (concurrent) assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")), { packages: [packageRoot, source, "npm:pi-claude-bridge@0.9.2", "npm:unrelated-concurrent"], theme: "concurrent" });
+			if (concurrent) assert.deepEqual(JSON.parse(await readFile(settingsPath, "utf8")), { packages: [packageRoot, source, "npm:pi-claude-bridge@0.9.2", "npm:pi-subagents@0.78.0", "npm:unrelated-concurrent"], theme: "concurrent", subagents: preview.nativeConfig[0].values.subagents });
 			else assert.equal(await readFile(settingsPath, "utf8"), settingsBefore);
 			assert.deepEqual((await readdir(agentDir)).filter((name) => name.startsWith("pi-pretty.json")), ["pi-pretty.json"]);
 		}

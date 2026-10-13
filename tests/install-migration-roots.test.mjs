@@ -1,3 +1,4 @@
+import { installerFixture } from "./helpers/installer-fixture.mjs";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { lstat, mkdir, readFile, readlink, realpath, symlink, writeFile } from "node:fs/promises";
@@ -24,9 +25,10 @@ async function fixture(t, { linkedAgent = false, verificationFailure = false } =
 	const settingsPath = join(agentDir, "settings.json");
 	const saveSettings = () => writeFile(settingsPath, `${JSON.stringify(settings, null, 2)}\n`);
 	await saveSettings();
+	const installer = await installerFixture(root);
 	const run = (...args) => spawnSync(process.execPath, [join(packageRoot, "scripts/install-pi.mjs"), ...args,
-		...(args.includes("--restore") ? [] : ["--without-pretty"])], {
-		cwd, encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: agentDir },
+		...(args.includes("--restore") ? [] : ["--without-pretty", "--subagents-validation", installer.validation])], {
+		cwd, encoding: "utf8", env: { ...process.env, PI_CODING_AGENT_DIR: agentDir, ...installer.env },
 	});
 	return { root, cwd, agentDir, agentTarget, settings, settingsPath, saveSettings, run };
 }

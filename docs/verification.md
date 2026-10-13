@@ -1,6 +1,6 @@
 # Verification evidence
 
-The current deterministic baseline is Pi 1.0.4, Node 22.19+, and pnpm 12.9.1. Engram 3.0.0 is required only for memory. Development checks use the locked local host; rerun them before upgrading or distributing the package.
+The current deterministic baseline is locked Pi 1.2.0, Node 22.19+, and pnpm 12.9.1. Exact-version release-age exceptions were authorized for the pinned adoption packages; all other versions retain the 24-hour cooldown. Native plugin and real-model acceptance are tracked in the [current absorb](../.ai/absorb/2026-10-13-pi-subagents.md). Historical receipts below retain their original host versions.
 
 | Command | Claim checked |
 | --- | --- |
@@ -27,7 +27,7 @@ Fresh local checks on Pi 1.0.4 and Node 24.20.0:
 - `npm pack --dry-run --ignore-scripts` includes 247 files, including `docs/usage.md`, and excludes tests, `.ai`, and `.github`.
 - `git diff --check` passed. Changes remain unstaged; no commit, push, publication, or personal Pi registration was performed.
 
-`.github/workflows/ci.yml` runs deterministic tests and package inventory checks on Ubuntu with Node 22.19.0 and 24.20.0, using pinned Pi 1.0.4. Live MCP, Pretty, real-model personality checks, and visible terminal acceptance are not CI gates. At this initial preparation checkpoint, GitHub-hosted execution and the Node 22/Linux matrix had not yet run; local success was not remote CI evidence. Historical failed-fixture receipts below remain unchanged.
+`.github/workflows/ci.yml` runs deterministic tests and package inventory checks on Ubuntu with Node 22.19.0 and 24.20.0, targeting pinned Pi 1.2.0. Live MCP, Pretty, real-model personality checks, and visible terminal acceptance are not CI gates. At this initial preparation checkpoint, GitHub-hosted execution and the Node 22/Linux matrix had not yet run; local success was not remote CI evidence. Historical failed-fixture receipts below remain unchanged.
 
 Official packaging reference: [Pi packages](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md). Installed Pi 1.0.4 documentation was the version-specific authority; Context7's indexed Pi versions did not include 1.0.4.
 

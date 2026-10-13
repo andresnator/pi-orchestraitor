@@ -8,13 +8,17 @@ For scoped, reversible work, inspect files/state, select relevant skills, state 
 
 For testable behavior changes, observe the relevant failure before the fix and passing result afterward. Otherwise explain the proportionate alternative. A final diff does not prove RED/GREEN execution.
 
-## Bounded delegation
+## Native delegation
 
-Keep small changes direct. Use `subagent_run` only for independent objectives with accessible evidence, scope/authority and acceptance criteria. Each fresh child adds context, startup and parent review costs; parallel work alone does not imply savings. Request brief, evidence-bearing handoffs with paths/lines, blockers, remaining work and unperformed checks; see `docs/subagents.md`.
+Use the pinned `pi-subagents` engine and its `subagent` / `bg_wait` tools. Keep small changes direct. Delegate independent objectives with relevant evidence, authority, scope and acceptance criteria; fresh child startup and parent review have a cost.
 
-A batch contains up to two explore/review readers or one exclusive implementer with exact editable files; only one batch is active per parent. Model/reasoning inherit unless explicitly selected. Children read/search/list; implementers also edit/write assigned files. No Bash, Git, MCP, codemode or nested delegation. The parent inspects results/writes and runs commands, tests and verification. Runtime `completed` is not objective acceptance or independent/blind verification.
+Use scout → worker or parent → reviewer → correction. Allow one writer, up to two independent readers, and at most two correction attempts. Scout and reviewer start fresh. Oracle inherits a suitable persisted conversation; otherwise disclose fresh fallback. Oracle consultation is not blind review. Models inherit from the parent unless explicitly selected. Select skills explicitly; children receive only the necessary provider extensions. Readers have read/grep/find/ls; reviewer also has native watchdog_diff. Readers have no Bash, edit, or write.
 
-Cancel children on parent cancellation, session changes, reload or shutdown. Confirm all exits before another batch. Each task has a ten-minute limit. Preserve/report partial writes; never automatically roll them back. Cross-session recovery is unsupported.
+For each selected skill, use skill_registry load and prepend its delegation.taskPrefix to the child task with options.skill=false. This carries the authoritative native name and file path; pi-subagents 0.78.0 resolves names by directory and may silently omit a frontmatter name. With the native catalog, carry its exact file paths in the task instead.
+
+Before implementation run `git status --porcelain`. With a clean repository delegate to worker using `worktree: true` (native Git). With pending changes implement in the current directory as the parent. Never automatically commit or stash. Inspect the worker's full artifacts and patch before integrating it, then validate the integrated change. A worktree separates Git changes; it is not a file allowlist or an OS sandbox. Workers may run implementation and tests. Parent verification remains mandatory and completion never marks board tasks done.
+
+Wait for active readers with `bg_wait` before implementation or final acceptance. Use native status, stop and Fleet controls for async work, cancellation, timeout, reload and recovery; do not infer termination or successful verification from a completion notification. Preserve artifacts and partial changes. Inspect `/subagent-cost` for combined usage; `/session` may omit async consumption. No nested delegation, automatic watchdog, missions, schedules, external runners or automatic Git delivery in this initial setup. See `docs/subagents.md`.
 
 ## Tasks and clarification
 
@@ -34,5 +38,3 @@ Use direct model-only `orchestraitor_ask` for bounded requirements/preferences i
 Imported Delivery fields do not authorize commits; require an explicit current user instruction. Plans requiring TCR, autonomous Git delivery, parallel writers or durable SDD resume need compatible scope before execution.
 
 Report outcome, changed paths, fresh verification and limitations; for plans include path and hash preservation. Never call parent self-verification independent or blind review.
-
-When `subagent_run` returns pending reader IDs, continue independent work and use `subagent_collect` to inspect, wait, cancel or collect them. Use a direct model-issued `subagent_collect` call for wait, collect or cancel; only status may run through codemode. Collect all results before finishing or launching an implementer. A collected child result still needs parent verification before a board task can be completed. Profiles may set defaults; project assignments require native Pi trust, and explicit task fields override defaults. Automatic collection reminders are limited to one per task. If collection remains unresolved, preserve the receipt and report pending consumption and verification.

@@ -11,7 +11,7 @@
   "bugs": {
     "url": "https://github.com/andresnator/pi-orchestraitor/issues"
   },
-  "description": "Personal Pi harness with bundled development skills, compact tools, Context7, Engram, and Orchestraitor.",
+  "description": "Personal Pi harness with bundled development skills, compact tools, Context7, Engram, pi-subagents, and Orchestraitor.",
   "type": "module",
   "license": "MIT",
   "keywords": [
@@ -30,7 +30,8 @@
     "skills/",
     "scripts/",
     "docs/",
-    "licenses/"
+    "licenses/",
+    "agents/"
   ],
   "pi": {
     "extensions": [
@@ -39,7 +40,6 @@
       "./extensions/instructions.ts",
       "./extensions/mcp.ts",
       "./extensions/nan.ts",
-      "./extensions/subagents.ts",
       "./extensions/status-ui.ts",
       "./extensions/skill-registry.ts"
     ],
@@ -49,7 +49,12 @@
     "prompts": [
       "./prompts/*.md"
     ],
-    "themes": []
+    "themes": [],
+    "subagents": {
+      "agents": [
+        "./agents"
+      ]
+    }
   },
   "scripts": {
     "bench": "node scripts/bench.mjs",
@@ -57,17 +62,19 @@
     "test:mcp": "node --test tests/integration/mcp-live.test.mjs",
     "test:pretty": "node tests/helpers/pretty-isolation.mjs",
     "install:pi": "node scripts/install-pi.mjs",
-    "test:personality": "node scripts/check-personality.mjs"
+    "test:personality": "node scripts/check-personality.mjs",
+    "test:subagents": "node scripts/validate-subagents.mjs"
   },
   "config": {
     "piPretty": "npm:@heyhuynhgiabuu/pi-pretty@0.6.30",
-    "piClaudeBridge": "npm:pi-claude-bridge@0.9.2"
+    "piClaudeBridge": "npm:pi-claude-bridge@0.9.2",
+    "piSubagents": "npm:pi-subagents@0.78.0"
   },
   "dependencies": {
     "beautiful-mermaid": "1.1.3"
   },
   "devDependencies": {
-    "@earendil-works/pi-coding-agent": "1.0.4"
+    "@earendil-works/pi-coding-agent": "1.2.0"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",

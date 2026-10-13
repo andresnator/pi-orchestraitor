@@ -3,7 +3,7 @@ name: jag-teach
 description: "Teach one mission-scoped topic through Markdown lessons, conversational practice and evidence-qualified learning records."
 disable-model-invocation: true
 license: MIT
-compatibility: "Pi 1.0.4; explicit user invocation; Markdown only; no browser integration."
+compatibility: "Pi 1.2.0; explicit user invocation; Markdown only; no browser integration."
 metadata:
   author: "Matt Pocock"
   adapted_by: "pi-orchestraitor"

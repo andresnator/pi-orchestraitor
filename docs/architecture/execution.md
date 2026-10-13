@@ -1,84 +1,18 @@
-# Who executes, delegates and verifies?
+# Execution responsibilities
 
-[Component map](index.md) · [Choose a workflow](flows.md)
-
-**The main agent owns execution and acceptance. A child can help; it cannot certify success for its parent.** Every planning route joins this same instructed loop.
-
-## The shared execution loop
+The parent selects skills, inspects scope and repository state, owns the task board, and accepts work using fresh evidence. Planning and review remain separate requested modes.
 
 ```mermaid
-flowchart TD
-  U[User authorizes exact plan] -->|A| P[Main agent reads and validates plan]
-  P -->|A| H[Record original SHA-256]
-  H -->|B| G[Next ordered work group]
-  G -->|B| S[Load named available skills]
-  S -->|small bounded work: C| M[Main agent implements]
-  S -->|optional bounded task: C| D[subagent_run]
-  D -->|D| R[One or two readers OR one writer]
-  R -->|D| O[Result + observed write ledger]
-  O -->|C| V[Parent inspects files and runs checks]
-  M -->|C| V
-  V -->|more groups: B| G
-  V -->|all groups finished: E| F[All final checks + unchanged plan hash]
-  F -->|E| Z[Report unstaged changes and limitations]
-  V -->|unresolved failure: E| STOP[Stop after two failed correction attempts]
+flowchart LR
+  S[Scout: fresh reader] --> C{Git status clean?}
+  C -->|yes| W[Worker: native Git worktree]
+  C -->|pending changes| P[Parent implements here]
+  W --> D[Parent reviews patch and integrates]
+  P --> R[Reviewer: fresh reader]
+  D --> R
+  R --> F[Correction and parent validation]
 ```
 
-Evidence for nodes and edges: **A** [instructions/orchestraitor.md](../../instructions/orchestraitor.md); **B** [instructions/orchestraitor.md](../../instructions/orchestraitor.md); **C** [instructions/orchestraitor.md](../../instructions/orchestraitor.md); **D** [extensions/subagents.ts](../../extensions/subagents.ts); **E** [instructions/orchestraitor.md](../../instructions/orchestraitor.md).
+Use one writer, at most two independent readers and at most two correction attempts. Oracle may consult with forked conversation context and is not blind review. Native Pi-subagents owns child execution, lifecycle, artifacts and Fleet; the harness owns tasks and questions. Workers run implementation and tests. Parent verification is mandatory. No automatic commit or stash.
 
-Missing material decisions or required skills block progress. A failed/unavailable final check must be reported; the agent must not claim completion. The loop is a behavioral contract, **not a controller that automatically advances plan groups**.
-
-## What actually happens during delegation?
-
-```mermaid
-sequenceDiagram
-  participant P as Main agent
-  participant L as Launcher / controller
-  participant C as Fresh child session
-  participant R as Repository
-  P->>L: Objective, evidence, role, skills, exact write files [F]
-  L->>L: Validate batch, paths and model [F]
-  L->>C: Spawn process with restricted runtime [G]
-  C-->>L: Guard confirmation and effective tools [H]
-  L->>C: Send assigned prompt after startup checks [H]
-  C->>R: Read/search/list and permitted edits [I]
-  C-->>L: Handoff, write events, settled response [H]
-  L-->>P: Ordered results after bounded teardown [J]
-  P->>R: Inspect changes and run commands/tests [K]
-  P->>P: Accept, repair within scope, or report blocker [K]
-```
-
-| Evidence | Source |
-| --- | --- |
-| F | [extensions/subagents.ts](../../extensions/subagents.ts). |
-| G | [extensions/subagent/controller.mjs](../../extensions/subagent/controller.mjs), [extensions/subagent/runtime.mjs:7–29](../../extensions/subagent/runtime.mjs). |
-| H | [extensions/subagent/controller.mjs](../../extensions/subagent/controller.mjs). |
-| I | [extensions/subagent/guard.mjs:13–83](../../extensions/subagent/guard.mjs). |
-| J | [extensions/subagent/controller.mjs](../../extensions/subagent/controller.mjs), [extensions/subagents.ts](../../extensions/subagents.ts). |
-| K | [instructions/orchestraitor.md](../../instructions/orchestraitor.md). |
-
-## Presentation is not acceptance or recovery
-
-The optional [UI](../interactive-ui.md) observes this loop; it does not advance groups. Parent-issued task mutations carry revisions, exact-plan identity/path/hash/groups and evidence for done/reasons for reopening. Only successful native branch receipts are replayed. Child progress travels through native tool updates without adding usage again. Questions collect requirements/preferences, never native trust or destructive-action permission. Hiding chrome does not cancel execution or foreground questions.
-
-## One example, two ways to execute a group
-
-Suppose an approved plan says: reject empty checkout in `src/cart.ts`, with tests in `tests/cart.test.ts`.
-
-| Mode | Walkthrough |
-| --- | --- |
-| Direct | Parent reads both files, observes a suitable failing test, implements the rejection and reruns checks. |
-| Delegated | Parent can ask two readers to inspect code/tests, **or** assign one writer those two exact files. The parent still runs the tests and inspects the actual diff. Readers and writer are separate batches. |
-
-For deterministic behavior tests, observe failure before the fix and success afterward. If that sequence is inappropriate, explain why and use a proportionate check. A final green diff alone does not prove RED/GREEN ([instructions/orchestraitor.md](../../instructions/orchestraitor.md)).
-
-## Boundaries worth remembering
-
-- No dedicated persistent planner, executor or verifier agents: these are responsibilities of the main session. Children are fresh, bounded workers.
-- Children get selected skills and permitted project instructions, **not the entire parent's conversation or full harness resources** ([extensions/subagents.ts](../../extensions/subagents.ts), [runtime:13–25](../../extensions/subagent/runtime.mjs)).
-- Children cannot use Bash, Git, MCP, codemode or nested delegation. Harness resource directories are protected against child writes; the parent handles those changes directly ([subagent policy:1–102](../../extensions/subagent/policy.mjs)).
-- One active batch; at most two readers or one exclusive writer. Tasks have a ten-minute limit. Cancellation preserves partial writes; there is no automatic rollback or durable cross-session recovery ([docs/subagents.md](../subagents.md)).
-- `status: completed` means the child finished, not that its work passed acceptance. The parent verifies, and must not call that independent or blind review ([instructions/orchestraitor.md](../../instructions/orchestraitor.md)).
-- The original plan remains unchanged, including checkboxes. Commits require an explicit current user instruction; execution defaults to unstaged working-tree changes ([instructions/orchestraitor.md](../../instructions/orchestraitor.md)).
-
-For tool schemas, lifecycle edge cases and accounting, continue to [Bounded subagents](../subagents.md). That reference is intentionally separate from this quick guide.
+Definitions live in [agents](../../agents/worker.md); the behavioral contract lives in [instructions](../../instructions/orchestraitor.md). See [native subagents](../subagents.md) for configuration and current acceptance gates. Worktrees separate Git changes and are not file allowlists or an OS sandbox. Nested delegation, automatic watchdog, missions, schedules and external runners remain outside the initial setup.

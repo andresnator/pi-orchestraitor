@@ -5,7 +5,6 @@ import { createHash } from "node:crypto";
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
 import { stripVTControlCharacters } from "node:util";
-import { BatchController } from "../extensions/subagent/controller.mjs";
 import test from "node:test";
 import { createUISession, createWorkspace, fakeUIContext, loadExtensions, loadUiModule, packageRoot } from "./helpers/ui-harness.mjs";
 
@@ -160,7 +159,7 @@ test("shouldRegisterOneLifecycleOwnerWithoutStartupChromeWhenExtensionLoads", as
 	// Then
 	assert.deepEqual({ tools: [...extension.tools.keys()], shortcuts: [...extension.shortcuts.keys()],
 		flags: [...extension.flags.keys()], commands: [...extension.commands.keys()], calls },
-		{ tools: ["orchestraitor_tasks", "orchestraitor_ask"], shortcuts: [], flags: [], commands: ["orchestraitor:ui", "orchestraitor:tasks", "orchestraitor:agents"], calls: [] });
+		{ tools: ["orchestraitor_tasks", "orchestraitor_ask"], shortcuts: [], flags: [], commands: ["orchestraitor:ui", "orchestraitor:tasks"], calls: [] });
 });
 
 for (const mode of ["tui", "rpc", "json", "print"]) {
@@ -178,48 +177,12 @@ for (const mode of ["tui", "rpc", "json", "print"]) {
 	});
 }
 
-test("shouldKeepObservedPoisonedControllerLockWhenNativeUiReloads", async (t) => {
-	// Given
-	const cwd = await realpath(await createWorkspace(t));
-	const child = new EventEmitter();
-	Object.assign(child, { pid: 123, stdin: new PassThrough(), stdout: new PassThrough(),
-		stderr: new PassThrough(), kill() {} });
-	const controller = new BatchController({ startTimeout: 10, taskTimeout: 50, stopGrace: 1,
-		spawnProcess(_command, args) {
-			t.after(() => rm(dirname(args[1]), { recursive: true, force: true }));
-			return child;
-		},
-	});
-	const manifest = { cwd, id: "unconfirmed", role: "explore", instruction: "inspect", model: "fixture/model",
-		reasoning: "high", files: [], skills: [], tools: ["read", "search", "list"] };
-	const results = await controller.run([manifest], () => "work");
-	const key = Symbol.for("pi-orchestraitor.subagent-controller");
-	const previous = globalThis[key];
-	globalThis[key] = controller;
-	t.after(() => { globalThis[key] = previous; });
-	const { session, dialogs, errors } = await createUISession(t, "tui");
-	session.sessionManager.appendMessage({ role: "toolResult", toolName: "subagent_run", toolCallId: "old-batch",
-		content: [], details: { results }, isError: false, timestamp: Date.now() });
-	// When
-	await session.extensionRunner.emit({ type: "session_shutdown", reason: "reload" });
-	await session.extensionRunner.emit({ type: "session_start", reason: "reload" });
-	const panel = session.extensionRunner.getCommand("orchestraitor:agents").handler("", session.extensionRunner.createCommandContext());
-	const visible = dialogs.at(-1).component.render(120).map(stripVTControlCharacters).join("\n");
-	dialogs.at(-1).done({ status: "closed" });
-	await panel;
-	// Then
-	assert.match(visible, /Launches blocked: child exit was not confirmed/);
-	assert.deepEqual({ blocked: controller.blocked, retained: controller.orphans.has(child), errors },
-		{ blocked: true, retained: true, errors: [] });
-	await assert.rejects(controller.run([manifest], () => "work"), /launches blocked/i);
-});
-
-test("shouldUpdateOneNativeFooterEntryDuringAgentsAndQuestionsWhenChromeIsVisible", async (t) => {
+test("shouldLetNativeFleetOwnAgentStatusAndKeepQuestionStatusWhenChromeIsVisible", async (t) => {
 	// Given
 	const { session, ctx, statuses, dialogs } = await createUISession(t);
 	const runner = session.extensionRunner;
 	// When
-	await runner.emit({ type: "tool_execution_start", toolName: "subagent_run", toolCallId: "agents", args: { tasks: [{ role: "explore", instruction: "inspect" }] } });
+	await runner.emit({ type: "tool_execution_start", toolName: "subagent", toolCallId: "agents", args: { tasks: [{ role: "explore", instruction: "inspect" }] } });
 	const active = statuses.get("orchestraitor:status");
 	let opened;
 	const started = new Promise((resolve) => { opened = resolve; });
@@ -231,9 +194,9 @@ test("shouldUpdateOneNativeFooterEntryDuringAgentsAndQuestionsWhenChromeIsVisibl
 	const awaiting = statuses.get("orchestraitor:status");
 	dialogs.at(-1).done({ status: "cancelled" }); await pending;
 	const returned = statuses.get("orchestraitor:status");
-	await runner.emit({ type: "tool_execution_end", toolName: "subagent_run", toolCallId: "agents", isError: false, result: { details: { results: [{ id: "agent", role: "explore", status: "completed", terminated: true }] } } });
+	await runner.emit({ type: "tool_execution_end", toolName: "subagent", toolCallId: "agents", isError: false, result: { details: { results: [{ id: "agent", role: "explore", status: "completed", terminated: true }] } } });
 	// Then
-	assert.deepEqual({ active, awaiting, returned, statuses: [...statuses] }, { active: "Agents · 1 active", awaiting: "Awaiting input", returned: "Agents · 1 active", statuses: [["foreign-status", "Foreign status"]] });
+	assert.deepEqual({ active, awaiting, returned, statuses: [...statuses] }, { active: undefined, awaiting: "Awaiting input", returned: undefined, statuses: [["foreign-status", "Foreign status"]] });
 });
 
 test("shouldHideAndRestoreOnlyPassiveChromeWithoutChangingTasksOrNativeFactoriesWhenUserTogglesUi", async (t) => {
@@ -245,7 +208,7 @@ test("shouldHideAndRestoreOnlyPassiveChromeWithoutChangingTasksOrNativeFactories
 	const result = await tool.execute("tasks", { operation: "replace", expectedRevision: 0, tasks: [{ id: "one", title: "Inspect", status: "pending" }] }, undefined, undefined, runner.createToolContext("tasks", undefined));
 	session.sessionManager.appendMessage({ role: "toolResult", toolCallId: "tasks", toolName: tool.name, timestamp: Date.now(), isError: false, ...result });
 	await runner.emit({ type: "turn_end", toolResults: [] });
-	await runner.emit({ type: "tool_execution_start", toolName: "subagent_run", toolCallId: "agents", args: { tasks: [{ role: "review", instruction: "review" }] } });
+	await runner.emit({ type: "tool_execution_start", toolName: "subagent", toolCallId: "agents", args: { tasks: [{ role: "review", instruction: "review" }] } });
 	const initialBranch = JSON.stringify(session.sessionManager.getBranch());
 	const command = runner.getCommand("orchestraitor:ui");
 	// When
@@ -255,7 +218,7 @@ test("shouldHideAndRestoreOnlyPassiveChromeWithoutChangingTasksOrNativeFactories
 	// Then
 	assert.deepEqual(hidden, { widgets: [["foreign-widget", ["Foreign widget"]]], statuses: [["foreign-status", "Foreign status"]] });
 	assert.ok(widgets.has("orchestraitor:work"));
-	assert.equal(statuses.get("orchestraitor:status"), "Agents · 1 active");
+	assert.equal(statuses.get("orchestraitor:status"), undefined);
 	assert.equal(JSON.stringify(session.sessionManager.getBranch()), initialBranch);
 });
 

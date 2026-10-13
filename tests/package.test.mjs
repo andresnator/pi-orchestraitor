@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { copyFile, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
@@ -15,18 +15,18 @@ const EXPECTED_PROMPTS = ["absorb", "orchestraitor", "plan", "review"];
 const PROVENANCE = JSON.parse(await readFile(join(packageRoot, "docs/skills-provenance.json"), "utf8"));
 const EXPECTED_FILES = [
 	"LICENSE", "README.md", "THIRD_PARTY_NOTICES.md", "package.json",
-	"extensions/compact-tools.ts", "extensions/instructions.ts", "extensions/mcp.ts", "extensions/nan.ts", "extensions/subagents.ts",
+	"extensions/compact-tools.ts", "extensions/instructions.ts", "extensions/mcp.ts", "extensions/nan.ts",
 	...["index", "context", "conversation", "markdown", "popup", "transcript", "types"].map((name) => `extensions/btw/${name}.ts`),
 	"extensions/skill-registry.ts", "extensions/skills/sources.mjs", "extensions/skills/registry.mjs", "extensions/skills/store.mjs", "extensions/skills/types.ts",
-	"extensions/status-ui.ts", "extensions/ui/display.ts", "extensions/ui/agents.ts", "extensions/ui/tasks.ts", "extensions/ui/questions.ts",
-	"extensions/models/store.mjs", "extensions/models/panel.mjs", "extensions/models/selector.ts", "extensions/subagent/bridge.mjs", "extensions/subagent/background.mjs",
-	"extensions/subagent/child.mjs", "extensions/subagent/controller.mjs", "extensions/subagent/guard.mjs", "extensions/subagent/policy.mjs", "extensions/subagent/runtime.mjs",
+	"extensions/status-ui.ts", "extensions/ui/display.ts", "extensions/ui/tasks.ts", "extensions/ui/questions.ts",
 	"instructions/core.md", "instructions/orchestraitor.md", "instructions/personality.md",
 	"scripts/install-pi.mjs", "scripts/pi-host.mjs", "scripts/skill-migration.mjs", "scripts/check-personality.mjs", "scripts/bench.mjs",
+	"scripts/subagents-config.mjs", "scripts/subagents-validation.mjs", "scripts/validate-subagents.mjs",
+	...["scout", "reviewer", "oracle", "worker"].map(name => `agents/${name}.md`),
 	"scripts/skill-inventory.mjs", "scripts/package-registration.mjs", "scripts/pretty-config.mjs",
 	"docs/btw.md", "docs/nan.md", "docs/usage.md", "docs/skills.md", "docs/skills-provenance.json", "docs/verification.md", "docs/subagents.md", "docs/interactive-ui.md", "docs/performance.md", "docs/pi-pretty.md", "docs/manual-package-check.md",
 	"docs/architecture/execution.md", "docs/architecture/flows.md", "docs/architecture/index.md",
-	"licenses/Apache-2.0.txt", "licenses/MIT.txt", "licenses/mattpocock-MIT.txt", "licenses/humanlayer-MIT.txt",
+	"licenses/pi-subagents-MIT.txt", "licenses/Apache-2.0.txt", "licenses/MIT.txt", "licenses/mattpocock-MIT.txt", "licenses/humanlayer-MIT.txt",
 	...PROVENANCE.skills.flatMap((skill) => skill.resources.map(({ path }) => `skills/${skill.name}/${path}`)),
 	...EXPECTED_PROMPTS.map((name) => `prompts/${name}.md`),
 ].sort();
@@ -79,7 +79,7 @@ test("shouldLoadPromptsAndExtensionsWhenExplicitPackageBypassesDiscovery", async
 		prompts: loader.getPrompts().prompts.map(({ name }) => name).sort(),
 		skills: loader.getSkills().skills.length,
 	}, {
-		extensions: ["compact-tools.ts", "index.ts", "instructions.ts", "mcp.ts", "nan.ts", "skill-registry.ts", "status-ui.ts", "subagents.ts"],
+		extensions: ["compact-tools.ts", "index.ts", "instructions.ts", "mcp.ts", "nan.ts", "skill-registry.ts", "status-ui.ts"],
 		errors: [], prompts: EXPECTED_PROMPTS, skills: 56,
 	});
 });
@@ -95,13 +95,15 @@ test("shouldLoadOnlyPackagedResourcesWhennpmTarballIsExtractedElsewhere", async 
 	const modules = join(cwd, "node_modules"); await mkdir(modules);
 	const extracted = join(modules, "harness package with spaces");
 	await rename(join(cwd, "package"), extracted);
-	// Provision only locked runtime dependencies, offline and without installing host peers.
-	for (const file of ["pnpm-lock.yaml", "pnpm-workspace.yaml"]) {
-		await copyFile(join(packageRoot, file), join(extracted, file));
-	}
-	execFileSync("pnpm", ["install", "--prod", "--offline", "--frozen-lockfile", "--ignore-scripts"], {
-		cwd: extracted, encoding: "utf8", timeout: 30000,
-	});
+	// Provision only mature runtime dependencies; host pin/lock agreement has its own policy test.
+	const runtime = join(cwd, "runtime");
+	await mkdir(runtime);
+	const originalManifest = JSON.parse(await readFile(join(extracted, "package.json"), "utf8"));
+	await writeFile(join(runtime, "package.json"), JSON.stringify({ private: true, packageManager: originalManifest.packageManager, dependencies: originalManifest.dependencies }));
+	await copyFile(join(packageRoot, "pnpm-workspace.yaml"), join(runtime, "pnpm-workspace.yaml"));
+	execFileSync("pnpm", ["install", "--prod", "--offline", "--ignore-scripts"], { cwd: runtime, encoding: "utf8", timeout: 30000 });
+	await mkdir(join(extracted, "node_modules"));
+	for (const name of Object.keys(originalManifest.dependencies)) await symlink(join(runtime, "node_modules", name), join(extracted, "node_modules", name));
 	const workspace = join(cwd, "consumer");
 	await mkdir(workspace);
 	// When
@@ -110,7 +112,7 @@ test("shouldLoadOnlyPackagedResourcesWhennpmTarballIsExtractedElsewhere", async 
 	});
 	const { session, errors } = await startSession(t, workspace, resources);
 	await mcpStatus(session);
-	const result = await session.extensionRunner.emitBeforeAgentStart("Make a scoped change", undefined, {
+	const result = await session.extensionRunner.emitBeforeAgentStart({ messageType: "user", prompt: "Make a scoped change" }, {
 		cwd: workspace, customPrompt: "Host instructions", selectedTools: ["read", "bash", "edit", "write"],
 		sections: { existing: "Project-specific instructions" },
 	});
@@ -133,23 +135,13 @@ test("shouldLoadOnlyPackagedResourcesWhennpmTarballIsExtractedElsewhere", async 
 	}, {
 		files: EXPECTED_FILES, errors: [], prompts: EXPECTED_PROMPTS,
 		skills: PROVENANCE.skills.map(({ name }) => name).sort(), skillDiagnostics: [],
-		active: ["read", "bash", "edit", "write", "subagent_collect", "subagent_run", "orchestraitor_tasks", "orchestraitor_ask", "skill_registry"], prefix: "Host instructions",
+		active: ["read", "bash", "edit", "write", "orchestraitor_tasks", "orchestraitor_ask", "skill_registry"], prefix: "Host instructions",
 		preservedSection: "Project-specific instructions", theme: "system", dependencies: { "beautiful-mermaid": "1.1.3" },
 		peers: { "@earendil-works/pi-ai": "*", "@earendil-works/pi-coding-agent": "*", "@earendil-works/pi-tui": "*", typebox: "*" },
 		nanProvider: "NaN", nanModels: ["deepseek-v4-flash", "glm5.3-flash", "qwen3.8-flash", "mimo-v2.6-flash", "gemma4", "qwen3.6", "glm5.3"],
 	});
 	// Native extensions must work under node_modules, including spaces.
 	assert.ok(packed.files.every(({ path }) => !path.startsWith("herdr/") && !path.includes("workbench")));
-	// The extracted bootstrap must resolve its sibling guard/runtime files without repo imports.
-	const { BatchController } = await import(pathToFileURL(join(extracted, "extensions/subagent/controller.mjs")).href);
-	const { hostRoot } = await import("./helpers/pi-host.mjs");
-	const [childResult] = await new BatchController({ sdkRoot: hostRoot, credentialDir: isolatedAgentDir,
-		childPath: join(extracted, "extensions/subagent/child.mjs") }).run([{
-		id: "extracted", role: "explore", instruction: "inspect", cwd: workspace,
-		model: "unavailable/model", reasoning: "high", skills: [], files: [], contextFiles: [], tools: ["read", "search", "list"],
-	}], () => "No model call is allowed");
-	assert.deepEqual({ status: childResult.status, terminated: childResult.terminated }, { status: "failed", terminated: true });
-	assert.match(childResult.diagnostic, /Model unavailable/);
 	assert.match(result.systemPromptOptions.sections.pi_orchestraitor_execution, /Orchestraitor/);
 	assert.match(result.systemPromptOptions.sections.pi_orchestraitor_personality, /Colombian software architect/);
 	assert.equal(PROVENANCE.skills.length, 56);
@@ -205,6 +197,6 @@ test("shouldAvoidDoubleRegistrationWhenOriginalGlobalExtensionIsExcluded", async
 		errors,
 	}, {
 		compactPaths: [join(packageRoot, "extensions/compact-tools.ts")],
-		tools: ["bash", "edit", "orchestraitor_ask", "orchestraitor_tasks", "read", "skill_registry", "subagent_collect", "subagent_run", "write"], errors: [],
+		tools: ["bash", "edit", "orchestraitor_ask", "orchestraitor_tasks", "read", "skill_registry", "write"], errors: [],
 	});
 });

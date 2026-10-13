@@ -1,8 +1,6 @@
 import type { ExtensionAPI, ExtensionContext, ExtensionUIContext, KeybindingsManager, Theme } from "@earendil-works/pi-coding-agent";
 import type { Component, TUI } from "@earendil-works/pi-tui";
-import { classifyAgent, createAgentsPanel, createAgentsProjection } from "./ui/agents.ts";
 import { workStatus } from "./ui/display.ts";
-import { subagentLaunchesBlocked, SUBAGENT_PROGRESS_EVENT } from "./subagents.ts";
 import { compactTool } from "./compact-tools.ts";
 import { checkTaskBinding, createTaskPanel, createTaskTool, emptyTasks, replayTasks, taskHeader, TASK_TOOL_NAME } from "./ui/tasks.ts";
 import { createQuestionTool, QUESTION_TOOL_NAME } from "./ui/questions.ts";
@@ -120,7 +118,6 @@ export function createUIOwner(onChange: () => void = () => {}) {
 
 export default function statusUI(pi: ExtensionAPI) {
 	const owner = createUIOwner(() => refreshStatus());
-	const agents = createAgentsProjection();
 	let tasks = emptyTasks();
 	let bindingCurrent = true;
 	let expanded = false;
@@ -131,9 +128,7 @@ export default function statusUI(pi: ExtensionAPI) {
 	let taskLeaf: string | null | undefined;
 	let bindingCheck: { binding: typeof tasks.binding; cwd: string; promise: Promise<boolean> } | undefined;
 	function refreshStatus() {
-		const snapshot = agents.snapshot();
-		owner.setStatus(context && visible ? workStatus({ launchBlocked: snapshot.launchBlocked || subagentLaunchesBlocked(),
-			awaitingInput: owner.awaitingInput, activeAgents: snapshot.live.filter((row) => classifyAgent(row).active).length }) : undefined);
+		owner.setStatus(context && visible ? workStatus({ awaitingInput: owner.awaitingInput }) : undefined);
 	}
 	const refreshTasks = async (ctx: ExtensionContext) => {
 		if (!context || !owner.isCurrent(ctx)) return;
@@ -166,7 +161,6 @@ export default function statusUI(pi: ExtensionAPI) {
 		visible = true;
 		tasks = emptyTasks();
 		taskManager = undefined; taskLeaf = undefined; bindingCheck = undefined;
-		agents.replay(ctx.sessionManager.getBranch(), ctx.sessionManager.getSessionId(), subagentLaunchesBlocked());
 		owner.activate(ctx);
 		await refreshTasks(ctx);
 	};
@@ -184,32 +178,15 @@ export default function statusUI(pi: ExtensionAPI) {
 		pi.on(event, () => owner.cancelInteractions());
 	}
 	pi.on("session_shutdown", () => {
-		context = undefined; owner.dispose(); agents.replay([]); tasks = emptyTasks(); bindingCurrent = true;
+		context = undefined; owner.dispose(); tasks = emptyTasks(); bindingCurrent = true;
 		taskManager = undefined; taskLeaf = undefined; bindingCheck = undefined;
 	});
 	pi.on("tool_execution_start", async (event, ctx) => {
 		if (!context || !owner.isCurrent(ctx)) return;
-		if (event.toolName === "subagent_run") agents.start(event.toolCallId, event.args?.tasks, event.parentToolCallId);
 		refreshStatus(); owner.refresh();
 		// Pi 1.0.2 persists the preceding result after message_end/tool_execution_end.
 		// Await branch replay here so even a waiting next tool displays committed tasks.
 		await refreshTasks(ctx);
-	});
-	pi.on("tool_execution_update", (event, ctx) => {
-		if (!context || !owner.isCurrent(ctx)) return;
-		if (event.toolName === "subagent_run") agents.update(event.toolCallId, event.partialResult?.details?.progress);
-		refreshStatus(); owner.refresh();
-	});
-	pi.events.on(SUBAGENT_PROGRESS_EVENT, (progress: any) => {
-		if (!context || progress?.sessionId !== context.sessionManager.getSessionId()) return;
-		if (!agents.update(progress.toolCallId, progress)) return;
-		refreshStatus(); owner.refresh();
-	});
-	pi.on("tool_execution_end", (event, ctx) => {
-		if (!context || !owner.isCurrent(ctx)) return;
-		if (event.toolName === "subagent_run") agents.finish(event.toolCallId, event.result, event.isError);
-		if (event.toolName === "subagent_collect") agents.collect(event.toolCallId, event.result);
-		refreshStatus(); owner.refresh();
 	});
 	pi.registerCommand("orchestraitor:ui", {
 		description: "Show or hide passive harness chrome without changing tasks or execution",
@@ -233,14 +210,6 @@ export default function statusUI(pi: ExtensionAPI) {
 			await refreshTasks(ctx);
 			if (!action) await owner.modal("panel", (tui, theme, keys, done) =>
 				createTaskPanel(() => ({ state: tasks, bindingCurrent }), tui, theme, keys, done));
-		},
-	});
-	pi.registerCommand("orchestraitor:agents", {
-		description: "Inspect observed agents and active-branch runtime outcomes (read-only)",
-		async handler(_args, ctx) {
-			if (ctx.mode !== "tui") { ctx.ui.notify("Agents panel requires interactive terminal mode.", "warning"); return; }
-			await owner.modal("panel", (tui, theme, keys, done) =>
-				createAgentsPanel(() => agents.snapshot(), tui, theme, keys, done));
 		},
 	});
 }

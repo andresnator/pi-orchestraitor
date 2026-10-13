@@ -2,7 +2,7 @@
 name: jag-pr
 description: "Draft a pull request body from an inspected change, with concise visuals, observed verification evidence, reversibility and merge risk."
 license: MIT
-compatibility: "Pi 1.0.4; use available local inspection tools; no publishing integration required."
+compatibility: "Pi 1.2.0; use available local inspection tools; no publishing integration required."
 metadata:
   author: "Matt Pocock"
   adapted_by: "pi-orchestraitor"

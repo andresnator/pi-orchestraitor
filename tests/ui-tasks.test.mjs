@@ -216,13 +216,13 @@ const askCall = (id) => ({ type: "toolCall", name: "orchestraitor_ask", id, argu
 ] } });
 const renderHeader = ({ widgets, ctx }) => widgets.get("orchestraitor:work")?.({ terminal: { rows: 24 } }, ctx.ui.theme).render(100) ?? [];
 
-for (const nextTool of ["orchestraitor_ask", "subagent_run"]) for (const hidden of [false, true]) {
+for (const nextTool of ["orchestraitor_ask", "subagent"]) for (const hidden of [false, true]) {
 	test(`shouldRefreshPersistedCreationUpdateAndClearWhile${nextTool}WaitsWithHidden${hidden}`, { timeout: 5000 }, async (t) => {
 		const gates = Array.from({ length: 3 }, () => ({ entered: Promise.withResolvers(), release: Promise.withResolvers() }));
 		let index = 0, turns = 0;
 		const wait = async () => { const gate = gates[index++]; gate.entered.resolve(); await gate.release.promise; };
-		const options = nextTool === "subagent_run" ? { extensionFactories: [(api) => api.registerTool({
-			name: "subagent_run", label: "Controlled agent", description: "Local waiting fixture", executionMode: "sequential", parameters: { type: "object", properties: {} },
+		const options = nextTool === "subagent" ? { extensionFactories: [(api) => api.registerTool({
+			name: "subagent", label: "Controlled agent", description: "Local waiting fixture", executionMode: "sequential", parameters: { type: "object", properties: {} },
 			async execute() { await wait(); return { content: [], details: { results: [] } }; },
 		})] } : {};
 		const operations = [

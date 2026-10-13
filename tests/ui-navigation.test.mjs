@@ -14,13 +14,13 @@ async function seed(ui) {
 	session.sessionManager.appendMessage({ role: "toolResult", toolCallId: "tasks", toolName: tool.name, isError: false, timestamp: Date.now(), ...result });
 	session.sessionManager.appendMessage({ role: "user", content: "Continue the local inspection", timestamp: Date.now() });
 	await runner.getCommand("orchestraitor:tasks").handler("expand", runner.createCommandContext());
-	await runner.emit({ type: "tool_execution_start", toolName: "subagent_run", toolCallId: "agents", args: { tasks: [{ role: "explore", instruction: "Inspect locally" }] } });
+	await runner.emit({ type: "tool_execution_start", toolName: "subagent", toolCallId: "agents", args: { tasks: [{ role: "explore", instruction: "Inspect locally" }] } });
 	return target;
 }
 
 async function checkNewInteractions(ui) {
 	const { session, ctx, dialogs } = ui, runner = session.extensionRunner;
-	for (const name of ["tasks", "agents"]) {
+	for (const name of ["tasks"]) {
 		const opened = Promise.withResolvers(), original = ctx.ui.custom;
 		ctx.ui.custom = (...args) => { const result = original(...args); opened.resolve(); return result; };
 		const pending = runner.getCommand(`orchestraitor:${name}`).handler("", runner.createCommandContext());
@@ -110,7 +110,7 @@ for (const action of ["tree-veto", "summary-abort", "switch-veto", "fork-veto"])
 		assert.equal((await oldQuestion).details.status, "cancelled");
 		late.resolve("1. A");
 		assert.equal(widgets.has(widgetKey), !hidden);
-		assert.equal(statuses.get(statusKey), hidden ? undefined : "Agents · 1 active");
+		assert.equal(statuses.get(statusKey), undefined);
 		await checkNewInteractions(ui);
 		if (hidden) {
 			assert.equal(widgets.has(widgetKey), false);

@@ -22,3 +22,7 @@ Pi adaptations change invocation, output destinations, evidence qualifications a
 The installer also registers [@heyhuynhgiabuu/pi-pretty](https://github.com/heyhuynhgiabuu/pi-pretty), version 0.6.30, licensed MIT, through native Pi package management. Its source and dependencies remain in the separately installed upstream package; they are not redistributed in this tarball.
 
 No OpenCode runtime or plugin, personal credential, model store, session, or Engram database is distributed.
+
+## pi-subagents specialists
+
+The four agent prompt bodies in `agents/` are adapted from nicobailon/pi-subagents@0.78.0, with explicit tool/context policies and parent-owned patch acceptance. Upstream: https://github.com/nicobailon/pi-subagents. License: MIT; see `licenses/pi-subagents-MIT.txt`. The runtime is installed separately as an exact native Pi companion.

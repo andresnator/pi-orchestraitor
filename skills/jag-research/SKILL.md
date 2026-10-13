@@ -2,7 +2,7 @@
 name: jag-research
 description: "Investigate a bounded question against primary sources; gather version-aware API/documentation facts and report cited findings with uncertainty."
 license: MIT
-compatibility: "Pi 1.0.4; optional Context7; installed documentation fallback; parent owns external access."
+compatibility: "Pi 1.2.0; optional Context7; installed documentation fallback; parent owns external access."
 metadata:
   author: "Matt Pocock"
   adapted_by: "pi-orchestraitor"

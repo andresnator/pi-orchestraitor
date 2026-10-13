@@ -1,6 +1,6 @@
 # Harness efficiency
 
-The package keeps native tools, all 56 native skills (54 automatically selectable and two explicit-only), personality, bounded children and optional UI. Efficiency changes reduce repeated model context and projection work without introducing an agent pool, a model-based skill selector, a second accounting database or custom compaction.
+The package keeps native tools, all 56 native skills (54 automatically selectable and two explicit-only), personality and task/question UI, with native pi-subagents installed separately. Efficiency changes reduce repeated model context and projection work without introducing an agent pool, a model-based skill selector, a second accounting database or custom compaction.
 
 The ten-lens consolidation reduces standalone catalog entries, not necessarily provider tokens. The historical 61-skill measurements below and the earlier 51-skill consolidation baseline retain their original counts; neither measures the current 56-skill package or establishes provider savings from the new workflows.
 
@@ -19,10 +19,10 @@ Output files must be new paths; existing reports are never overwritten. Without 
 - **Native / package / package-native:** isolated SDK resource/session startup, prepared prompt and model-visible tool declaration sizes, RSS/heap and CPU over a 100 ms idle interval. Package defaults to lazy skills; package-native loads the same 56-skill catalog (54 automatic and two explicit-only) after the public native-mode command. Startup includes host import/resources/mode setup, not first prompt preparation or time to first model token; preparation is reported separately. These samples use print mode.
 - **Skills:** actual bounded search/load plus native read of jag-code; one warmup and five refresh/search/load timings per package sample. Initial and one-selected-skill character totals include schema and lookup/call overhead. The full diagnostic file is measured separately, never added to model context. This single deterministic English query does not evaluate selector quality.
 - **Tasks:** real task-tool execution on a synthetic 20-task board, preserving full receipts; update latency and model-facing response size.
-- **Subagents:** actual launcher response shaping with a synthetic controller receipt. No process or model is started; sizes do not measure child startup or real delegation savings.
+- **Subagents:** removed from benchmark v4. Native plugin validation is separate; historical synthetic controller sizes do not measure the adopted engine.
 - **Hooks:** simulated native Pi UI without terminal I/O, 10,000 native entries, five warmups and 30 unchanged-history starts. This measures task projection overhead.
 
-These benchmark modes load the harness alone, excluding the separately installed pi-pretty companion and its FFF index/highlighter. They do not measure the complete pretty-enabled profile. `test:pretty` checks that integration separately.
+These benchmark modes load the harness alone, excluding the separately installed pi-subagents and pi-pretty companions and its FFF index/highlighter. They do not measure the complete pretty-enabled profile. `test:pretty` checks that integration separately.
 
 Benchmarks use temporary agent state, disabled MCP transports and no provider calls. `characters` and UTF-8 `bytes` are measured. `estimatedTokens` is explicitly the characters/4 heuristic, not tokenizer output, observed provider usage or billing. Idle CPU and RSS are noisy process snapshots; these short offline samples do not establish interactive idle cost or a memory leak.
 

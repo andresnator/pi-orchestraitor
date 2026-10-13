@@ -1,5 +1,4 @@
 import { sanitizeDisplay } from "./ui/display.ts";
-import { classifyAgent } from "./ui/agents.ts";
 import { fileURLToPath } from "node:url";
 import {
 	createBashToolDefinition,
@@ -90,7 +89,7 @@ export default function compactTools(pi: ExtensionAPI) {
 
 type Summary = { text: string; failed: boolean; errors: string };
 
-/** Shared presentation for native tools and the package's bounded subagents. */
+/** Shared presentation for native tools and the task/question board. */
 export function compactTool<TParams extends TSchema, TDetails, TState>(
 	original: ToolDefinition<TParams, TDetails, TState>,
 ): ToolDefinition<TParams, TDetails, TState> {
@@ -124,9 +123,7 @@ export function compactTool<TParams extends TSchema, TDetails, TState>(
 				.map((block) => block.text)
 				.join("\n");
 			if (expanded && !context.isError && result.details && typeof result.details === "object") {
-				if (["subagent_run", "subagent_collect"].includes(original.name) && "results" in result.details && Array.isArray(result.details.results)) {
-					output = JSON.stringify("pending" in result.details && Array.isArray(result.details.pending) && result.details.pending.length ? { results: result.details.results, pending: result.details.pending } : result.details.results, null, 2);
-				} else if (original.name === "orchestraitor_tasks" && "state" in result.details) {
+				if (original.name === "orchestraitor_tasks" && "state" in result.details) {
 					output = JSON.stringify(result.details, null, 2);
 				}
 			}
@@ -187,10 +184,6 @@ function renderCall(name: string, args: unknown, theme: Theme, context: RenderCo
 
 function summarizeArgs(name: string, args: unknown): string {
 	if (!args || typeof args !== "object") return "";
-	if (name === "subagent_run" && "tasks" in args && Array.isArray(args.tasks)) {
-		const roles = args.tasks.map((task) => task?.role).filter((role) => typeof role === "string");
-		return `${args.tasks.length} task${args.tasks.length === 1 ? "" : "s"} · ${sanitizeDisplay(roles.join(", "))}`;
-	}
 	const command = "command" in args ? args.command : undefined;
 	const subject = typeof command === "string" ? command : "path" in args ? args.path : undefined;
 	return typeof subject === "string" ? sanitizeDisplay(subject).replace(/\s+/gu, " ").trim() : "";
@@ -211,23 +204,6 @@ function summarizeResult(name: string, details: unknown): Summary {
 		].filter(Boolean).join(" · ") : "script";
 		return { text, failed: failures.length > 0,
 			errors: failures.map((call) => `${call.name}: ${call.error || call.status}`).join("\n") };
-	}
-	if (name === "subagent_run" && "progress" in details && details.progress &&
-		typeof details.progress === "object" && "tasks" in details.progress && Array.isArray(details.progress.tasks)) {
-		const tasks = details.progress.tasks;
-		const states = tasks.map(classifyAgent);
-		const failures = tasks.filter((_task, index) => states[index].failed);
-		const active = states.filter((state) => state.active).length;
-		const completed = states.filter((state) => state.phase === "completed").length;
-		return { text: `${active} active · ${completed}/${tasks.length} completed`, failed: failures.length > 0,
-			errors: failures.map((task) => `${task.role}: ${classifyAgent(task).phase}${task.diagnostic ? ` · ${task.diagnostic}` : ""}`).join("\n") };
-	}
-	if (["subagent_run", "subagent_collect"].includes(name) && "results" in details && Array.isArray(details.results)) {
-		const results = details.results;
-		const failures = results.filter((task) => classifyAgent(task).failed || classifyAgent(task).phase === "unavailable");
-		const pending = "pending" in details && Array.isArray(details.pending) ? details.pending.length : 0;
-		return { text: `${results.length - failures.length}/${results.length} completed${pending ? ` · ${pending} pending collection` : ""}`, failed: failures.length > 0,
-			errors: failures.map((task) => `${task.role}: ${task.status}${task.diagnostic ? ` · ${task.diagnostic}` : ""}`).join("\n") };
 	}
 	return empty;
 }

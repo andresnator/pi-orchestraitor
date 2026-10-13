@@ -1,11 +1,8 @@
 import { stripVTControlCharacters } from "node:util";
 
 /** One concise native-footer contribution; native usage/model/context stay native. */
-export function workStatus(state: { launchBlocked: boolean; awaitingInput: boolean; activeAgents: number }): string | undefined {
-	if (state.launchBlocked) return "Agents blocked";
-	if (state.awaitingInput) return "Awaiting input";
-	if (Number.isSafeInteger(state.activeAgents) && state.activeAgents > 0) return `Agents · ${state.activeAgents} active`;
-	return undefined;
+export function workStatus(state: { awaitingInput: boolean }): string | undefined {
+	return state.awaitingInput ? "Awaiting input" : undefined;
 }
 
 /** Sanitize untrusted terminal text before adding theme escapes. Never mutate tool data. */

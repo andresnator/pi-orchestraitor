@@ -72,27 +72,31 @@ export async function planPrettyConfig(env = process.env) {
 			await writeConfig(before.destination, text);
 			applied = { before, text };
 		},
+		get receipt() { return applied ? { path, ...applied } : undefined; },
 		async rollback() {
-			if (!applied) return;
-			const before = applied.before;
-			// Recover the file we published even if its alias now points elsewhere.
-			const current = await readConfig(before.destination, false);
-			if (current.destination !== before.destination) throw new Error(`${path}: configuration target changed since installation; cannot roll back through a new link.`);
-			if (current.text === undefined) { applied = undefined; return; }
-			if (current.text !== applied.text) {
-				const index = Array.isArray(current.config.disableTools) ? current.config.disableTools.indexOf("bash") : -1;
-				if (index < 0) { applied = undefined; return; }
-				current.config.disableTools.splice(index, 1);
-				if (!current.config.disableTools.length && !Object.hasOwn(before.config, "disableTools")) delete current.config.disableTools;
-				if (JSON.stringify(current.config) !== JSON.stringify(before.config)) {
-					await writeConfig(before.destination, `${JSON.stringify(current.config, null, 2)}\n`);
-					applied = undefined;
-					return;
-				}
-			}
-			if (before.text === undefined) await rm(before.destination);
-			else await writeConfig(before.destination, before.text);
+			if (applied) await restorePrettyReceipt({ path, ...applied });
 			applied = undefined;
 		},
 	};
+}
+
+export async function restorePrettyReceipt(applied) {
+	const { path } = applied;
+	const before = applied.before;
+	// Recover the file we published even if its alias now points elsewhere.
+	const current = await readConfig(before.destination, false);
+	if (current.destination !== before.destination) throw new Error(`${path}: configuration target changed since installation; cannot roll back through a new link.`);
+	if (current.text === undefined) { return; }
+	if (current.text !== applied.text) {
+		const index = Array.isArray(current.config.disableTools) ? current.config.disableTools.indexOf("bash") : -1;
+		if (index < 0) { return; }
+		current.config.disableTools.splice(index, 1);
+		if (!current.config.disableTools.length && !Object.hasOwn(before.config, "disableTools")) delete current.config.disableTools;
+		if (JSON.stringify(current.config) !== JSON.stringify(before.config)) {
+			await writeConfig(before.destination, `${JSON.stringify(current.config, null, 2)}\n`);
+			return;
+		}
+	}
+	if (before.text === undefined) await rm(before.destination);
+	else await writeConfig(before.destination, before.text);
 }

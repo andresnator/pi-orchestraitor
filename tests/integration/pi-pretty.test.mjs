@@ -97,7 +97,7 @@ pi.sendMessage({customType:"pretty-probe",content:"Startup receipt",display:fals
 }}); }`);
 	// When: owned RPC process and command only; no provider is prompted.
 	const output = execFileSync(process.execPath, [join(hostRoot, "dist/cli.js"), "--mode", "rpc", "--no-session", "--no-skills",
-		"--no-prompt-templates", "--no-themes", "--no-context-files", "--tools", "read,bash,codemode,subagent_run", "-e", probe], {
+		"--no-prompt-templates", "--no-themes", "--no-context-files", "--tools", "read,bash,codemode", "-e", probe], {
 		cwd, env: { ...process.env, PI_CODING_AGENT_DIR: agentDir }, encoding: "utf8", timeout: 15000,
 		input: '{"id":"probe","type":"prompt","message":"/pretty-probe"}\n{"id":"messages","type":"get_messages"}\n',
 	});
@@ -105,7 +105,7 @@ pi.sendMessage({customType:"pretty-probe",content:"Startup receipt",display:fals
 	const responses = output.trim().split("\n").map(line => JSON.parse(line));
 	assert.equal(responses.find(item => item.id === "probe").data.disposition, "handled");
 	const receipt = responses.find(item => item.id === "messages").data.messages.find(message => message.customType === "pretty-probe");
-	assert.deepEqual(receipt.details.active, ["read", "bash", "codemode", "subagent_run"]);
+	assert.deepEqual(receipt.details.active, ["read", "bash", "codemode"]);
 	assert.equal(receipt.details.tools.find(tool => tool.name === "read").sourceInfo.path, prettyExtension);
 	assert.equal(receipt.details.tools.find(tool => tool.name === "bash").sourceInfo.path, compactExtension);
 	assert.equal(receipt.details.tools.find(tool => tool.name === "codemode").sourceInfo.path, compactExtension);

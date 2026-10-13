@@ -1,3 +1,6 @@
+import { restoreRegistration } from "./package-registration.mjs";
+import { assertConfigurationTargets, restoreNativeConfig } from "./subagents-config.mjs";
+import { restorePrettyReceipt } from "./pretty-config.mjs";
 import { lstat, mkdir, mkdtemp, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
@@ -108,7 +111,7 @@ async function containsProtectedRoot(entry, roots) {
 	return false;
 }
 
-export async function applyMigration({ plan, agentDir, register, rollbackRegistration, verify }) {
+export async function applyMigration({ plan, agentDir, register, rollbackRegistration, verify, configuration }) {
 	if (plan.blockers.length) throw new Error(plan.blockers.join("\n"));
 	const backupRoot = join(agentDir, BACKUP_DIRECTORY);
 	// Independently protect the backup location before creating or moving anything.
@@ -128,10 +131,10 @@ export async function applyMigration({ plan, agentDir, register, rollbackRegistr
 	let backup;
 	let manifest;
 	try {
-		if (plan.moves.length) {
+		if (plan.moves.length || configuration) {
 			const timestamp = new Date().toISOString().replaceAll(":", "-");
 			backup = await mkdtemp(join(backupRoot, `${timestamp}-`));
-			manifest = { version: MANIFEST_VERSION, state: "prepared", entries: plan.moves.map((move, index) => ({ ...move, stored: `${index}-${basename(move.original)}` })) };
+			manifest = { version: MANIFEST_VERSION, configuration, state: "prepared", entries: plan.moves.map((move, index) => ({ ...move, stored: `${index}-${basename(move.original)}` })) };
 			await writeManifest(backup, manifest);
 			for (const entry of manifest.entries) await rename(entry.original, join(backup, entry.stored));
 			manifest.state = "moved";
@@ -140,6 +143,7 @@ export async function applyMigration({ plan, agentDir, register, rollbackRegistr
 		await register();
 		await verify();
 		if (manifest) {
+			if (configuration?.prettyReceipt) manifest.configuration.pretty = configuration.prettyReceipt();
 			manifest.state = "installed";
 			await writeManifest(backup, manifest);
 		}
@@ -161,6 +165,7 @@ export async function restoreBackup(backupPath, { dryRun = false } = {}) {
 	const manifest = JSON.parse(await readFile(join(backup, MANIFEST_NAME), "utf8"));
 	if (manifest.version !== MANIFEST_VERSION || !Array.isArray(manifest.entries)) throw new Error("Unsupported backup manifest.");
 	const pending = [];
+	const configurationPaths = [];
 	for (const entry of manifest.entries) {
 		if (!isAbsolute(entry.original) || typeof entry.stored !== "string" || basename(entry.stored) !== entry.stored || [".", ".."].includes(entry.stored)) throw new Error("Invalid backup entry.");
 		const stored = join(backup, entry.stored);
@@ -171,6 +176,15 @@ export async function restoreBackup(backupPath, { dryRun = false } = {}) {
 		if (await exists(entry.original)) throw new Error(`Restoration would overwrite ${entry.original}. Move that entry aside first.`);
 		pending.push({ ...entry, storedPath: stored });
 	}
+	if (manifest.configuration && manifest.state !== "restored") {
+		const { settingsPath, previousSettings, packageRoot, companionPackages, native, pretty } = manifest.configuration;
+		await assertConfigurationTargets(native);
+		configurationPaths.push(settingsPath);
+		if (!dryRun) await restoreRegistration(settingsPath, previousSettings, packageRoot, companionPackages);
+		configurationPaths.push(...await restoreNativeConfig(native, { dryRun }));
+		if (pretty) configurationPaths.push(pretty.path);
+		if (!dryRun && pretty) await restorePrettyReceipt(pretty);
+	}
 	if (!dryRun) {
 		for (const entry of pending) {
 			await mkdir(dirname(entry.original), { recursive: true });
@@ -179,7 +193,7 @@ export async function restoreBackup(backupPath, { dryRun = false } = {}) {
 		manifest.state = "restored";
 		await writeManifest(backup, manifest);
 	}
-	return pending.map(({ original }) => original);
+	return [...new Set([...pending.map(({ original }) => original), ...configurationPaths])];
 }
 
 async function writeManifest(backup, manifest) {

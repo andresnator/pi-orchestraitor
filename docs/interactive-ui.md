@@ -1,13 +1,13 @@
 # See delegated work, tasks and decisions without replacing Pi
 
-The optional UI extension adds read-only agents/tasks panels, a compact task work header, one native-footer status and a unified question tool. Pi still owns the editor, application keybindings, native model/context/usage display and execution. This is presentation and branch-local task replay, not another scheduler or durable SDD recovery.
+The optional UI extension adds a read-only tasks panel and native Fleet coexistence, a compact task work header, one native-footer status and a unified question tool. Pi still owns the editor, application keybindings, native model/context/usage display and execution. This is presentation and branch-local task replay, not another scheduler or durable SDD recovery.
 
 The installer also registers the separate [pi-pretty companion](pi-pretty.md). It owns read/bash presentation and its prompt-editor/activity customization; this UI extension still owns only the harness widget, status and foreground interactions.
 
 ## Quick path
 
 1. Ask the coordinator to use tasks for substantial authorized work; small changes need no list.
-2. Open `/orchestraitor:agents` or `/orchestraitor:tasks` for detail.
+2. Open `/subagents-fleet` or `/orchestraitor:tasks` for detail.
 3. Use `/orchestraitor:tasks expand` or `collapse` to adjust the work header.
 4. Use `/orchestraitor:ui hide` or `show` for passive chrome only. Questions and execution remain active.
 
@@ -17,18 +17,18 @@ Only native TUI mode creates components. In RPC, JSON and print, tasks still wor
 
 | Responsibility | Owner |
 | --- | --- |
-| Child execution, cancellation, termination, safety lock and accounting | Existing `subagent_run` / `BatchController`; UI observes native progress only. |
+| Child execution, cancellation, lifecycle, artifacts and cost | Native pi-subagents. |
 | Harness widget/status keys and foreground modal | `extensions/status-ui.ts`; one owner, no foreign keys/factories replaced. |
-| Agent observations and bounded branch outcomes | `extensions/ui/agents.ts`; active batch plus at most 20 recent outcomes. |
+| Agent observation and control | Native Fleet and `/subagents-fleet`. |
 | Task authority | Validated successful native `orchestraitor_tasks` results on the active branch, replayed by `extensions/ui/tasks.ts`. |
 | Requirements/preferences | One `orchestraitor_ask` schema and interaction in `extensions/ui/questions.ts`. |
 | Safe terminal display | Native `extensions/ui/display.ts`; original IDs and opaque values remain untouched. |
 
 ## Panels and compact chrome
 
-The agents panel shows assignment order, IDs, roles, requested/effective model evidence, phases and bounded diagnostics. Starting/running/stopping are not failure or acceptance. Runtime completion is not parent acceptance; absent effective-model or nested historical evidence stays unavailable. Panels cannot launch, retry, grant, resume or cancel work.
+Native Fleet owns agent observation and control; the harness no longer creates an agents panel. See [native subagents](subagents.md) for lifecycle and acceptance.
 
-Tasks start collapsed as one row. Expanded chrome uses at most five rows; short terminals temporarily collapse it. Empty lists contribute no task row. Full detail remains in the task panel. The footer contributes one status with this precedence: known launch block, awaiting input, active agents; idle contributes nothing. Native counters are not repeated.
+Tasks start collapsed as one row. Expanded chrome uses at most five rows; short terminals temporarily collapse it. Empty lists contribute no task row. Full detail remains in the task panel. The footer contributes one status for awaiting input; idle contributes nothing, and Fleet owns agent status. Native counters are not repeated.
 
 Selection, scrolling, submission and cancellation use native configurable actions. Check `/hotkeys` and Pi's keybinding documentation rather than relying on a hardcoded shortcut. Read-only panels also close with Escape. The extension never replaces the main editor/header/footer, registers global shortcuts, or changes personal themes.
 
@@ -129,17 +129,16 @@ PI_OFFLINE=1 PI_TELEMETRY=0 pi \
   --no-themes --no-context-files --tui-mode fullscreen --use-theme dark \
   -e "$HARNESS/extensions/instructions.ts" \
   -e "$HARNESS/extensions/compact-tools.ts" \
-  -e "$HARNESS/extensions/subagents.ts" \
   -e "$HARNESS/extensions/status-ui.ts" \
   -e "$HARNESS/tests/fixtures/ui-smoke.ts" \
   --model ui-smoke/model --thinking off --session-dir "$RUN/sessions"
 ```
 
-Repeat in a fresh run with `--tui-mode regular`. This synthetic launch deliberately omits MCP; separate complete-package integration/service checks cover the fifth entrypoint and real services. The test-only fixture supplies a local parent provider and loopback SSE provider for actual production guarded child sessions. It creates only owned scratch files/configuration and a foreign keyed widget/status for coexistence. It refuses unrelated `models.json` overwrites. It does not copy the production UI or directly execute its model-only tools. No fixture code ships in the package.
+Repeat in a fresh run with `--tui-mode regular`. This synthetic launch deliberately omits MCP; separate complete-package integration/service checks cover the fifth entrypoint and real services. The test-only fixture supplies a local parent provider for actual task/question execution. It creates only owned scratch files/configuration and a foreign keyed widget/status for coexistence. It refuses unrelated `models.json` overwrites. It does not copy the production UI or directly execute its model-only tools. No fixture code ships in the package.
 
 Commands in that isolated run:
 
-- Agents: `/ui-smoke two`, `writer`, `failure`, `cancel`, `retry`; open `/orchestraitor:agents`. Cancellation writes a synthetic partial file before waiting; close the panel and use native parent interruption, then verify actual bytes, write ledger, confirmed exit and retry.
+- Agents: use the separately isolated pinned pi-subagents procedure in [subagents.md](subagents.md).
 - Tasks: `/ui-smoke tasks-create`, `tasks-start`, `tasks-block`, `tasks-done`, `tasks-reopen`; inspect, collapse/expand, hide/show. These are explicit synthetic parent decisions, not automatic child acceptance.
 - Questions: `/ui-smoke single` and `/ui-smoke form`; choose predefined harmless markers, edit synthetic Unicode text, correct, submit or cancel. Inspect exact native results.
 
@@ -170,4 +169,4 @@ Pi 1.0.2 fresh CLI startup can persist `lastChangelogVersion` in its settings, e
 
 ## Next step
 
-See [bounded subagents](subagents.md) for guards, cancellation and usage completeness, [architecture](architecture/index.md) for responsibility boundaries, and [verification](verification.md) for observed results and limitations. This guide specifies a procedure; it does not predeclare its outcome.
+See [native subagents](subagents.md) for lifecycle, artifacts and accounting, [architecture](architecture/index.md) for responsibility boundaries, and [verification](verification.md) for observed results and limitations. This guide specifies a procedure; it does not predeclare its outcome.

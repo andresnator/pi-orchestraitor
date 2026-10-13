@@ -30,19 +30,8 @@ async function findHostRoot() {
 	} catch (error) {
 		if (error.code !== "ENOENT") throw error;
 	}
-	const executable = execFileSync("which", ["pi"], { encoding: "utf8" }).trim();
-	let directory = dirname(await realpath(executable));
-	while (true) {
-		try {
-			const manifest = JSON.parse(await readFile(join(directory, "package.json"), "utf8"));
-			if (manifest.name === EXPECTED_HOST_NAME) return directory;
-		} catch (error) {
-			if (error.code !== "ENOENT") throw error;
-		}
-		const parent = dirname(directory);
-		if (parent === directory) throw new Error("Cannot locate Pi package; set PI_TEST_PACKAGE_DIR.");
-		directory = parent;
-	}
+	const { findHostRoot: findSelectedHost } = await import("../../scripts/pi-host.mjs");
+	return findSelectedHost();
 }
 
 export async function createWorkspace(t) {

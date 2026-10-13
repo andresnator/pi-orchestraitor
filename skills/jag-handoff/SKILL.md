@@ -3,7 +3,7 @@ name: jag-handoff
 description: "Write a redacted, portable Markdown handoff for the next session's stated task."
 disable-model-invocation: true
 license: MIT
-compatibility: "Pi 1.0.4; explicit user invocation; no durable execution recovery."
+compatibility: "Pi 1.2.0; explicit user invocation; no durable execution recovery."
 metadata:
   author: "Matt Pocock"
   adapted_by: "pi-orchestraitor"

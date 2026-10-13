@@ -62,7 +62,7 @@ Exclude `extensions/nan.ts` from this package through `pi config` to disable the
 
 ## Troubleshooting
 
-- **NAN is absent from `/login`:** reload the package and verify `extensions/nan.ts` is enabled. The current tested host is Pi 1.0.4.
+- **NAN is absent from `/login`:** reload the package and verify `extensions/nan.ts` is enabled. The current deterministic checks use Pi 1.2.0.
 - **NAN models are absent from `/model`:** provide a stored key or `NAN_API_KEY`; unconfigured models remain unavailable.
 - **401:** check the key and requested model's membership tier. The premium model may fail while Flash models work.
 - **402 / 429:** check quota, request rate, and concurrent work rather than repeatedly logging in.
@@ -72,7 +72,7 @@ Exclude `extensions/nan.ts` from this package through `pi config` to disable the
 
 `node --test tests/nan.test.mjs` covers catalog metadata, native secret login/logout, environment fallback, cancellation, mocked native text/tool streaming, usage and request fields, reload/default preservation, and personal overrides. Package tests exercise NAN from extracted pnpm/npm tarballs. These checks use synthetic keys and mocked responses, not real NAN credentials or membership.
 
-The implementation follows installed Pi 1.0.4 provider/auth contracts. Context7 did not offer an indexed 1.0.4 version; installed documentation and types were the version-specific authority.
+The implementation originally followed installed Pi 1.0.4 provider/auth contracts and has been rechecked deterministically on Pi 1.2.0. Installed documentation and types are the version-specific authority; real-provider delegation through pi-subagents remains pending.
 
 - [NAN Pi setup](https://nan.builders/docs/pi)
 - [NAN API keys and getting started](https://nan.builders/docs/getting-started)

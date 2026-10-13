@@ -60,7 +60,7 @@ async function worker(mode) {
 		const startupMs = performance.now() - started;
 		const promptOptions = session.extensionRunner.createCommandContext().getSystemPromptOptions();
 		const promptStarted = performance.now();
-		const prepared = await session.extensionRunner.emitBeforeAgentStart("Inspect a synthetic fixture", undefined, structuredClone(promptOptions));
+		const prepared = await session.extensionRunner.emitBeforeAgentStart({ messageType: "user", prompt: "Inspect a synthetic fixture" }, structuredClone(promptOptions));
 		const promptPreparationMs = performance.now() - promptStarted;
 		const prompt = buildSystemPrompt(prepared.systemPromptOptions);
 		const active = new Set(prepared.systemPromptOptions.selectedTools);
@@ -86,7 +86,7 @@ async function worker(mode) {
 			result.skillWorkflow = { matched: loadArgs.name, search: size(lookup.content[0].text), load: size(loaded.content[0].text),
 				calls: size(JSON.stringify([{ name: registryTool.name, arguments: searchArgs }, { name: registryTool.name, arguments: loadArgs }])),
 				registrySnapshot: size(await readFile(join(temporary, ".ai/skills/registry.md"), "utf8")) };
-			result.skillWorkflow.refreshMs = await timings(() => session.extensionRunner.emitBeforeAgentStart("Inspect a synthetic fixture", undefined, structuredClone(promptOptions)), SKILL_TIMING_OPTIONS);
+			result.skillWorkflow.refreshMs = await timings(() => session.extensionRunner.emitBeforeAgentStart({ messageType: "user", prompt: "Inspect a synthetic fixture" }, structuredClone(promptOptions)), SKILL_TIMING_OPTIONS);
 			result.skillWorkflow.searchMs = await timings(() => registryTool.execute("search", searchArgs, undefined, undefined, skillCtx), SKILL_TIMING_OPTIONS);
 			result.skillWorkflow.loadMs = await timings(() => registryTool.execute("load", loadArgs, undefined, undefined, skillCtx), SKILL_TIMING_OPTIONS);
 		} else {
@@ -105,18 +105,6 @@ async function worker(mode) {
 		const updated = await tool.execute("update", params, undefined, undefined, ctx);
 		result.taskResponse = size(updated.content.map(block => block.text ?? "").join(""));
 		result.taskUpdateMs = await timings(() => tool.execute("update", params, undefined, undefined, ctx));
-		const controller = globalThis[Symbol.for("pi-orchestraitor.subagent-controller")];
-		const originalRun = controller.run;
-		try {
-			controller.run = async manifests => manifests.map(manifest => ({ id: manifest.id, role: manifest.role, cwd: manifest.cwd,
-				model: manifest.model, reasoning: manifest.reasoning, status: "completed", finalResponse: "Observed synthetic marker at fixture.txt:1; tests remain parent-owned.",
-				writes: [], diagnostic: "", terminated: true, usageComplete: true,
-				usage: { input: 100, output: 20, cacheRead: 0, cacheWrite: 0, totalTokens: 120, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } }));
-			const model = { provider: "fixture", id: "benchmark" };
-			const childResult = await session.getToolDefinition("subagent_run").execute("handoff", { tasks: [{ role: "review", instruction: "Inspect synthetic marker" }] },
-				undefined, undefined, { ...ctx, model, modelRegistry: { getAvailable: () => [model] } });
-			result.subagentResponse = { compact: size(childResult.content[0].text), fullReceipt: size(JSON.stringify(childResult.details.results, null, 2)) };
-		} finally { controller.run = originalRun; }
 		// Measure native UI projection hooks without terminal I/O.
 		const probe = join(temporary, "probe.ts");
 		await writeFile(probe, `import statusUI from ${JSON.stringify(join(ROOT, "extensions/status-ui.ts"))};\nexport default function(pi) { pi.registerTool({name:"bench_probe", label:"Probe", description:"Offline probe", parameters:{type:"object",properties:{}}, execute:async()=>({content:[],details:{statusUI}})}); }`);
@@ -156,9 +144,9 @@ async function main(args) {
 	const fingerprint = createHash("sha256");
 	for (const file of tracked) { fingerprint.update(file + "\0"); fingerprint.update(await readFile(join(ROOT, file)).catch(error => { if (error.code === "ENOENT") return "<deleted>"; throw error; })); }
 	const host = await findHostRoot();
-	const report = { version: 3, recordedAt: new Date().toISOString(), node: process.version, pi: JSON.parse(await readFile(join(host, "package.json"), "utf8")).version,
+	const report = { version: 4, recordedAt: new Date().toISOString(), node: process.version, pi: JSON.parse(await readFile(join(host, "package.json"), "utf8")).version,
 		platform: process.platform, revision: execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim(), treeSha256: fingerprint.digest("hex"),
-		limitations: ["No model or MCP requests; estimatedTokens uses characters/4, not a tokenizer.", "Startup and idle samples use print mode; first prompt preparation is measured separately.", "Hook samples use a simulated native Pi UI without terminal I/O and with 10,000 entries.", "Subagent response sizes use a synthetic controller receipt; no child is started.", "Skill workflow uses one deterministic English search and jag-code; protocol wrappers, missed searches, caching and task quality are not modeled."], modes: {} };
+		limitations: ["No model or MCP requests; estimatedTokens uses characters/4, not a tokenizer.", "Startup and idle samples use print mode; first prompt preparation is measured separately.", "Hook samples use a simulated native Pi UI without terminal I/O and with 10,000 entries.", "Native pi-subagents is validated separately; this benchmark measures the harness only.", "Skill workflow uses one deterministic English search and jag-code; protocol wrappers, missed searches, caching and task quality are not modeled."], modes: {} };
 	for (const mode of MODES) report.modes[mode] = { samples: [] };
 	for (let round = 0; round < options.samples; round++) for (const mode of MODES) {
 		const { stdout } = await runFile(process.execPath, [fileURLToPath(import.meta.url), "--worker", mode], { cwd: ROOT, timeout: 30000, maxBuffer: 1024 * 1024 });
