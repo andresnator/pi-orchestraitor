@@ -22,8 +22,8 @@ async function main() {
 	const pi = await importPi();
 	const cwd = resolve(options.cwd ?? process.cwd());
 	const agentDir = pi.getAgentDir();
-	const prettySource = JSON.parse(await readFile(join(PACKAGE_ROOT, "package.json"), "utf8")).config.piPretty;
-	const companionPackages = options.withoutPretty ? [] : [prettySource];
+	const { piPretty, piClaudeBridge } = JSON.parse(await readFile(join(PACKAGE_ROOT, "package.json"), "utf8")).config;
+	const companionPackages = [...(options.withoutPretty ? [] : [piPretty]), piClaudeBridge];
 	const catalog = JSON.parse(await readFile(join(PACKAGE_ROOT, "docs/skills-provenance.json"), "utf8")).skills;
 	const settingsPath = join(options.local ? join(cwd, ".pi") : agentDir, "settings.json");
 	const previousSettings = await exists(settingsPath) ? await readFile(settingsPath, "utf8") : undefined;

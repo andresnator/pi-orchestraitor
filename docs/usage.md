@@ -16,9 +16,9 @@ pnpm run install:pi
 
 `pnpm run` puts the local Pi CLI on PATH. The installer recognizes its `.bin` shim and resolves the linked package's canonical SDK root; no `PI_TEST_PACKAGE_DIR` override is needed. The selected executable still controls host discovery, so npm-style symlink/global installations continue to work. Keep the checkout available; use `pnpm exec pi` if you want to start the local CLI.
 
-The preview lists every matching standalone skill, including multiple discovery aliases for the same source, and any blocking conflicts. Installation moves matching entries into a recoverable backup, registers this directory through native `pi install`, and verifies that all 56 skills resolve to the bundled adaptations. It also installs `@heyhuynhgiabuu/pi-pretty@0.6.30` through native Pi package management in the same user/project scope. Restart Pi or run `/reload` afterward.
+The preview lists every matching standalone skill, including multiple discovery aliases for the same source, and any blocking conflicts. Installation moves matching entries into a recoverable backup, registers this directory through native `pi install`, and verifies that all 56 skills resolve to the bundled adaptations. It also installs `@heyhuynhgiabuu/pi-pretty@0.6.30` and `pi-claude-bridge@0.9.2` through native Pi package management in the same user/project scope. Restart Pi or run `/reload` afterward.
 
-The installer adds `bash` to Pretty's `disableTools`, preserving other preferences, so the harness honors `shellPath` and `shellCommandPrefix`. It uses `PRETTY_CONFIG_DIR` or Pretty's default `$HOME/.pi/agent/`, independently of installation scope. A nonempty `PRETTY_DISABLE_TOOLS` list must include `bash`; an incompatible override stops installation before file changes. Use `--without-pretty` to install only the harness; this leaves any existing Pretty registration and configuration intact. `--dry-run` lists companion packages and the planned configuration path/adjustment without writes or downloads.
+The installer adds `bash` to Pretty's `disableTools`, preserving other preferences, so the harness honors `shellPath` and `shellCommandPrefix`. It uses `PRETTY_CONFIG_DIR` or Pretty's default `$HOME/.pi/agent/`, independently of installation scope. A nonempty `PRETTY_DISABLE_TOOLS` list must include `bash`; an incompatible override stops installation before file changes. Use `--without-pretty` to omit Pretty while still installing the harness and Claude Bridge; this leaves any existing Pretty registration and configuration intact. `--dry-run` lists companion packages and the planned configuration path/adjustment without writes or downloads.
 
 For a project installation:
 
@@ -41,7 +41,7 @@ Another package's skills and source repository files require configuration chang
 
 Migration stays within each configured skill discovery root. It preserves configuration roots, checks the skill directory itself for repository ownership, and moves a configured symlink tree by its link. If the host cannot establish a discovery boundary, installation stops before moving files.
 
-A failed registration or skill-loading check rolls back both package declarations, the Pretty bash exclusion and the moved skills. Original source text, versions, resource filters and package order are restored; downloaded npm cache files may remain. Rollback recognizes Pi's local path forms, including `~/` sources, and whitespace after `npm:`, while preserving unrelated concurrent settings and Pretty preferences. If a new entry occupies an original path, rollback keeps it and reports the backup requiring attention. Repeated installation finds no further moves once conflicts are gone.
+A failed registration or skill-loading check rolls back all installer-owned package declarations, the Pretty bash exclusion and the moved skills. Original source text, versions, resource filters and package order are restored; downloaded npm cache files may remain. Rollback recognizes Pi's local path forms, including `~/` sources, and whitespace after `npm:`, while preserving unrelated concurrent settings and Pretty preferences. If a new entry occupies an original path, rollback keeps it and reports the backup requiring attention. Repeated installation finds no further moves once conflicts are gone.
 
 To uninstall and recover:
 
@@ -49,6 +49,7 @@ To uninstall and recover:
 pi remove /absolute/path/to/pi-orchestraitor
 # Remove the companion separately if desired:
 pi remove npm:@heyhuynhgiabuu/pi-pretty
+pi remove npm:pi-claude-bridge
 # Add --local when removing a project installation.
 pnpm run install:pi --restore /absolute/path/to/backup --dry-run
 pnpm run install:pi --restore /absolute/path/to/backup
@@ -56,7 +57,7 @@ pnpm run install:pi --restore /absolute/path/to/backup
 
 Restoration refuses to overwrite existing entries. Restore multiple backups in reverse installation order. Re-enable the original compact extension if needed, then restart Pi. A stale migration lock is reported with its exact path; inspect any interrupted migration before removing that lock.
 
-Native `pi install /path/to/package` also discovers bundled skills, but does not perform this migration or install/configure the separate Pretty companion. Manual Pretty installations must disable its bash tool; see the [Pretty integration guide](pi-pretty.md). Use `install:pi` for conflict removal and effective-loading verification.
+Native `pi install /path/to/package` also discovers bundled skills, but does not perform this migration or install the separate Pretty or Claude Bridge companions or configure Pretty. Manual Pretty installations must disable its bash tool; see the [Pretty integration guide](pi-pretty.md). Use `install:pi` for conflict removal and effective-loading verification.
 
 ## First use
 
@@ -89,6 +90,7 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 | --- | --- |
 | `extensions/compact-tools.ts` | Compact bash/edit/write/codemode presentation, plus a read fallback. Bash uses effective shell settings; conflicting owners are reported and blocked. Expand to inspect arguments, results and error explanations. |
 | `@heyhuynhgiabuu/pi-pretty@0.6.30` | Separately installed companion: highlighted reads, FFF-backed find/grep, prompt editor and activity indicators. Its bash tool is disabled for harness ownership. |
+| `pi-claude-bridge@0.9.2` | Separately installed companion through `install:pi`; Claude Code bridge. Authentication and model selection remain user-controlled. |
 | `extensions/btw/index.ts` | Temporary 70% side-conversation panel; no tools or local history, explicit `/bring` imports only. |
 | `extensions/instructions.ts` | Adds core, execution, and personality sections while preserving Pi and project instructions. |
 | `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. |
@@ -191,7 +193,7 @@ pnpm run test:personality
 - `test:personality` makes bounded calls to the configured Pi model in isolated sessions. It writes synthetic transcripts for manual scoring; it uses the configured account and consumes model quota.
 - Packing includes extensions, instructions, skills, scripts, docs, and licenses. Tests, `.ai` reports, personal settings, credentials, and memory databases are excluded.
 
-Tests prefer the canonical Pi development host installed by pnpm and propagate its SDK root to installer subprocesses. `pnpm test` also puts the local CLI on PATH. Private dependency fixtures resolve through the host's module tree rather than assuming nested `node_modules`. Set `PI_TEST_PACKAGE_DIR` to explicitly test another installed host root; without a local host, tests fall back to Pi on PATH. Packing integration covers both pnpm and npm for compatibility. The installer inventory adapter and some integration checks depend on host internals and need revalidation after a Pi upgrade. The adapter checks that its required host hooks exist before migration. Peers use `*` because Pi supplies them; the original baseline used Pi 1.0.0 and current deterministic checks run on Pi 1.0.4, with the codemode fixture updated to supply the host's prompt-guidelines callback. Historical live UI evidence retains its recorded host version. Revalidate on upgrades. The UI guide documents native dynamic-selection versus persistent-exclusion behavior on reload. The established test convention is `node:test` with `node:assert`.
+Tests prefer the canonical Pi development host installed by pnpm and propagate its SDK root to installer subprocesses. `pnpm test` also puts the local CLI on PATH. Private dependency fixtures resolve through the host's module tree rather than assuming nested `node_modules`. Set `PI_TEST_PACKAGE_DIR` to explicitly test another installed host root; without a local host, tests fall back to Pi on PATH. Automated packing integration covers npm; pnpm extracted-package validation is manual. See the [console guide](manual-package-check.md), including the offline metadata-cache limitation. The installer inventory adapter and some integration checks depend on host internals and need revalidation after a Pi upgrade. The adapter checks that its required host hooks exist before migration. Peers use `*` because Pi supplies them; the original baseline used Pi 1.0.0 and current deterministic checks run on Pi 1.0.4, with the codemode fixture updated to supply the host's prompt-guidelines callback. Historical live UI evidence retains its recorded host version. Revalidate on upgrades. The UI guide documents native dynamic-selection versus persistent-exclusion behavior on reload. The established test convention is `node:test` with `node:assert`.
 
 See [verification evidence](verification.md) and [attribution](../THIRD_PARTY_NOTICES.md).
 

@@ -1,5 +1,6 @@
 .ai/
 node_modules/
+.pi/npm/
 *.tgz
 .ai/orchestration/
 .ai/verification/

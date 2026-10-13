@@ -16,11 +16,11 @@ pnpm run install:pi --dry-run
 pnpm run install:pi
 ```
 
-Review the preview before installing: the installer moves conflicting standalone skills into a recoverable backup and installs the pinned Pi Pretty companion. Shared `~/.agents/skills` entries may also be used by other agents. Use `--without-pretty` to omit the companion.
+Review the preview before installing: the installer moves conflicting standalone skills into a recoverable backup and installs the pinned Pi Pretty and `pi-claude-bridge@0.9.2` companions. Shared `~/.agents/skills` entries may also be used by other agents. Use `--without-pretty` to omit Pretty only; Claude Bridge remains included.
 
 Keep the checkout available, then restart Pi or run `/reload`; use `pnpm exec pi` to start the local CLI. The installer registers this directory without replacing your global Pi installation. If an original standalone `compact-tools` or `btw` extension is enabled, disable that copy through `pi config` first; keep its files for recovery.
 
-For a clean profile without skill migration or the Pretty companion, native Git installation is also supported with SSH access:
+For a clean profile without skill migration or either companion, native Git installation is also supported with SSH access:
 
 ```bash
 pi install git:git@github.com:andresnator/pi-orchestraitor.git
@@ -64,6 +64,8 @@ pnpm install --frozen-lockfile
 pnpm test
 pnpm pack --dry-run --ignore-scripts
 ```
+
+The npm extracted-package check remains automated. For the pnpm tarball check, follow the [manual console guide](docs/manual-package-check.md); it is no longer a CI test.
 
 The install policy keeps a 24-hour release cooldown and blocks dependency build scripts; see [development security](docs/usage.md#development-security). The test host is development-only and is not bundled.
 

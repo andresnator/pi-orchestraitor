@@ -10,6 +10,12 @@ The current deterministic baseline is Pi 1.0.4, Node 22.19+, and pnpm 12.9.1. En
 | `pnpm run install:pi --dry-run` | Complete lexical discovery inventory, including aliases hidden by native deduplication, and proposed standalone-skill moves, without migration or registration. |
 | `pnpm pack --dry-run --ignore-scripts` | Distributed resource inventory and exclusion of tests, local reports, and personal data. |
 
+## Manual pnpm tarball validation
+
+The pnpm extracted-package variant was removed from the automated suite at the user's request after offline dependency setup failed on missing registry metadata (`ERR_PNPM_NO_OFFLINE_META`). The equivalent npm packing case remains automated. This reduces automatic pnpm-specific packaging coverage; a green suite does not prove the pnpm tarball was validated.
+
+Use the [manual console guide](manual-package-check.md) to create and load the pnpm tarball outside the checkout. Do not treat historical pnpm/npm packing receipts below as a fresh run of that manual check.
+
 ## Initial private Git distribution and CI
 
 The package is distributed through the private `andresnator/pi-orchestraitor` GitHub repository. `private: true` prevents accidental npm publication; the explicit Pi manifest and host-provided peers remain unchanged.
