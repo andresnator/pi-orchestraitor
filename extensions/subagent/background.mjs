@@ -68,12 +68,16 @@ export function collectedIds(entries) {
 	}
 	return delivered;
 }
-/** Result visibility is branch-local; accounting deduplication can be session-wide. */
+const interrupted = ({ id, role }) => ({ id, role, status: "interrupted", finalResponse: "", writes: [], usageComplete: false,
+	diagnostic: "No result receipt on this branch: the host exited or the session moved before the reader finished. Children are never resumed; usage is unknown." });
+/** Result visibility is branch-local; accounting deduplication can be session-wide.
+ * Recovery runs after live jobs are cleared, so a receipt without a result can never finish: it becomes a terminal result. */
 export function recoverReceipts(entries, delivered = collectedIds(entries)) {
 	const pending = new Map();
 	for (const entry of entries) {
 		if (entry.type === "custom" && entry.customType === RECEIPT && entry.data?.id) pending.set(entry.data.id, entry.data);
 	}
 	for (const id of delivered) pending.delete(id);
+	for (const [id, receipt] of pending) if (!receipt.result) pending.set(id, { ...receipt, state: "interrupted", result: interrupted(receipt) });
 	return pending;
 }

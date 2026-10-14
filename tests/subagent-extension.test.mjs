@@ -37,6 +37,7 @@ async function fixture(t, results = []) {
 	assert.deepEqual(loaded.errors, []);
 	loaded.runtime.getThinkingLevel = () => "high";
 	loaded.runtime.getActiveTools = () => ["read", "edit", "write", "subagent_run"];
+	loaded.runtime.getSettings = () => ({});
 	const extension = loaded.extensions[0];
 	const models = [{ provider: "fixture", id: "first", reasoning: true }, { provider: "fixture", id: "second", reasoning: true }];
 	const ctx = { cwd, model: models[0], modelRegistry: { getAvailable: () => models }, scopedModels: [] };

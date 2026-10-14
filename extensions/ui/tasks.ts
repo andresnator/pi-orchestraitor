@@ -162,40 +162,42 @@ export function replayTaskActivity(branch: any[]): { state: TaskState; activity:
 
 export function replayTasks(branch: any[]): TaskState { return replayTaskActivity(branch).state; }
 
-async function repositoryRoot(cwd: string, required = false) {
+/** The repository root, or the cwd realpath outside git; list reports it as the binding project identity. */
+async function repositoryRoot(cwd: string) {
 	const original = await realpath(cwd);
 	let candidate = original;
 	while (true) {
 		try { await lstat(join(candidate, ".git")); return candidate; }
 		catch (error: any) { if (error.code !== "ENOENT") throw error; }
 		const parent = dirname(candidate);
-		if (parent === candidate) {
-			if (required) throw new Error("Plan binding requires a repository root");
-			return original;
-		}
+		if (parent === candidate) return original;
 		candidate = parent;
 	}
 }
 
-/** Called before mutations or display refreshes, never from a render callback. */
-export async function checkTaskBinding(binding: PlanBinding | undefined, cwd: string): Promise<boolean> {
-	if (!binding) return true;
+/** Names what did not match, or undefined when the bound plan is current. */
+async function bindingMismatch(binding: PlanBinding, cwd: string): Promise<string | undefined> {
 	try {
 		validateBinding(binding);
-		const root = await repositoryRoot(cwd, true);
-		if (binding.project !== root) return false;
+		const root = await repositoryRoot(cwd);
+		if (binding.project !== root) return `project ${binding.project} is not the project identity ${root}`;
 		const target = await realpath(resolve(root, binding.path));
 		const path = relative(root, target);
-		if (isAbsolute(path) || path === ".." || path.startsWith("../")) return false;
-		return createHash("sha256").update(await readFile(target)).digest("hex") === binding.sha256;
-	} catch { return false; }
+		if (isAbsolute(path) || path === ".." || path.startsWith("../")) return `${binding.path} resolves outside the project`;
+		if (createHash("sha256").update(await readFile(target)).digest("hex") !== binding.sha256) return `${binding.path} changed since its SHA-256 was recorded`;
+	} catch (error: any) { return `${binding.path} could not be verified (${error.code ?? error.message})`; }
+}
+
+/** Called before mutations or display refreshes, never from a render callback. */
+export async function checkTaskBinding(binding: PlanBinding | undefined, cwd: string): Promise<boolean> {
+	return !binding || !await bindingMismatch(binding, cwd);
 }
 
 export function createTaskTool(getGeneration: () => number): ToolDefinition {
 	return {
 		name: TASK_TOOL_NAME, label: "Work tasks", exposure: "model-only", executionMode: "sequential",
 		annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
-		description: "Track authorized branch work: replace/add/update/list/clear. Mutations require expectedRevision; done needs parent evidence, reopening a reason. Reuse returned revisions; list retrieves the complete board and project identity. Prefer sending updates with work calls. Plan binding verifies the plan, not execution recovery.",
+		description: "Track authorized branch work: replace/add/update/list/clear. Mutations require expectedRevision; done needs parent evidence, reopening a reason. Reuse returned revisions; list retrieves the complete board and project identity. Pi runs its whole message sequentially: pair updates with at most one slow call. Plan binding verifies the plan, not execution recovery.",
 		parameters: TaskParameters,
 		async execute(_id, params: TaskOperation, signal, _onUpdate, ctx: ExtensionContext) {
 			const combined = signal && ctx.signal ? AbortSignal.any([signal, ctx.signal]) : signal ?? ctx.signal;
@@ -204,9 +206,11 @@ export function createTaskTool(getGeneration: () => number): ToolDefinition {
 			const before = replayTasks(ctx.sessionManager.getBranch());
 			if (combined?.aborted) throw new Error("Task update cancelled");
 			const state = applyTaskOperation(before, params);
-			const binding = params.binding ?? before.binding;
-			const bindingCurrent = await checkTaskBinding(binding, ctx.cwd);
-			if (params.operation !== "list" && !bindingCurrent) throw new Error("Plan binding is stale: project/path/hash did not match");
+			// Clear drops the binding and a supplied binding replaces it, so only the resulting binding is checked.
+			const mismatch = state.binding && await bindingMismatch(state.binding, ctx.cwd);
+			const bindingCurrent = !mismatch;
+			if (mismatch && params.operation !== "list") throw new Error(params.binding ? `Supplied plan binding does not match: ${mismatch}. Use the projectIdentity from list and the current plan SHA-256.`
+				: `Plan binding is stale: ${mismatch}. Recover with replace and a fresh binding (projectIdentity from list, current SHA-256), or clear to drop the binding.`);
 			const projectIdentity = await repositoryRoot(ctx.cwd);
 			if (combined?.aborted) throw new Error("Task update cancelled");
 			if (generation !== getGeneration() || leaf !== ctx.sessionManager.getLeafId() || JSON.stringify(before) !== JSON.stringify(replayTasks(ctx.sessionManager.getBranch()))) throw new Error("Session changed during task operation; retry from current branch state");

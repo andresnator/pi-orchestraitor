@@ -4,6 +4,7 @@ import { realpath } from "node:fs/promises";
 import { join } from "node:path";
 import { createWorkspace, importHost, packageRoot, pi } from "./helpers/pi-host.mjs";
 import { fakeUIContext } from "./helpers/ui-harness.mjs";
+import { RECEIPT } from "../extensions/subagent/background.mjs";
 const { createAssistantMessageEventStream } = await importHost("node_modules/@earendil-works/pi-ai/dist/index.js");
 const PROGRESS_EVENT = "orchestraitor:subagent-progress";
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
@@ -121,4 +122,56 @@ test("vetoed tree navigation keeps the cancelled background outcome visible", { 
 	assert.match(rendered, /explore · cancelled/);
 	assert.doesNotMatch(rendered, /explore · running/);
 	panel.done({ status: "closed" }); await panelOpen;
+});
+
+test("a recovered receipt without a result is collected once as interrupted while a live reader stays pending", { timeout: 15000 }, async t => {
+	const cwd = await realpath(await createWorkspace(t)), agentDir = join(cwd, "agent"), childStarted = deferred(), replies = [], errors = [];
+	let childStream, childModel, released = false;
+	const release = () => { if (childStream && !released) { released = true; finish(childStream, childModel, "Live child complete"); } };
+	const modelRuntime = await pi.ModelRuntime.create({ authPath: join(agentDir, "auth.json"), modelsPath: null, refreshOnCreate: false });
+	modelRuntime.registerProvider("recovery-fixture", { api: "openai-completions", apiKey: "local", baseUrl: "https://example.invalid", models: [fixtureModel], streamSimple(model, context) {
+		const stream = createAssistantMessageEventStream();
+		if (JSON.stringify(context.messages[0]).includes("bounded child worker")) { childStream = stream; childModel = model; childStarted.resolve(); return stream; }
+		const next = replies.shift() ?? "Parent verified";
+		if (next.action === "wait") void childStarted.promise.then(release);
+		if (typeof next === "string") finish(stream, model, next);
+		else finish(stream, model, [{ type: "toolCall", id: next.id, name: next.name ?? "subagent_collect", arguments: next.arguments ?? { action: next.action } }], "toolUse");
+		return stream;
+	} });
+	const settingsManager = pi.SettingsManager.inMemory({ retry: { enabled: false }, compaction: { enabled: false } });
+	const resourceLoader = new pi.DefaultResourceLoader({ cwd, agentDir, settingsManager, noExtensions: true, noSkills: true, noPromptTemplates: true, noThemes: true, noContextFiles: true,
+		additionalExtensionPaths: [join(packageRoot, "extensions/subagents.ts")] });
+	await resourceLoader.reload();
+	// A host killed after the launch receipt, or navigation back to before the result, leaves only the pending receipt.
+	const sessionManager = pi.SessionManager.inMemory(cwd);
+	sessionManager.appendCustomEntry(RECEIPT, { id: "lost-reader", state: "pending", role: "explore" });
+	const { session } = await pi.createAgentSession({ cwd, agentDir, settingsManager, resourceLoader, modelRuntime, model: (await modelRuntime.getAvailable())[0], tools: ["read", "subagent_run", "subagent_collect"], sessionManager });
+	const ui = fakeUIContext();
+	await session.bindExtensions({ mode: "tui", onError: error => errors.push(error) });
+	session.extensionRunner.setUIContext(ui.ctx.ui, "tui");
+	t.after(async () => { release(); await session.abort(); await session.extensionRunner.emit({ type: "session_shutdown" }); session.dispose(); });
+	const restore = () => session.extensionRunner.emit({ type: "session_start", reason: "startup" });
+	const warnings = () => ui.calls.filter(([kind, message, level]) => kind === "notify" && level === "warning" && /subagent/.test(message));
+	const output = id => JSON.parse(session.sessionManager.getEntries().find(entry => entry.type === "message" && entry.message.toolCallId === id).message.content[0].text);
+	const details = id => session.sessionManager.getEntries().find(entry => entry.type === "message" && entry.message.toolCallId === id).message.details;
+	await restore();
+	assert.equal(warnings().length, 1);
+	replies.push({ id: "launch", name: "subagent_run", arguments: { tasks: [{ role: "explore", instruction: "inspect", mode: "background" }] } },
+		{ id: "status", action: "status" }, { id: "collect", action: "collect" }, { id: "wait", action: "wait" }, "Parent verified", { id: "again", action: "collect" });
+	await within(session.prompt("Inspect the recovered and the live reader"), "parent collection");
+	const live = details("launch").pending[0];
+	const status = output("status");
+	assert.deepEqual(status.live.map(({ id, status }) => ({ id, status })), [{ id: live, status: "running" }]);
+	assert.deepEqual(status.recovered.map(({ id, state, result }) => ({ id, state, status: result?.status })), [{ id: "lost-reader", state: "interrupted", status: "interrupted" }]);
+	assert.deepEqual(output("collect").results.map(({ id, status, finalResponse, usageComplete }) => ({ id, status, finalResponse, usageComplete })),
+		[{ id: "lost-reader", status: "interrupted", finalResponse: "", usageComplete: false }]);
+	assert.deepEqual(output("collect").pending, [live], "The live reader is unaffected by recovery");
+	assert.equal(details("collect").usageComplete, false);
+	assert.deepEqual(output("wait").results.map(({ id, status }) => ({ id, status })), [{ id: live, status: "completed" }]);
+	assert.deepEqual(output("wait").pending, []);
+	await within(session.prompt("Collect again"), "repeated collection");
+	assert.deepEqual(output("again"), { results: [], pending: [] });
+	await restore();
+	assert.equal(warnings().length, 1, "A delivered interrupted receipt no longer warns");
+	assert.deepEqual(errors, []);
 });

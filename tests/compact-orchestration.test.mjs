@@ -4,7 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
 import { stripVTControlCharacters as stripAnsi } from "node:util";
-import { createWorkspace, hostRoot, importHost, isolatedAgentDir, packageRoot, pi } from "./helpers/pi-host.mjs";
+import { createWorkspace, hostRoot, importHost, isolatedAgentDir, packageRoot, pi, renderersFor } from "./helpers/pi-host.mjs";
 
 const { theme } = await importHost("dist/modes/interactive/theme/theme.js");
 const { visibleWidth } = await importHost("node_modules/@earendil-works/pi-tui/dist/index.js");
@@ -29,9 +29,9 @@ async function fixture(t, selection = ["read", "codemode", "subagent_run"], fact
 }
 
 function componentFor(session, name, args, id = "compact-live") {
-	const definition = session.getToolDefinition(name);
-	assert.equal(definition.renderShell, "self", `${name} must use the compact renderer actually selected by Pi`);
-	return new pi.ToolExecutionComponent(name, id, args, { showImages: false }, definition, { requestRender() {} }, session.cwd);
+	const renderers = renderersFor(session, name);
+	assert.equal(renderers.renderShell, "self", `${name} must use the compact renderer actually selected by Pi`);
+	return new pi.ToolExecutionComponent(name, id, args, { showImages: false }, renderers, { requestRender() {} }, session.cwd);
 }
 
 async function executeScript(session, code, component, id = "compact-live") {
@@ -273,7 +273,7 @@ test("shouldKeepCodemodeInactiveOrAbsentAndLeaveForeignCodemodeToolsAlone", asyn
 	for (const selection of [[], ["read"], ["read", "codemode"]]) {
 		const { session } = await fixture(t, selection);
 		assert.deepEqual(session.getActiveToolNames(), selection);
-		if (selection.includes("codemode")) assert.equal(session.getToolDefinition("codemode").renderShell, "self");
+		if (selection.includes("codemode")) assert.equal(renderersFor(session, "codemode").renderShell, "self");
 	}
 	// Passing null explicitly disables the fixture's native extension factory.
 	const disabled = await fixture(t, ["read"], null);
@@ -282,14 +282,14 @@ test("shouldKeepCodemodeInactiveOrAbsentAndLeaveForeignCodemodeToolsAlone", asyn
 		parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
 		async execute() { return { content: [{ type: "text", text: "foreign" }] }; } }));
 	assert.equal(foreign.session.getToolDefinition("codemode").label, "Foreign");
-	assert.equal(foreign.session.getToolDefinition("codemode").renderShell, undefined);
+	assert.equal(renderersFor(foreign.session, "codemode").renderShell, undefined);
 });
 
 test("shouldKeepCompactNativeToolsAndUserSelectionAfterReload", async (t) => {
 	const { session } = await fixture(t);
 	await session.reload();
 	assert.deepEqual(session.getActiveToolNames(), ["read", "codemode", "subagent_run"]);
-	for (const name of ["read", "codemode", "subagent_run"]) assert.equal(session.getToolDefinition(name).renderShell, "self");
+	for (const name of ["read", "codemode", "subagent_run"]) assert.equal(renderersFor(session, name).renderShell, "self");
 	const code = 'text("after-reload-marker");';
 	const component = componentFor(session, "codemode", { code }, "reload-call");
 	const { outcome } = await executeScript(session, code, component, "reload-call");
@@ -299,7 +299,7 @@ test("shouldKeepCompactNativeToolsAndUserSelectionAfterReload", async (t) => {
 	assert.match(component.render(80).map(stripAnsi).join("\n"), /after-reload-marker/);
 });
 
-test("shouldSelectTheCompactCodemodeRendererWhenInstalledPackageStartsInRealPiCli", async (t) => {
+test("shouldKeepPiNativeToolOwnersWhenInstalledPackageStartsInRealPiCli", async (t) => {
 	const cwd = await createWorkspace(t);
 	const agentDir = join(cwd, "agent");
 	await mkdir(agentDir);
@@ -315,7 +315,7 @@ test("shouldSelectTheCompactCodemodeRendererWhenInstalledPackageStartsInRealPiCl
 	// The real CLI reads only temporary configuration, never prompts a model,
 	// and exposes the startup receipt through the native session message command.
 	const output = execFileSync(process.execPath, [join(hostRoot, "dist/cli.js"), "--mode", "rpc", "--no-session", "--no-skills",
-		"--no-prompt-templates", "--no-themes", "--no-context-files", "--tools", "read,codemode,subagent_run", "-e", probe], {
+		"--no-prompt-templates", "--no-themes", "--no-context-files", "--tools", "read,bash,codemode,subagent_run", "-e", probe], {
 		cwd, env: { ...process.env, PI_CODING_AGENT_DIR: agentDir }, encoding: "utf8", timeout: 15_000,
 		input: '{"id":"probe","type":"prompt","message":"/compact-cli-probe"}\n{"id":"messages","type":"get_messages"}\n',
 	});
@@ -325,6 +325,8 @@ test("shouldSelectTheCompactCodemodeRendererWhenInstalledPackageStartsInRealPiCl
 	assert.equal(response.success, true);
 	const receipt = response.data.messages.find((message) => message.customType === "compact-cli-probe");
 	assert.ok(receipt, "CLI startup must bind the installed package before the probe");
-	assert.deepEqual(receipt.details.active, ["read", "codemode", "subagent_run"]);
-	assert.match(JSON.stringify(receipt.details.tools.find((tool) => tool.name === "codemode").sourceInfo), /compact-tools\.ts/);
+	assert.deepEqual(receipt.details.active, ["read", "bash", "codemode", "subagent_run"]);
+	// compact-tools only selects renderers; the in-process tests above resolve them as interactive mode does.
+	assert.deepEqual(Object.fromEntries(["read", "bash", "codemode"].map((name) => [name, receipt.details.tools.find((tool) => tool.name === name).sourceInfo.path])),
+		{ read: "builtin:read", bash: "builtin:bash", codemode: "builtin:codemode" });
 });

@@ -18,7 +18,7 @@ pnpm run install:pi
 
 The preview lists every matching standalone skill, including multiple discovery aliases for the same source, and any blocking conflicts. Installation moves matching entries into a recoverable backup, registers this directory through native `pi install`, and verifies that all 56 skills resolve to the bundled adaptations. It also installs `@heyhuynhgiabuu/pi-pretty@0.6.30` and `pi-claude-bridge@0.9.2` through native Pi package management in the same user/project scope. Restart Pi or run `/reload` afterward.
 
-The installer adds `bash` to Pretty's `disableTools`, preserving other preferences, so the harness honors `shellPath` and `shellCommandPrefix`. It uses `PRETTY_CONFIG_DIR` or Pretty's default `$HOME/.pi/agent/`, independently of installation scope. A nonempty `PRETTY_DISABLE_TOOLS` list must include `bash`; an incompatible override stops installation before file changes. Use `--without-pretty` to omit Pretty while still installing the harness and Claude Bridge; this leaves any existing Pretty registration and configuration intact. `--dry-run` lists companion packages and the planned configuration path/adjustment without writes or downloads.
+The installer adds `bash` to Pretty's `disableTools`, preserving other preferences, so Pi's bash keeps honoring `shellPath` and `shellCommandPrefix`. It uses `PRETTY_CONFIG_DIR` or Pretty's default `$HOME/.pi/agent/`, independently of installation scope. A nonempty `PRETTY_DISABLE_TOOLS` list must include `bash`; an incompatible override stops installation before file changes. Use `--without-pretty` to omit Pretty while still installing the harness and Claude Bridge; this leaves any existing Pretty registration and configuration intact. `--dry-run` lists companion packages and the planned configuration path/adjustment without writes or downloads.
 
 For a project installation:
 
@@ -70,7 +70,7 @@ Native `pi install /path/to/package` also discovers bundled skills, but does not
 /skill:jag-debug investigate this failure
 ```
 
-Skills use **lazy discovery by default**: `skill_registry` searches native-authorized descriptions and loads only selected bodies. `.ai/skills/registry.md` is generated as a body-free diagnostic snapshot, not injected into the prompt. `/skill:<name>` remains an explicit native command. Use `/orchestraitor:skills status|refresh` to inspect/refresh, or `native` to restore native headers (`lazy` switches back).
+Skills use **lazy discovery by default**: `skill_registry` searches native-authorized descriptions and loads only selected bodies. The index is kept in memory and is not injected into the prompt; nothing is written to the project. `/skill:<name>` remains an explicit native command. Use `/orchestraitor:skills status|refresh` to inspect/refresh, or `native` to restore native headers (`lazy` switches back).
 
 The Matt Pocock adaptations include `jag-pr`, `jag-research`, `jag-agent-docs`, and the updated `jag-domain`. `jag-handoff` and `jag-teach` require explicit user commands (`/skill:jag-handoff <next task>` and `/skill:jag-teach <topic>`); automatic lookup/delegation rejects them. Generated workflow documents default to `.ai/`; teaching uses topic-scoped Markdown, not browser widgets. Existing domain documents are never migrated automatically. See [adapted workflows](skills.md#adapted-workflows).
 
@@ -88,16 +88,16 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 
 | Resource | Purpose |
 | --- | --- |
-| `extensions/compact-tools.ts` | Compact bash/edit/write/codemode presentation, plus a read fallback. Bash uses effective shell settings; conflicting owners are reported and blocked. Expand to inspect arguments, results and error explanations. |
+| `extensions/compact-tools.ts` | Compact presentation of Pi's read/bash/edit/write/codemode through a renderer resolver; registers no tools, so Pi or another extension keeps execution and shell settings. Expand to inspect arguments, results and error explanations. |
 | `extensions/context-budget.ts` | Caps output of top-level codemode scripts that set no options at 8,000 estimated tokens; Pi saves the full output to a temporary file. `--orchestraitor-codemode-max-output N` sets another cap, and `0` keeps Pi's 10,000. The transcript keeps the original script. See the [codemode output budget](performance.md#codemode-output-budget). |
-| `@heyhuynhgiabuu/pi-pretty@0.6.30` | Separately installed companion: highlighted reads, FFF-backed find/grep, prompt editor and activity indicators. Its bash tool is disabled for harness ownership. |
+| `@heyhuynhgiabuu/pi-pretty@0.6.30` | Separately installed companion: highlighted reads, FFF-backed find/grep, prompt editor and activity indicators. Its bash tool is disabled so Pi's bash keeps the user's shell settings. |
 | `pi-claude-bridge@0.9.2` | Separately installed companion through `install:pi`; Claude Code bridge. Authentication and model selection remain user-controlled. |
 | `extensions/btw/index.ts` | Temporary 70% side-conversation panel; no tools or local history, explicit `/bring` imports only. |
 | `extensions/instructions.ts` | Adds core, execution, and personality sections while preserving Pi and project instructions. Only Pi's docs rule changes, from reading whole files to reading the relevant sections. |
 | `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. Engram is skipped when another package already provides its `mem_search` tool. |
 | `extensions/nan.ts` | Native NaN API-key login/environment fallback and seven documented chat models; no default changes or startup requests. |
 | `extensions/subagents.ts` | Model profiles, bounded sync/background readers, child guards, collection and native usage. |
-| `extensions/skill-registry.ts` | Bounded search/load, native snapshot refresh and atomic diagnostic publication; lazy/native exposure. |
+| `extensions/skill-registry.ts` | Bounded search/load, in-memory native snapshot refresh; lazy/native exposure. |
 | `extensions/status-ui.ts` | One owner for agents/tasks panels, unified questions, compact work-header/native-footer chrome and a warning before a model or thinking switch re-bills cached context. |
 | `skills/` | 56 unique skills and their supporting resources, with short `jag-*` names. |
 | `prompts/` | `/orchestraitor`, `/plan`, `/review`, and `/absorb`, with explicit arguments. |

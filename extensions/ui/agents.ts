@@ -9,7 +9,7 @@ const PANEL_RESERVED_ROWS = 8;
 const PENDING_CALL_LIMIT = 20;
 type BatchObservation = { callId: string; parent?: string; sequence: number; generation?: number; rows: AgentRow[]; pending?: Set<string> };
 const LIVE_PHASES = ["preparing", "starting", "running", "stopping"];
-const FINAL_PHASES = ["completed", "failed", "cancelled", "timed_out", "termination_failed"];
+const FINAL_PHASES = ["completed", "failed", "cancelled", "timed_out", "termination_failed", "interrupted"];
 const ROLES = ["explore", "review", "implement"];
 export type AgentRow = {
 	id?: string; role: string; label: string; requestedModel?: string; effectiveModel?: string;

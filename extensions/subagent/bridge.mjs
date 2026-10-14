@@ -60,7 +60,9 @@ export function publicModel(model) {
 }
 // The parent chooses the child's provider session, never the child. Its id keys every
 // request's provider cache; dispose closes what providers keep for it, such as websockets.
-export function parentBridge(child, registry, model, signal, fail, session) {
+// requestOptions carries the host's timeouts, provider retries, thinking budgets and headers
+// (provider-options.mjs); the bridge's own signal, session and effort always win.
+export function parentBridge(child, registry, model, signal, fail, session, requestOptions = {}) {
 	let active, disposed = false, closing = false;
 	const send = message => new Promise((resolve, reject) => {
 		if (disposed || !child.connected) return reject(new Error("Provider bridge disconnected"));
@@ -83,7 +85,8 @@ export function parentBridge(child, registry, model, signal, fail, session) {
 		void (async () => {
 			try {
 				let total = 0, previous = "";
-				const options = { signal: request.abort.signal, ...(session ? { sessionId: session.id } : {}),
+				const { signal: _signal, sessionId: _sessionId, reasoning: _reasoning, ...host } = requestOptions;
+				const options = { ...host, signal: request.abort.signal, ...(session ? { sessionId: session.id } : {}),
 					...(message.reasoning && message.reasoning !== "off" ? { reasoning: message.reasoning } : {}) };
 				for await (const event of registry.streamSimple(model, message.context, options)) {
 					const terminal = event.type === "done" || event.type === "error";

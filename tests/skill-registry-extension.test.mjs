@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { mkdir, readFile, realpath, rm, stat, symlink, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { execFileSync } from "node:child_process";
+import { mkdir, readdir, realpath, rm, symlink, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import test from "node:test";
 import { createWorkspace, importHost, isolatedAgentDir, packageRoot, pi, startSession } from "./helpers/pi-host.mjs";
 
@@ -13,9 +14,9 @@ async function writeSkill(root, name, manual = false) {
 	await mkdir(directory, { recursive: true });
 	await writeFile(join(directory, "SKILL.md"), `---\nname: ${name}\ndescription: Java fixture testing.\ndisable-model-invocation: ${manual}\n---\n${BODY}\n`);
 }
-async function fixture(t, skillsOverride, source = ".config/opencode/skills") {
-	const cwd = await createWorkspace(t);
-	const root = join(cwd, source);
+async function fixture(t, skillsOverride, source = ".config/opencode/skills", cwd) {
+	cwd ??= await createWorkspace(t);
+	const root = resolve(cwd, source);
 	await writeSkill(root, NAME);
 	await writeSkill(root, MANUAL, true);
 	const settingsManager = pi.SettingsManager.inMemory({ packages: [{ source: packageRoot, extensions: ["!extensions/mcp.ts"], skills: [], prompts: [] }] }, { projectTrusted: true });
@@ -90,35 +91,49 @@ test("shouldSearchLoadAndDelegateAnUnnamedNativeAliasAcrossReloads", async (t) =
 	}
 });
 
-test("shouldRefreshResourcesAndRemovalsWithoutRewritingAnUnchangedRegistryWhenRequestsStart", async (t) => {
+test("shouldRefreshRemovalsWhenRequestsStart", async (t) => {
 	// Given
-	const { cwd, root, prepare, execute } = await fixture(t);
-	const registryPath = join(cwd, ".ai", "skills", "registry.md");
+	const { root, prepare, execute } = await fixture(t);
 	await prepare();
-	const original = await readFile(registryPath, "utf8");
-	const originalTime = (await stat(registryPath)).mtimeMs;
 	// When
-	await prepare();
-	const unchangedTime = (await stat(registryPath)).mtimeMs;
-	const references = join(root, NAME, "references");
-	await mkdir(references);
-	await writeFile(join(references, "guide.md"), "A newly added supporting resource.");
-	await prepare();
-	const changed = await readFile(registryPath, "utf8");
 	await rm(join(root, NAME, "SKILL.md"));
 	await prepare();
 	const search = await execute({ operation: "search", query: "java testing" });
 	// Then
-	assert.equal(unchangedTime, originalTime);
-	assert.notEqual(changed, original);
 	assert.deepEqual(JSON.parse(search.content[0].text).matches, []);
-	assert.match(await readFile(registryPath, "utf8"), /unavailable/);
 	await assert.rejects(execute({ operation: "load", name: NAME }), /unavailable/i);
+});
+
+test("shouldLeaveTheProjectTreeUntouchedWhenTheRegistryRunsInAGitRepositoryOrItsSubdirectory", async (t) => {
+	// Given
+	const repository = await createWorkspace(t);
+	const nested = join(repository, "packages", "app");
+	await mkdir(nested, { recursive: true });
+	execFileSync("git", ["init", "-q"], { cwd: repository });
+	const skills = join(await createWorkspace(t), "skills");
+	const files = async () => (await readdir(repository, { recursive: true })).sort();
+	const before = await files();
+	for (const cwd of [repository, nested]) {
+		const { session, prepare, execute } = await fixture(t, undefined, skills, cwd);
+		const notices = [];
+		const ctx = session.extensionRunner.createCommandContext();
+		// When
+		await prepare();
+		const search = await execute({ operation: "search", query: "java testing" });
+		const loaded = await execute({ operation: "load", name: NAME });
+		await session.extensionRunner.getCommand("orchestraitor:skills").handler("refresh", { ...ctx, ui: { ...ctx.ui, notify: (message) => notices.push(message) } });
+		// Then
+		assert.deepEqual(JSON.parse(search.content[0].text).matches.map(({ name }) => name), [NAME]);
+		assert.match(loaded.content[0].text, new RegExp(BODY));
+		assert.deepEqual(JSON.parse(search.content[0].text).persistenceError, undefined);
+		assert.equal(JSON.parse(notices[0]).available, 1);
+		assert.deepEqual(await files(), before);
+	}
 });
 
 test("shouldReplaceHeadersWithLazyDiscoveryWhenTheFirstPromptIsPrepared", async (t) => {
 	// Given
-	const { cwd, session, loader, prepare } = await fixture(t);
+	const { session, loader, prepare } = await fixture(t);
 	// When
 	const prepared = await prepare();
 	const prompt = buildSystemPrompt(prepared.systemPromptOptions);
@@ -130,7 +145,7 @@ test("shouldReplaceHeadersWithLazyDiscoveryWhenTheFirstPromptIsPrepared", async 
 	assert.deepEqual(loader.getSkills().skills.map(({ name, disableModelInvocation }) => ({ name, disableModelInvocation })).sort((a, b) => a.name.localeCompare(b.name)), [
 		{ name: NAME, disableModelInvocation: false }, { name: MANUAL, disableModelInvocation: true },
 	]);
-	assert.match(await readFile(join(cwd, ".ai", "skills", "registry.md"), "utf8"), /opencode/);
+	assert.doesNotMatch(prompt, /registry\.md/);
 });
 
 test("shouldBoundSearchAndPreserveManualCommandsWhenSkillsAreLoadedOnDemand", async (t) => {

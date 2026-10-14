@@ -8,7 +8,7 @@ import type { SkillResolutionRequest } from "./skills/types.ts";
 const TOOL = "skill_registry";
 const FLAG = "orchestraitor-skills";
 const SECTION = "pi_orchestraitor_skills";
-const GUIDANCE = "Skills are indexed in .ai/skills/registry.md without publishing their headers. Use skill_registry search with relevant English task/domain terms, then load only selected names. The registry file is a diagnostic snapshot, not availability authority. New sources/names require native Pi configuration and /reload. Resolve relative resources from the loaded skill directory; pass selected names to subagent_run. If the tool is disabled, use the native catalog.";
+const GUIDANCE = "Skills are indexed in memory without publishing their headers. Use skill_registry search with relevant English task/domain terms, then load only selected names. New sources/names require native Pi configuration and /reload. Resolve relative resources from the loaded skill directory; pass selected names to subagent_run. If the tool is disabled, use the native catalog.";
 
 /** Lazy exposure of the native catalog; never discovers or enables foreign paths. */
 export default function skillRegistry(pi: ExtensionAPI) {
@@ -57,14 +57,12 @@ export default function skillRegistry(pi: ExtensionAPI) {
 			const context = { ...ctx, signal };
 			if (args.operation === "search") {
 				const result = await registry.search(args.query, args.limit ?? DEFAULT_SEARCH_LIMIT, context);
-				const persistence = registry.status().persistence;
-				const content = { ...result, ...(persistence?.error ? { persistenceError: persistence.error } : {}) };
-				return { content: [{ type: "text", text: JSON.stringify(content) }], details: result };
+				return { content: [{ type: "text", text: JSON.stringify(result) }], details: result };
 			}
 			if (!args.name) throw new Error("Skill load requires a name");
 			const [{ skill, body }] = await registry.resolveNames([args.name], context);
 			return { content: [{ type: "text", text: `Skill ${skill.name}: ${skill.filePath}\nResolve relative resources from ${skill.baseDir}.\n\n${body}` }],
-				details: { name: skill.name, filePath: skill.filePath, persistence: registry.status().persistence } };
+				details: { name: skill.name, filePath: skill.filePath } };
 		},
 	}));
 	pi.registerCommand("orchestraitor:skills", {

@@ -7,9 +7,10 @@ import { publicModel } from "./subagent/bridge.mjs";
 import { createHash, randomUUID } from "node:crypto";
 import { realpath, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { getAgentDir, getPackageDir, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { getAgentDir, getPackageDir, SettingsManager, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { compactTool } from "./compact-tools.ts";
+import { providerRequestOptions } from "./provider-options.mjs";
 import { BatchController, mergeUsage } from "./subagent/controller.mjs";
 import { REGISTRY_RESOLVE_EVENT } from "./skills/registry.mjs";
 import type { SkillResolutionRequest } from "./skills/types.ts";
@@ -197,9 +198,12 @@ export default function subagents(pi: ExtensionAPI) {
 				models.set(manifest.id, model);
 			}
 			const sessionId = ctx.sessionManager?.getSessionId();
+			// Children's requests carry the provider options Pi gives the parent's, from its current settings.
+			const settings = SettingsManager.inMemory(pi.getSettings());
 			// Per call: parallel subagent_run calls share the controller, so only its lock is global.
 			const launch = { sdkRoot: getPackageDir(), credentialDir: getAgentDir(), registry: ctx.modelRegistry, modelFor: (manifest) => models.get(manifest.id),
-				providerSessionFor: (manifest) => providerSession(sessionId, manifest.id) };
+				providerSessionFor: (manifest) => providerSession(sessionId, manifest.id),
+				requestOptionsFor: (manifest, providerSessionId) => providerRequestOptions(settings, models.get(manifest.id), providerSessionId) };
 			const combinedSignal = signal && ctx.signal ? AbortSignal.any([signal, ctx.signal]) : signal ?? ctx.signal;
 			let sequence = 0;
 			let batchStarted = false;

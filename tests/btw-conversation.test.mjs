@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it, mock } from "node:test";
 import {
-	SideConversation, CHAT_STATUS, CANCELLED_RESPONSE_TEXT, FAILED_RESPONSE_TEXT,
-	TRUNCATED_RESPONSE_TEXT, TOOL_REQUEST_TEXT, firstQuestion, waitFor,
+	SideConversation, CHAT_STATUS, CANCELLED_RESPONSE_TEXT, EMPTY_RESPONSE_TEXT, FAILED_RESPONSE_TEXT,
+	TRUNCATED_RESPONSE_TEXT, TOOL_REQUEST_TEXT, firstQuestion, selectTranscript, waitFor,
 } from "./helpers/btw-harness.mjs";
 
 const MODEL = { id: "main-model", provider: "test", reasoning: true };
@@ -15,6 +15,9 @@ const response = {
 	responseId: "provider-continuation", deferred: { id: "deferred-handle" },
 };
 const events = () => (async function* () { yield { type: "done", message: response, reason: "stop" }; })();
+const failure = (errorMessage) => () => (async function* () {
+	yield { type: "error", reason: "error", error: { ...response, content: [], stopReason: "error", errorMessage } };
+})();
 
 function fixture(streamSimple = mock.fn(events)) {
 	const context = { systemPrompt: "Main instructions", messages: [user("Main question")], tools: [] };
@@ -216,6 +219,68 @@ describe("temporary conversation", () => {
 			});
 		});
 	}
+
+	it("shouldRetryATransientProviderErrorBeforeAnyAnswerText", async () => {
+		// Given
+		const streamSimple = mock.fn(events);
+		streamSimple.mock.mockImplementationOnce(failure("429 Too Many Requests"));
+		const { conversation } = fixture(streamSimple);
+		conversation.retryPolicy = { maxRetries: 2, baseDelayMs: 1 };
+		// When
+		await conversation.send("Question");
+		// Then
+		assert.equal(streamSimple.mock.calls.length, 2);
+		assert.deepEqual({ status: conversation.status, turns: conversation.turns.map(({ answer, note }) => ({ answer, note })) },
+			{ status: CHAT_STATUS.ready, turns: [{ answer: "Answer", note: undefined }] });
+	});
+
+	for (const errorMessage of ["429 insufficient_quota: check your plan and billing details", "500 Internal error: prompt is too long: 213462 tokens > 200000 maximum"]) {
+		it(`shouldFailFastWhenTheProviderErrorIsNotTransient: ${errorMessage.slice(0, 24)}`, async () => {
+			// Given
+			const streamSimple = mock.fn(failure(errorMessage));
+			const { conversation } = fixture(streamSimple);
+			conversation.retryPolicy = { maxRetries: 2, baseDelayMs: 1 };
+			// When
+			await conversation.send("Question");
+			// Then
+			assert.deepEqual({ requests: streamSimple.mock.calls.length, status: conversation.status, note: conversation.turns[0].note },
+				{ requests: 1, status: CHAT_STATUS.error, note: errorMessage });
+		});
+	}
+
+	it("shouldStopRetryingWhenCancelledDuringBackoff", async () => {
+		// Given
+		const streamSimple = mock.fn(failure("503 Service Unavailable"));
+		const { conversation } = fixture(streamSimple);
+		conversation.retryPolicy = { maxRetries: 2, baseDelayMs: 60_000 };
+		const running = conversation.send("Question");
+		await waitFor(() => assert.match(conversation.turns[0].note ?? "", /Retrying \(1\/2\) in 60s/));
+		// When
+		conversation.cancel();
+		await running;
+		// Then
+		assert.deepEqual({ requests: streamSimple.mock.calls.length, busy: conversation.busy, status: conversation.status, note: conversation.turns[0].note },
+			{ requests: 1, busy: false, status: CHAT_STATUS.cancelled, note: CANCELLED_RESPONSE_TEXT });
+	});
+
+	it("shouldKeepAnEmptyAnswerOutOfTheSideHistoryAndTheMainThread", async () => {
+		// Given
+		const streamSimple = mock.fn(events);
+		streamSimple.mock.mockImplementationOnce(() => (async function* () {
+			yield { type: "done", message: { ...response, content: [{ type: "thinking", thinking: "Only thoughts" }] }, reason: "stop" };
+		})());
+		const { conversation } = fixture(streamSimple);
+		// When
+		await conversation.send("Empty");
+		const latest = (() => { try { return selectTranscript(conversation.turns, "latest"); } catch (error) { return error.message; } })();
+		await conversation.send("Next");
+		// Then
+		assert.equal(latest, "The side conversation has no answers yet.");
+		assert.deepEqual(conversation.turns.map(({ answer, note }) => ({ answer, note })),
+			[{ answer: "", note: EMPTY_RESPONSE_TEXT }, { answer: "Answer", note: undefined }]);
+		assert.deepEqual(streamSimple.mock.calls[1].arguments[1].messages.map(message => message.content),
+			[user("Main question").content, firstQuestion("Empty"), user("Next").content]);
+	});
 
 	it("shouldNeverReplayToolCallsWhenTheModelRequestsATool", async () => {
 		// Given

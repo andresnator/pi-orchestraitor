@@ -35,7 +35,7 @@ Each finished answer ends with a dim summary of its own request, such as `#2 · 
 BTW replays the parent's system prompt and tool declarations unchanged and sends its own instructions once, with the first side question. The request therefore starts with the parent's exact prefix, so providers with prefix caching can reuse the parent's cache, and follow-ups reuse BTW's own. The provider's default cache retention applies, as for the parent. Expected limits:
 
 - BTW sends the parent's session id, so providers that route caching by session, such as OpenAI Codex, can serve even the first question from the parent's cache. BTW always requests the stateless SSE transport, so it never shares the parent's websocket or response continuation.
-- Anthropic models with budget-based thinking key the message cache on the thinking settings; `inherit` maximizes reuse there.
+- BTW sends the parent's configured thinking budgets, request timeout, provider retry limits and provider attribution headers, read from Pi's settings as in [subagents](subagents.md); `before_provider_headers` handlers do not apply. Anthropic models with budget-based thinking key the message cache on the thinking settings; `inherit` maximizes reuse there.
 - Extensions that rewrite the parent's context before each request make the prefixes differ.
 
 ## Controls
@@ -56,7 +56,7 @@ BTW replays the parent's system prompt and tool declarations unchanged and sends
 | Alt+Home / Alt+End | Jump to the beginning / end |
 | Click `↓ latest answer` | Jump to the end |
 
-An error also discards queued questions. You can retry or ask again without closing. Copy and import notices clear on the next key. Mouse controls require Pi's fullscreen mode.
+Transient provider errors (rate limits, overload, 5xx, network) that arrive before any answer text are retried automatically after 2 and 4 s, classified as Pi classifies its own retries; the note shows the countdown and Esc cancels the wait. Context overflow and quota or billing errors fail at once. A final error also discards queued questions. You can retry or ask again without closing. Copy and import notices clear on the next key. Mouse controls require Pi's fullscreen mode.
 
 ## Import into the parent
 
@@ -69,7 +69,7 @@ Nothing is imported automatically. Submit one of these commands **inside the BTW
 | `/bring 2-4` | Questions and answers 2 through 4 |
 | `/bring all` | Entire currently open side conversation |
 
-Import adds a visible parent message **without triggering another parent turn**, then closes BTW and discards the remainder. During streaming, only the available text is copied and the request is cancelled.
+A reply without text (thinking only, truncated, or empty) shows a notice instead of an answer; the notice is never replayed to the model nor imported. Import adds a visible parent message **without triggering another parent turn**, then closes BTW and discards the remainder. During streaming, only the available text is copied and the request is cancelled.
 
 ## Isolation and rendering
 
@@ -93,4 +93,4 @@ node --test tests/btw-*.test.mjs
 node --test tests/package.test.mjs
 ```
 
-The BTW cases use fake providers and Pi's native TypeScript/peer mapping. They cover context isolation, the replayed parent prefix, the shared cache session, thinking levels, status phases, copy, retry, tool-request notices, model inheritance, FIFO, cancellation, disposal during streaming, empty reopening, explicit imports, Mermaid, search, focus, resize, and terminal bounds. Package tests cover registration, excluding a standalone copy, and dependency-backed loading from extracted tarballs. They do not replace visual acceptance in a real terminal or a live provider check.
+The BTW cases use fake providers and Pi's native TypeScript/peer mapping. They cover context isolation, the replayed parent prefix, the shared cache session, the parent's provider options, thinking levels, status phases, copy, manual and automatic retry, empty replies, tool-request notices, model inheritance, FIFO, cancellation, disposal during streaming, empty reopening, explicit imports, Mermaid, search, focus, resize, and terminal bounds. Package tests cover registration, excluding a standalone copy, and dependency-backed loading from extracted tarballs. They do not replace visual acceptance in a real terminal or a live provider check.

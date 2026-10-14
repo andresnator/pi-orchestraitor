@@ -199,13 +199,17 @@ export async function runTask(manifest, prompt, options = {}) {
 		await writeFile(manifestPath, raw, { mode: 0o600 });
 		if (signal?.aborted) throw new Error("Task cancelled");
 		// No shell, no inherited stdin, no CLI startup switches or preload flags.
+		// Built before spawn: a failure here must not leave a child whose exit nobody observes.
+		const bridged = Boolean(options.registry && options.modelFor);
+		const session = bridged ? options.providerSessionFor?.(manifest) : undefined;
+		const requestOptions = bridged ? options.requestOptionsFor?.(manifest, session?.id) : undefined;
 		const env = manifest.bridgeModel ? Object.fromEntries(["PATH", "LANG", "LC_ALL", "TMPDIR", "TEMP", "TMP", "SYSTEMROOT", "PI_OFFLINE"].filter(key => process.env[key] !== undefined).map(key => [key, process.env[key]])) : { ...process.env };
 		delete env.NODE_OPTIONS; delete env.NODE_PATH;
 		child = spawnProcess(process.execPath, [childPath, manifestPath, sdkRoot ?? "", credentialDir ?? ""], {
 			cwd: manifest.cwd, env, stdio: ["pipe", "pipe", "pipe", "ipc"],
 		});
 		options.onSpawn?.(child);
-		if (options.registry && options.modelFor) disposeBridge = parentBridge(child, options.registry, options.modelFor(manifest), signal, fail, options.providerSessionFor?.(manifest));
+		if (bridged) disposeBridge = parentBridge(child, options.registry, options.modelFor(manifest), signal, fail, session, requestOptions);
 		child.once("close", () => { closed = true; });
 		child.once("disconnect", () => { ipcClosed = true; });
 		child.once("exit", (code, sig) => {

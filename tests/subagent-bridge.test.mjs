@@ -5,7 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { childBridge, parentBridge, publicModel, MAX_BRIDGE_RECORD } from "../extensions/subagent/bridge.mjs";
 import { BatchController } from "../extensions/subagent/controller.mjs";
-import { createWorkspace, hostRoot, importHost } from "./helpers/pi-host.mjs";
+import { createWorkspace, hostRoot, importHost, packageRoot, pi } from "./helpers/pi-host.mjs";
 
 const { createAssistantMessageEventStream, parseStreamingJson } = await importHost("node_modules/@earendil-works/pi-ai/dist/index.js");
 const model = { provider: "bridge-regression", id: "fixture", api: "openai-completions", name: "Fixture", reasoning: true,
@@ -395,6 +395,67 @@ test("parent keys every child request with its assigned provider session and clo
 	assert.equal(closed, 0);
 	dispose();
 	assert.deepEqual({ sessions: options.map(({ sessionId }) => sessionId), closed }, { sessions: ["derived", "derived", "derived"], closed: 1 });
+});
+
+test("parent applies the host's request options without letting them replace its signal, session or effort", async () => {
+	const { parent, child } = channels();
+	const options = [];
+	const registry = { streamSimple(_model, _context, streamOptions) { options.push(streamOptions); return finalStream(assistant([{ type: "text", text: "ok" }])); } };
+	const transformHeaders = async headers => ({ ...headers, "x-attribution": "pi" });
+	const requestOptions = { timeoutMs: 30000, websocketConnectTimeoutMs: 7000, maxRetries: 4, maxRetryDelayMs: 9000, thinkingBudgets: { high: 8192 }, transport: "sse", transformHeaders,
+		signal: "replaced", sessionId: "replaced", reasoning: "replaced" };
+	const dispose = parentBridge(parent, registry, model, undefined, assert.fail, { id: "derived", close() {} }, requestOptions);
+	try { await childBridge(child, createAssistantMessageEventStream, model)(model, { messages: [] }, { reasoning: "high" }).result(); } finally { dispose(); }
+	const { signal, ...sent } = options[0];
+	assert.ok(signal instanceof AbortSignal);
+	assert.deepEqual(sent, { timeoutMs: 30000, websocketConnectTimeoutMs: 7000, maxRetries: 4, maxRetryDelayMs: 9000, thinkingBudgets: { high: 8192 }, transport: "sse", transformHeaders,
+		sessionId: "derived", reasoning: "high" });
+});
+
+test("native children send the provider options Pi builds for the parent's own requests", { timeout: 20000 }, async t => {
+	const cwd = await realpath(await createWorkspace(t)), agentDir = join(cwd, "agent");
+	const fixture = { ...model, provider: "request-options-fixture" };
+	const modelRuntime = await pi.ModelRuntime.create({ authPath: join(agentDir, "auth.json"), modelsPath: null, refreshOnCreate: false });
+	const requests = { parent: [], child: [] };
+	let parentCalls = 0;
+	// OpenCode's host adds per-session attribution headers, so the child must send its own session.
+	modelRuntime.registerProvider(fixture.provider, { api: fixture.api, baseUrl: "https://opencode.ai/zen/v1", apiKey: "fixture", models: [fixture],
+		streamSimple(_model, context, options) {
+			const role = JSON.stringify(context.messages[0]).includes("bounded child worker") ? "child" : "parent";
+			requests[role].push(options);
+			if (role === "child") return finalStream({ ...assistant([{ type: "text", text: "Child evidence" }]), provider: fixture.provider });
+			const message = parentCalls++ ? assistant([{ type: "text", text: "Verified" }])
+				: assistant([{ type: "toolCall", id: "launch", name: "subagent_run", arguments: { tasks: [{ role: "explore", instruction: "Inspect fixture" }] } }], 30, "toolUse");
+			return finalStream({ ...message, provider: fixture.provider });
+		} });
+	const settingsManager = pi.SettingsManager.inMemory({ compaction: { enabled: false }, websocketConnectTimeoutMs: 7000, thinkingBudgets: { low: 1024, medium: 4096, high: 8192 }, transport: "sse",
+		retry: { enabled: false, provider: { timeoutMs: 30000, maxRetries: 4, maxRetryDelayMs: 9000 } } });
+	const resourceLoader = new pi.DefaultResourceLoader({ cwd, agentDir, settingsManager, noExtensions: true, additionalExtensionPaths: [join(packageRoot, "extensions/subagents.ts")],
+		noSkills: true, noPromptTemplates: true, noThemes: true, noContextFiles: true });
+	await resourceLoader.reload();
+	const { session } = await pi.createAgentSession({ cwd, agentDir, settingsManager, resourceLoader, modelRuntime, model: (await modelRuntime.getAvailable())[0],
+		tools: ["read", "subagent_run", "subagent_collect"], sessionManager: pi.SessionManager.inMemory(cwd) });
+	t.after(async () => { await session.extensionRunner.emit({ type: "session_shutdown" }); session.dispose(); });
+	await session.bindExtensions({ mode: "print", onError: error => assert.fail(String(error)) });
+	await session.prompt("Delegate one reader");
+	const pick = ({ timeoutMs, websocketConnectTimeoutMs, maxRetries, maxRetryDelayMs, thinkingBudgets, transport, headers, sessionId }) =>
+		({ timeoutMs, websocketConnectTimeoutMs, maxRetries, maxRetryDelayMs, thinkingBudgets, transport, headers, sessionId });
+	const [parentRequest] = requests.parent.map(pick), [childRequest] = requests.child.map(pick);
+	assert.deepEqual(parentRequest, { timeoutMs: 30000, websocketConnectTimeoutMs: 7000, maxRetries: 4, maxRetryDelayMs: 9000, thinkingBudgets: { low: 1024, medium: 4096, high: 8192 },
+		transport: "sse", headers: { "x-opencode-session": parentRequest.sessionId, "x-opencode-client": "pi" }, sessionId: session.sessionManager.getSessionId() });
+	assert.match(childRequest.sessionId, /^[0-9a-f]{64}$/);
+	assert.deepEqual(childRequest, { ...parentRequest, headers: { "x-opencode-session": childRequest.sessionId, "x-opencode-client": "pi" }, sessionId: childRequest.sessionId });
+});
+
+test("request options that cannot be built fail the task before any child process starts", { timeout: 5000 }, async t => {
+	const cwd = await realpath(await createWorkspace(t));
+	let spawned = 0;
+	// Pi rejects an invalid timeout setting when its getter runs, as for its own requests.
+	const requestOptionsFor = () => { throw new Error("Invalid websocketConnectTimeoutMs setting: soon"); };
+	const controller = new BatchController({ sdkRoot: hostRoot, registry: { streamSimple: assert.fail }, modelFor: () => model, requestOptionsFor, stopGrace: 100,
+		spawnProcess: () => { spawned++; throw new Error("spawned"); } });
+	const [result] = await controller.run([manifest(cwd)], () => "inspect");
+	assert.deepEqual({ status: result.status, spawned, diagnostic: result.diagnostic.split("\n")[0] }, { status: "failed", spawned: 0, diagnostic: "Invalid websocketConnectTimeoutMs setting: soon" });
 });
 
 test("parent without an assigned provider session sends none, and a failing close still disposes", async () => {

@@ -380,6 +380,17 @@ describe("search and controls", () => {
 		assert.ok(popup.render(200).join("\n").includes("The side conversation has no answers yet."));
 	});
 
+	it("shouldKeepThePanelOpenWhenBringFollowsAnEmptyAnswer", async () => {
+		// Given
+		const { popup, done } = popupFixture("");
+		await popup.submit(QUESTION);
+		// When
+		await popup.submit("/bring");
+		// Then
+		assert.equal(done.mock.calls.length, 0);
+		assert.ok(popup.render(200).join("\n").includes("The side conversation has no answers yet."));
+	});
+
 	it("shouldReuseCompletedMarkdownWhenRenderingFollowups", async (t) => {
 		// Given
 		const { popup, conversation } = popupFixture();

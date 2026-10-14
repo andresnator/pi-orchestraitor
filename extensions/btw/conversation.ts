@@ -1,5 +1,9 @@
-import { clampThinkingLevel, type AssistantMessage, type Context, type Message, type ModelThinkingLevel } from "@earendil-works/pi-ai";
+import {
+	clampThinkingLevel, isContextOverflow, isRetryableAssistantError, retryDelayMs,
+	type AssistantMessage, type Context, type Message, type Model, type ModelThinkingLevel, type SimpleStreamOptions,
+} from "@earendil-works/pi-ai";
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import { setTimeout as delay } from "node:timers/promises";
 import { SIDE_QUESTION_INSTRUCTIONS } from "./context.ts";
 import type { SidePhase, SideProgress, SideThinking, SideTurn } from "./types.ts";
 
@@ -13,6 +17,8 @@ export const CHAT_STATUS = { ready: "Ready", responding: "Responding", cancelled
 /** Shift+Tab order. Low keeps side answers fast; inherit follows the parent. */
 export const SIDE_THINKING_LEVELS: readonly SideThinking[] = ["off", "low", "inherit"];
 export const DEFAULT_SIDE_THINKING: SideThinking = "low";
+/** Retries after 2 and 4 s, like subagent children; cancelling the panel ends the wait. */
+export const SIDE_RETRY = { maxRetries: 2, baseDelayMs: 2000 };
 
 export class SideConversation {
 	private history: Message[] = [];
@@ -24,11 +30,14 @@ export class SideConversation {
 	status: string = CHAT_STATUS.ready;
 	thinking: SideThinking = DEFAULT_SIDE_THINKING;
 	progress?: SideProgress;
+	retryPolicy: { maxRetries: number; baseDelayMs: number } = SIDE_RETRY;
 
 	constructor(
 		private readonly ctx: ExtensionCommandContext,
 		// Takes ownership of the isolated snapshot built for this opening.
 		private readonly context: Context,
+		// The host's timeouts, provider retries, thinking budgets and headers for the model (provider-options.mjs).
+		private readonly requestOptions: (model: Model<any>) => SimpleStreamOptions = () => ({}),
 	) {}
 
 	get busy(): boolean { return this.request !== undefined; }
@@ -76,53 +85,71 @@ export class SideConversation {
 			const model = this.ctx.model;
 			if (!model) throw new Error("Select a model before using /btw.");
 			const reasoning = this.thinkingLevel;
-			const stream = this.ctx.modelRegistry.streamSimple(model, {
-				...this.context,
-				messages: structuredClone([...this.context.messages, ...this.history]),
-			}, {
-				signal: controller.signal,
-				// Providers use the session only for prompt cache keys and affinity headers, so the
-				// parent's lets even the first side question reuse its cached prefix. The provider's
-				// default retention applies, as for the parent's requests.
-				sessionId: this.ctx.sessionManager.getSessionId(),
-				// Codex keeps per-session websockets with response continuations; SSE is stateless,
-				// so side turns never share the parent's connection.
-				transport: "sse",
-				reasoning: reasoning === "off" ? undefined : reasoning,
-			});
-			for await (const event of stream) {
-				if (!this.isCurrent(controller)) return;
-				if (event.type === "thinking_start" || event.type === "thinking_delta") {
-					if (progress.firstTextAt === undefined) progress.phase = "thinking";
-					progress.thinking = extractThinking(event.partial);
-					this.onChange();
-				} else if (event.type === "text_delta") {
-					progress.phase = "streaming";
-					progress.firstTextAt ??= Date.now();
-					turn.answer = extractText(event.partial);
-					progress.answerChars = turn.answer.length;
-					this.onChange();
-				} else if (event.type === "done") {
-					const text = extractText(event.message);
-					const toolRequest = event.reason === "toolUse" || event.reason === "deferred";
-					turn.answer = text || (toolRequest ? "" : EMPTY_RESPONSE_TEXT);
-					progress.usage = event.message.usage;
-					if (toolRequest) turn.note = TOOL_REQUEST_TEXT;
-					else if (event.reason === "length") turn.note = TRUNCATED_RESPONSE_TEXT;
-					// Replay text only: no tool calls, thinking signatures, or provider continuation handles.
-					if (turn.answer) {
-						this.history.push({
-							...event.message,
-							content: [{ type: "text", text: turn.answer }],
-							responseId: undefined,
-							deferred: undefined,
-						});
+			const requestOptions = this.requestOptions(model);
+			for (let attempt = 1; ; attempt++) {
+				let transient: string | undefined;
+				const stream = this.ctx.modelRegistry.streamSimple(model, {
+					...this.context,
+					messages: structuredClone([...this.context.messages, ...this.history]),
+				}, {
+					...requestOptions,
+					signal: controller.signal,
+					// Providers use the session only for prompt cache keys and affinity headers, so the
+					// parent's lets even the first side question reuse its cached prefix. The provider's
+					// default retention applies, as for the parent's requests.
+					sessionId: this.ctx.sessionManager.getSessionId(),
+					// Codex keeps per-session websockets with response continuations; SSE is stateless,
+					// so side turns never share the parent's connection.
+					transport: "sse",
+					reasoning: reasoning === "off" ? undefined : reasoning,
+				});
+				for await (const event of stream) {
+					if (!this.isCurrent(controller)) return;
+					if (event.type === "thinking_start" || event.type === "thinking_delta") {
+						if (progress.firstTextAt === undefined) progress.phase = "thinking";
+						progress.thinking = extractThinking(event.partial);
+						this.onChange();
+					} else if (event.type === "text_delta") {
+						progress.phase = "streaming";
+						progress.firstTextAt ??= Date.now();
+						turn.answer = extractText(event.partial);
+						progress.answerChars = turn.answer.length;
+						this.onChange();
+					} else if (event.type === "done") {
+						turn.answer = extractText(event.message);
+						progress.usage = event.message.usage;
+						// Notes are UI only: an empty answer is never replayed or brought into the main thread.
+						if (event.reason === "toolUse" || event.reason === "deferred") turn.note = TOOL_REQUEST_TEXT;
+						else if (event.reason === "length") turn.note = TRUNCATED_RESPONSE_TEXT;
+						else if (!turn.answer) turn.note = EMPTY_RESPONSE_TEXT;
+						// Replay text only: no tool calls, thinking signatures, or provider continuation handles.
+						if (turn.answer) {
+							this.history.push({
+								...event.message,
+								content: [{ type: "text", text: turn.answer }],
+								responseId: undefined,
+								deferred: undefined,
+							});
+						}
+						this.finish(progress, "done", CHAT_STATUS.ready);
+					} else if (event.type === "error") {
+						const message = event.error.errorMessage || FAILED_RESPONSE_TEXT;
+						if (!turn.answer && attempt <= this.retryPolicy.maxRetries && isTransient(event.error, model)) transient = message;
+						else {
+							turn.note = message;
+							this.finish(progress, "error", CHAT_STATUS.error);
+						}
 					}
-					this.finish(progress, "done", CHAT_STATUS.ready);
-				} else if (event.type === "error") {
-					turn.note = event.error.errorMessage || FAILED_RESPONSE_TEXT;
-					this.finish(progress, "error", CHAT_STATUS.error);
 				}
+				if (transient === undefined) break;
+				const wait = retryDelayMs(this.retryPolicy, attempt);
+				turn.note = `Retrying (${attempt}/${this.retryPolicy.maxRetries}) in ${Math.ceil(wait / 1000)}s after: ${transient}`;
+				progress.phase = "sending";
+				progress.thinking = "";
+				this.onChange();
+				await delay(wait, undefined, { signal: controller.signal });
+				if (!this.isCurrent(controller)) return;
+				turn.note = undefined;
 			}
 		} catch (error) {
 			if (!this.isCurrent(controller)) return;
@@ -188,6 +215,11 @@ export class SideConversation {
 		this.context.systemPrompt = undefined;
 		this.context.tools = [];
 	}
+}
+
+/** Pi's own agent retry classification: transient provider errors, never context overflow. */
+function isTransient(message: AssistantMessage, model: Model<any>): boolean {
+	return !isContextOverflow(message, model.contextWindow) && isRetryableAssistantError(message);
 }
 
 function extractText(message: AssistantMessage): string {

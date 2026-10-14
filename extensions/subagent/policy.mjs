@@ -1,5 +1,7 @@
+import { realpathSync } from "node:fs";
 import { lstat, realpath } from "node:fs/promises";
 import nativePaths from "node:path";
+import { fileURLToPath } from "node:url";
 
 export const TASK_TIMEOUT_MS = 10 * 60 * 1000;
 export const START_TIMEOUT_MS = 30 * 1000;
@@ -7,9 +9,15 @@ export const READ_TOOLS = ["read", "search", "list"];
 export const WRITE_TOOLS = [...READ_TOOLS, "edit", "write"];
 export const THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
 const PROTECTED_PARTS = new Set([".git", ".pi", ".codex", ".agents", "node_modules"]);
-const PROTECTED_FILES = new Set(["agents.md", "system.md", "append_system.md"]);
+// Pi context files (resource-loader.js loadContextFileFromDir) and system prompt overrides.
+const PROTECTED_FILES = new Set(["agents.override.md", "agents.md", "claude.md", "system.md", "append_system.md"]);
 const PROJECT_SKILL_HOSTS = new Set([".pi", ".agents", ".codex"]);
+// Pi's project package stores: .pi/npm/node_modules/<package> and .pi/git/<host>/<path>.
+const PACKAGE_STORES = [[".pi", "npm", "node_modules"], [".pi", "git"]];
 const HARNESS_DIRS = new Set(["extensions", "instructions", "skills", "prompts"]);
+const HARNESS_ROOT = realpathSync(fileURLToPath(new URL("../../", import.meta.url)));
+// Approximates case-insensitive volumes: APFS folds U+017F to "s", which toLowerCase() keeps.
+const fold = (path) => path.toUpperCase().toLowerCase();
 
 /** Keep model-facing file names portable while accepting native Windows operation paths. */
 function normalizeSeparators(path, paths = nativePaths) {
@@ -27,7 +35,7 @@ export function within(root, path, paths = nativePaths) {
 
 export function concreteFile(input, paths = nativePaths) {
 	const path = typeof input === "string" ? normalizeSeparators(input, paths) : "";
-	if (!path || paths.isAbsolute(path) || /[\\\x00-\x1f*?\[\]{}]/u.test(path) ||
+	if (!path || paths.isAbsolute(path) || /[\\\x00-\x1f*?]/u.test(path) ||
 		(paths.sep === "\\" && path.includes(":")) || path.split("/").some((part) => !part || part === "." || part === "..")) {
 		throw new Error("Editable files must be concrete project-relative paths");
 	}
@@ -36,9 +44,27 @@ export function concreteFile(input, paths = nativePaths) {
 }
 
 export function protectedPath(path, writing = false) {
-	const parts = path.toLowerCase().split(/[\\/]/);
-	return parts.some((part) => PROTECTED_PARTS.has(part)) ||
-		(writing && (parts.some((part) => PROTECTED_FILES.has(part)) || HARNESS_DIRS.has(parts[0]) || parts[0] === "package.json"));
+	const parts = fold(path).split(/[\\/]/);
+	return parts.some((part) => PROTECTED_PARTS.has(part)) || (writing && parts.some((part) => PROTECTED_FILES.has(part)));
+}
+
+/** This package's own manifest and top-level sources, wherever Pi runs. */
+function harnessPath(target, paths) {
+	const root = fold(HARNESS_ROOT), folded = fold(target);
+	if (!within(root, folded, paths)) return false;
+	const [first] = projectRelativePath(root, folded, paths).split("/");
+	return HARNESS_DIRS.has(first) || first === "package.json";
+}
+
+/** A concrete skill directory below a protected host or Pi's project package stores. */
+function readableSkillDirectory(parts) {
+	const store = PACKAGE_STORES.find((prefix) => prefix.every((part, index) => parts[index] === part));
+	if (store) {
+		const rest = parts.slice(store.length), skills = rest.indexOf("skills", 1);
+		return !rest.some((part) => PROTECTED_PARTS.has(part)) && skills > 0 && skills + 1 < rest.length;
+	}
+	return parts.every((part, index) => !PROTECTED_PARTS.has(part) ||
+		(PROJECT_SKILL_HOSTS.has(part) && parts[index + 1] === "skills" && index + 2 < parts.length));
 }
 
 export function validateBatch(tasks) {
@@ -74,12 +100,10 @@ export async function validatePath(manifest, input, writing = false, filesystem 
 	const skill = !writing && manifest.skills?.find(({ baseDir }) => within(baseDir, target, paths));
 	if (!project && !skill) throw new Error("Path outside project and selected skills");
 	// Allow selected project skill subdirectories, never the enclosing harness metadata root.
-	const selectedParts = skill && project ? projectRelativePath(manifest.cwd, skill.baseDir, paths).toLowerCase().split("/") : [];
-	const readableSkill = skill && selectedParts.every((part, index) => !PROTECTED_PARTS.has(part) ||
-		(PROJECT_SKILL_HOSTS.has(part) && selectedParts[index + 1] === "skills" && index + 2 < selectedParts.length));
+	const readableSkill = skill && (!project || readableSkillDirectory(fold(projectRelativePath(manifest.cwd, skill.baseDir, paths)).split("/")));
 	const root = readableSkill ? skill.baseDir : manifest.cwd;
 	const rel = projectRelativePath(root, target, paths);
-	if (protectedPath(rel, writing)) throw new Error("Protected harness or Git path");
+	if (protectedPath(rel, writing) || (writing && harnessPath(target, paths))) throw new Error("Protected harness or Git path");
 	const assigned = writing && manifest.files.some((file) => concreteFile(file, paths) === projectRelativePath(manifest.cwd, target, paths));
 	if (writing && (manifest.role !== "implement" || !assigned)) throw new Error("Write outside assigned files");
 	if (paths.relative(root, await canonicalPath(root)) !== "") throw new Error("Root is not canonical");

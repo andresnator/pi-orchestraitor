@@ -84,8 +84,7 @@ async function worker(mode) {
 			const matches = JSON.parse(lookup.content[0].text).matches;
 			if (!matches.some(({ name }) => name === loadArgs.name)) throw new Error("Benchmark search missed jag-code");
 			result.skillWorkflow = { matched: loadArgs.name, search: size(lookup.content[0].text), load: size(loaded.content[0].text),
-				calls: size(JSON.stringify([{ name: registryTool.name, arguments: searchArgs }, { name: registryTool.name, arguments: loadArgs }])),
-				registrySnapshot: size(await readFile(join(temporary, ".ai/skills/registry.md"), "utf8")) };
+				calls: size(JSON.stringify([{ name: registryTool.name, arguments: searchArgs }, { name: registryTool.name, arguments: loadArgs }])) };
 			result.skillWorkflow.refreshMs = await timings(() => session.extensionRunner.emitBeforeAgentStart({ messageType: "user", prompt: "Inspect a synthetic fixture" }, structuredClone(promptOptions)), SKILL_TIMING_OPTIONS);
 			result.skillWorkflow.searchMs = await timings(() => registryTool.execute("search", searchArgs, undefined, undefined, skillCtx), SKILL_TIMING_OPTIONS);
 			result.skillWorkflow.loadMs = await timings(() => registryTool.execute("load", loadArgs, undefined, undefined, skillCtx), SKILL_TIMING_OPTIONS);
