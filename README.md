@@ -54,7 +54,7 @@ git pull --ff-only
 pnpm install --frozen-lockfile
 ```
 
-For native Git installation, use `pi update --extensions`, then restart Pi. `/reload` is not enough after a code update: it re-evaluates the TypeScript extensions, but Node keeps the `.mjs` modules it already loaded (`extensions/subagent/`, `extensions/skills/`, `extensions/models/`, `extensions/provider-options.mjs`) while each new child process loads the updated files. Recheck compatibility before upgrading Pi; some inventory and integration checks depend on host internals.
+For native Git installation, use `pi update --extensions`, then restart Pi. `/reload` is not enough after a code update: it re-evaluates the TypeScript extensions, but Node keeps the `.mjs` modules it already loaded (`extensions/subagent/`, `extensions/skills/`, `extensions/models/`, `extensions/pretty/`, `extensions/provider-options.mjs`) while each new child process loads the updated files. Recheck compatibility before upgrading Pi; some inventory and integration checks depend on host internals.
 
 ## Verify
 

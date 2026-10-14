@@ -16,10 +16,17 @@ Installing the harness directly with `pi install /path/to/pi-orchestraitor` load
 
 Merge that field into the existing file. A nonempty comma-separated `PRETTY_DISABLE_TOOLS` list overrides the file and must also include `bash` (tool names are trimmed and case-insensitive). The installer rejects an incompatible environment list before modifying files. Unset the variable or add `bash` to it and rerun the installer. `PRETTY_ENABLE_TOOLS` cannot override a disabled tool.
 
+## Highlight theme
+
+Pretty highlights with a Shiki theme. Without a theme of its own, it uses Pi's `theme` from `$HOME/.pi/agent/settings.json`, but Pi's built-in `dark` and `light` are not Shiki themes. Pretty then warns (`theme "dark" from ~/.pi/agent/settings.json is not a bundled Shiki theme`) and falls back to `github-dark`, even for `light`.
+
+`extensions/pretty-theme.ts` sets `PRETTY_THEME` to `github-dark` or `github-light` on every Pi start and `/reload`. Pretty reads the variable at its first highlight, so either load order works. Nothing is written to disk, so Pretty follows the current Pi theme: after a theme change, restart or `/reload` Pi. The extension leaves the theme to Pretty when `PRETTY_THEME` was set elsewhere, when Pretty's `pi-pretty.json` (in `PRETTY_CONFIG_DIR` or `$HOME/.pi/agent/`) names a nonblank theme, or when Pi uses a custom theme, which Pretty validates itself. A value it set earlier is replaced or removed accordingly. Like Pretty, it reads Pi's settings through HOME, independently of `PI_CODING_AGENT_DIR`. Shell commands and subagents inherit the variable.
+
 ## Rendering ownership
 
 | Responsibility | Owner |
 | --- | --- |
+| Highlight theme for Pi's built-in themes | Harness `pretty-theme.ts`, through `PRETTY_THEME`; Pretty owns any other theme and the highlighting itself. |
 | Bash execution | Pi's built-in tool with effective `shellPath` (including `~`) and `shellCommandPrefix`, or whichever extension registers bash. |
 | Read when pretty is loaded | Upstream pretty tool definition, renderer and result metadata. |
 | Compact presentation of Pi's read, bash, edit, write and native codemode | Harness renderer resolver. |

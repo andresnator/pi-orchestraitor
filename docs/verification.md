@@ -10,6 +10,19 @@ The current deterministic baseline is Pi 1.2.0, Node 22.19+, and pnpm 12.9.1. En
 | `pnpm run install:pi --dry-run` | Complete lexical discovery inventory, including aliases hidden by native deduplication, and proposed standalone-skill moves, without migration or registration. |
 | `pnpm pack --dry-run --ignore-scripts` | Distributed resource inventory and exclusion of tests, local reports, and personal data. |
 
+## Pretty highlight theme — 2026-10-14
+
+Pi's built-in `dark` and `light` themes are not Shiki themes, so Pretty 0.6.30 warned on its first highlight and used `github-dark` for both. `extensions/pretty-theme.ts` now sets `PRETTY_THEME` to the matching `github-dark`/`github-light` on every start and `/reload`, unless a Pretty theme is already set. It writes no files. An earlier version pinned the theme into `pi-pretty.json` during `install:pi`; review showed that pin went stale when Pi's theme changed, so it was replaced before merge.
+
+Fresh checks, Node 24.20.0 / pnpm 12.9.1 / locked Pi 1.2.0:
+
+- Real Pretty `getTheme()` from the installed 0.6.30 package, temporary HOME, one process per case: without the extension, `dark` and `light` each produced the warning and `github-dark`; with it, `github-dark` and `github-light` with no warning.
+- Same package, one process reloaded as Pi does (`moduleCache: false`) through Pi themes `light`, `dark`, `dracula`, `dark`: Pretty used `github-light`, `github-dark`, `dracula`, `github-dark`, with no warning and only `settings.json` in the agent directory.
+- `node --test tests/pretty-theme.test.mjs`: RED, 4/5 with a helper that treated its own earlier value as explicit (reload kept `github-light` after a switch to `dark`); GREEN, 5/5.
+- `node --test tests/*.test.mjs`: 766/766 passed, zero failures/cancellations/skips. `git diff --check` passed.
+
+Physical TUI acceptance in a live Pi session was not run.
+
 ## Productivity frontmatter follow-up — 2026-10-13
 
 At the user's request, `jag-grill` and `jag-wait-what` now keep only `name`, `description` and `license` in frontmatter, plus `disable-model-invocation: true` for `jag-wait-what`. Optional compatibility and metadata blocks are removed. Both instruction bodies are byte-identical to the preceding commit; authorship, source lineage, notices and refreshed resource fingerprints remain in the existing centralized records. This overrides the local skill-authoring template's metadata recommendations for these two skills only.
