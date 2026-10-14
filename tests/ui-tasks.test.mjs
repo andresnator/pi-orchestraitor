@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
-import { mkdir, realpath, writeFile } from "node:fs/promises";
+import { realpath, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
 import { stripVTControlCharacters } from "node:util";
@@ -16,7 +15,7 @@ test("shouldReturnOnlyAffectedTasksAndKeepFullReceiptsWhenUpdatingLargeBoards", 
 	const { createTaskTool, replayTasks } = await taskModule(t);
 	const cwd = await realpath(await createWorkspace(t));
 	const ctx = { cwd, sessionManager: pi.SessionManager.inMemory(cwd) };
-	const tool = createTaskTool(() => 0);
+	const tool = createTaskTool();
 	const seed = await tool.execute("seed", { operation: "replace", expectedRevision: 0,
 		tasks: Array.from({ length: 20 }, (_, index) => pending(`t${index}`)) }, undefined, undefined, ctx);
 	ctx.sessionManager.appendMessage({ role: "toolResult", toolName: tool.name, toolCallId: "seed", isError: false, timestamp: Date.now(), ...seed });
@@ -31,7 +30,7 @@ test("shouldReturnOnlyAffectedTasksAndKeepFullReceiptsWhenUpdatingLargeBoards", 
 	// Then
 	assert.deepEqual(JSON.parse(result.content[0].text), { operation: "update", revision: 2,
 		tasks: [{ ...pending("t0"), status: "done", evidence: "Synthetic check passed" }] });
-	assert.deepEqual(JSON.parse(listed.content[0].text), { state: replayTasks(ctx.sessionManager.getBranch()), bindingCurrent: true, projectIdentity: cwd });
+	assert.deepEqual(JSON.parse(listed.content[0].text), { state: replayTasks(ctx.sessionManager.getBranch()) });
 	assert.equal(result.details.state.tasks.length, 20);
 	assert.ok(result.content[0].text.length < listed.content[0].text.length * 0.4);
 	assert.deepEqual(wire, [{ type: "function_call_output", call_id: "update", output: result.content[0].text }]);
@@ -42,7 +41,7 @@ test("shouldReturnAffectedAddsReplacementAndClearWithReusableRevisions", async (
 	const { createTaskTool } = await taskModule(t);
 	const cwd = await createWorkspace(t);
 	const ctx = { cwd, sessionManager: pi.SessionManager.inMemory(cwd) };
-	const tool = createTaskTool(() => 0);
+	const tool = createTaskTool();
 	const responses = [];
 	let revision = 0;
 	// When
@@ -122,7 +121,7 @@ test("shouldNotPublishUnpersistedSnapshotsWhenToolExecutesDirectly", async (t) =
 	const cwd = await createWorkspace(t);
 	const manager = pi.SessionManager.inMemory(cwd);
 	const ctx = { cwd, sessionManager: manager };
-	const tool = createTaskTool(() => 1);
+	const tool = createTaskTool();
 	// When
 	const result = await tool.execute("mutation", { operation: "add", expectedRevision: 0, tasks: [pending()] }, undefined, undefined, ctx);
 	const beforeCommit = await tool.execute("list", { operation: "list" }, undefined, undefined, ctx);
@@ -135,106 +134,26 @@ test("shouldNotPublishUnpersistedSnapshotsWhenToolExecutesDirectly", async (t) =
 	assert.equal(tool.executionMode, "sequential");
 });
 
-test("shouldVerifyPlanHashAndRejectDriftBeforeMutationWhenTasksAreBound", async (t) => {
-	// Given
-	const { createTaskTool, checkTaskBinding } = await taskModule(t);
-	const cwd = await realpath(await createWorkspace(t));
-	await mkdir(join(cwd, ".git"));
-	await writeFile(join(cwd, "plan.md"), "original plan");
-	const binding = { project: cwd, path: "plan.md", sha256: createHash("sha256").update("original plan").digest("hex"), groups: ["group-1"] };
-	const manager = pi.SessionManager.inMemory(cwd);
-	const ctx = { cwd, sessionManager: manager };
-	const tool = createTaskTool(() => 0);
-	const result = await tool.execute("bind", { operation: "replace", expectedRevision: 0, binding, tasks: [{ ...pending(), group: "group-1" }] }, undefined, undefined, ctx);
-	manager.appendMessage({ role: "toolResult", toolName: tool.name, toolCallId: "bind", isError: false, timestamp: Date.now(), ...result });
-	assert.deepEqual(JSON.parse(result.content[0].text), { operation: "replace", revision: 1, bindingCurrent: true,
-		tasks: [{ ...pending(), group: "group-1" }], binding });
-	// When
-	await writeFile(join(cwd, "plan.md"), "changed plan");
-	const readback = await tool.execute("list", { operation: "list" }, undefined, undefined, ctx);
-	// Then
-	assert.equal(readback.details.bindingCurrent, false);
-	assert.equal(await checkTaskBinding(binding, cwd), false);
-	await assert.rejects(tool.execute("update", { operation: "update", expectedRevision: 1, id: "g1", changes: { status: "in_progress" } }, undefined, undefined, ctx), /plan.*hash|binding/i);
-	await assert.rejects(tool.execute("escape", { operation: "replace", expectedRevision: 1, binding: { ...binding, path: "../plan.md" }, tasks: [{ ...pending(), group: "group-1" }] }, undefined, undefined, ctx), /path|binding/i);
-});
-
-async function boundBoard(t, git) {
-	const { createTaskTool } = await taskModule(t);
-	const cwd = await realpath(await createWorkspace(t));
-	if (git) await mkdir(join(cwd, ".git"));
-	await writeFile(join(cwd, "plan.md"), "original plan");
-	const manager = pi.SessionManager.inMemory(cwd);
-	const ctx = { cwd, sessionManager: manager };
-	const tool = createTaskTool(() => 0);
-	const run = async (params) => {
-		const result = await tool.execute(params.operation, params, undefined, undefined, ctx);
-		if (params.operation !== "list") manager.appendMessage({ role: "toolResult", toolName: tool.name, toolCallId: params.operation, isError: false, timestamp: Date.now(), ...result });
-		return { ...result, response: JSON.parse(result.content[0].text) };
-	};
-	const hash = (text) => createHash("sha256").update(text).digest("hex");
-	return { cwd, run, hash, binding: (project, text) => ({ project, path: "plan.md", sha256: hash(text), groups: ["group-1"] }) };
-}
-
-test("shouldRecoverWithClearOrAFreshReplaceAndExplainTheMismatchWhenTheBoundPlanChanges", async (t) => {
-	// Given
-	const { cwd, run, binding } = await boundBoard(t, true);
-	await run({ operation: "replace", expectedRevision: 0, binding: binding(cwd, "original plan"), tasks: [{ ...pending(), group: "group-1" }] });
-	await writeFile(join(cwd, "plan.md"), "ticked plan");
-	// When / Then
-	const stale = await run({ operation: "update", expectedRevision: 1, id: "g1", changes: { status: "in_progress" } }).catch((error) => error);
-	assert.match(stale.message, /plan\.md.*(?:changed|SHA-256)/i);
-	assert.match(stale.message, /replace.*fresh binding.*clear|clear.*replace.*fresh binding/i);
-	const project = await run({ operation: "replace", expectedRevision: 1, binding: binding("/elsewhere", "ticked plan"), tasks: [{ ...pending(), group: "group-1" }] }).catch((error) => error);
-	assert.match(project.message, new RegExp(`/elsewhere.*${cwd}`));
-	const rebound = await run({ operation: "replace", expectedRevision: 1, binding: binding(cwd, "ticked plan"), tasks: [{ ...pending(), group: "group-1" }] });
-	assert.equal(rebound.response.bindingCurrent, true);
-	assert.equal((await run({ operation: "update", expectedRevision: 2, id: "g1", changes: { status: "in_progress" } })).response.revision, 3);
-	await writeFile(join(cwd, "plan.md"), "edited again");
-	const cleared = await run({ operation: "clear", expectedRevision: 3 });
-	assert.deepEqual(cleared.response, { operation: "clear", revision: 4, tasks: [] });
-	assert.equal(cleared.details.state.binding, undefined);
-	assert.equal((await run({ operation: "add", expectedRevision: 4, tasks: [pending("next")] })).response.revision, 5);
-});
-
-test("shouldBindWithTheListedIdentityAndKeepWorkingWhenTheProjectIsNotAGitRepository", async (t) => {
-	// Given
-	const { cwd, run, binding } = await boundBoard(t, false);
-	// When
-	const { projectIdentity } = (await run({ operation: "list" })).response;
-	const bound = await run({ operation: "replace", expectedRevision: 0, binding: binding(projectIdentity, "original plan"), tasks: [{ ...pending(), group: "group-1" }] });
-	const updated = await run({ operation: "update", expectedRevision: 1, id: "g1", changes: { status: "in_progress" } });
-	// Then
-	assert.equal(projectIdentity, cwd);
-	assert.equal(bound.response.bindingCurrent, true);
-	assert.deepEqual({ revision: updated.response.revision, bindingCurrent: updated.response.bindingCurrent }, { revision: 2, bindingCurrent: true });
-	assert.equal((await run({ operation: "list" })).response.bindingCurrent, true);
-});
-
-test("shouldAbortOrRejectChangedSessionWithoutCommittingWhenPlanVerificationIsPending", async (t) => {
+test("shouldRejectWithoutCommittingWhenTaskUpdateIsAlreadyCancelled", async (t) => {
 	// Given
 	const { createTaskTool } = await taskModule(t);
 	const cwd = await createWorkspace(t);
 	const ctx = { cwd, sessionManager: pi.SessionManager.inMemory(cwd) };
-	let generation = 0;
-	const tool = createTaskTool(() => generation);
+	const tool = createTaskTool();
 	const signal = new AbortController();
 	signal.abort();
 	// When / Then
 	await assert.rejects(tool.execute("abort", { operation: "add", expectedRevision: 0, tasks: [pending()] }, signal.signal, undefined, ctx), /cancelled/i);
-	const waiting = tool.execute("changed", { operation: "add", expectedRevision: 0, tasks: [pending()] }, undefined, undefined, ctx);
-	generation++;
-	await assert.rejects(waiting, /session changed/i);
 	assert.deepEqual(ctx.sessionManager.getBranch(), []);
 });
 
-test("shouldReplayOnlyAppendedReceiptsAndStillRejectLeafMovesWhenTaskToolRuns", async (t) => {
+test("shouldReplayOnlyAppendedReceiptsAndWholeBranchAfterLeafMovesWhenTaskToolRuns", async (t) => {
 	// Given
 	const { createTaskTool, replayTasks } = await taskModule(t);
 	const cwd = await createWorkspace(t);
 	const manager = pi.SessionManager.inMemory(cwd);
 	const ctx = { cwd, sessionManager: manager };
-	const tool = createTaskTool(() => 0);
+	const tool = createTaskTool();
 	const run = (id, params) => tool.execute(id, params, undefined, undefined, ctx);
 	const commit = async (id, params) => { manager.appendMessage({ role: "toolResult", toolName: tool.name, toolCallId: id, isError: false, timestamp: Date.now(), ...await run(id, params) }); };
 	await commit("seed", { operation: "add", expectedRevision: 0, tasks: [pending("one"), pending("two")] });
@@ -249,13 +168,10 @@ test("shouldReplayOnlyAppendedReceiptsAndStillRejectLeafMovesWhenTaskToolRuns", 
 	manager.branch(seeded);
 	await commit("other", { operation: "update", expectedRevision: 1, id: "two", changes: { status: "in_progress" } });
 	const listed = await run("switched", { operation: "list" });
-	const moving = run("moving", { operation: "update", expectedRevision: 2, id: "one", changes: { status: "in_progress" } });
-	manager.appendMessage({ role: "user", content: "meanwhile", timestamp: Date.now() });
 	// Then
 	assert.deepEqual({ appendedReads, switchedReads: branchReads }, { appendedReads: 0, switchedReads: 1 });
 	assert.deepEqual(listed.details.state, replayTasks(branch()));
 	assert.deepEqual(listed.details.state.tasks.map(({ status }) => status), ["pending", "in_progress"]);
-	await assert.rejects(moving, /session changed/i);
 });
 
 test("shouldBoundCollapsedAndExpandedHeaderWhenTerminalIsNarrowOrShort", async (t) => {
@@ -263,15 +179,15 @@ test("shouldBoundCollapsedAndExpandedHeaderWhenTerminalIsNarrowOrShort", async (
 	const { taskHeader } = await loadUiModule(t, "extensions/ui/task-view.ts");
 	const state = { version: 1, revision: 1, tasks: Array.from({ length: 10 }, (_, index) => ({ ...pending(String(index)), title: "Unicode 你好 é \x1b]52;c;secret\x07" })) };
 	// When
-	const rows = [1, 20, 40, 80, 120].flatMap((width) => [false, true].map((expanded) => ({ width, expanded, lines: taskHeader(state, expanded, width, 24, plainTheme, true) })));
+	const rows = [1, 20, 40, 80, 120].flatMap((width) => [false, true].map((expanded) => ({ width, expanded, lines: taskHeader(state, expanded, width, 24, plainTheme) })));
 	// Then
 	assert.ok(rows.every(({ width, expanded, lines }) => lines.length <= (expanded ? 12 : 4) && lines.every((line) => tui.visibleWidth(line) <= width && !line.includes("\x1b]52"))));
-	assert.equal(taskHeader(state, true, 80, 10, plainTheme, false).length, 1);
-	assert.deepEqual(taskHeader({ version: 1, revision: 0, tasks: [] }, true, 80, 24, plainTheme, true), []);
+	assert.equal(taskHeader(state, true, 80, 10, plainTheme).length, 1);
+	assert.deepEqual(taskHeader({ version: 1, revision: 0, tasks: [] }, true, 80, 24, plainTheme), []);
 });
 
 const timed = (at, state) => ({ ...receipt({ details: { version: 1, operation: "replace", state }, content: [] }), timestamp: new Date(at).toISOString() });
-const board = (revision, tasks) => ({ version: 1, revision, tasks, binding: { project: "/fixture", path: "plan.md", sha256: "a".repeat(60) + "e21b", groups: ["fix", "docs"] } });
+const board = (revision, tasks) => ({ version: 1, revision, tasks });
 const stages = [
 	[{ id: "T1", title: "Fix config", status: "pending", group: "fix" }, { id: "T2", title: "Add regression", status: "pending", group: "fix" }, { id: "T3", title: "Update docs", status: "pending", group: "docs" }],
 	[{ id: "T1", title: "Fix config", status: "in_progress", group: "fix" }, { id: "T2", title: "Add regression", status: "pending", group: "fix" }, { id: "T3", title: "Update docs", status: "pending", group: "docs" }],
@@ -294,6 +210,16 @@ test("shouldDeriveTaskHistoryFromReceiptsWithoutChangingReplayedStateWhenActivit
 	});
 });
 
+test("shouldDropLegacyPlanBindingWhenReplayingEarlierReceipts", async (t) => {
+	// Given
+	const { replayTasks } = await taskModule(t);
+	const binding = { project: "/fixture", path: "plan.md", sha256: "a".repeat(64), groups: ["fix", "docs"] };
+	// When
+	const state = replayTasks(stages.map((tasks, index) => timed(60_000 * index, { ...board(index + 1, tasks), binding })));
+	// Then
+	assert.deepEqual(state, board(3, stages[2]));
+});
+
 test("shouldRecordRemovedEvidenceWhenReplaceReopensTaskWithoutIt", async (t) => {
 	// Given
 	const { replayTaskActivity } = await taskModule(t);
@@ -304,29 +230,27 @@ test("shouldRecordRemovedEvidenceWhenReplaceReopensTaskWithoutIt", async (t) => 
 	assert.deepEqual(activity.get("T1").events.at(-1), { revision: 4, at: 180_000, change: "done → in progress · evidence removed · reason added" });
 });
 
-test("shouldShowFocusTimingPlanAndNextTaskWhenRenderingCollapsedAndExpandedHeaders", async (t) => {
+test("shouldShowFocusTimingGroupsAndNextTaskWhenRenderingCollapsedAndExpandedHeaders", async (t) => {
 	// Given
 	const { replayTaskActivity } = await taskModule(t);
 	const { taskHeader } = await loadUiModule(t, "extensions/ui/task-view.ts");
 	const { state, activity } = replayTaskActivity(activeBranch);
 	const now = 120_000 + 95_000;
 	// When
-	const collapsed = taskHeader(state, false, 120, 40, plainTheme, true, activity, now);
-	const expanded = taskHeader(state, true, 120, 40, plainTheme, true, activity, now);
-	const stale = taskHeader(state, false, 120, 40, plainTheme, false, activity, now);
+	const collapsed = taskHeader(state, false, 120, 40, plainTheme, activity, now);
+	const expanded = taskHeader(state, true, 120, 40, plainTheme, activity, now);
 	// Then
 	assert.equal(collapsed.length, 3);
-	assert.match(collapsed[0], /^Tasks \S+ 1\/3 done · ⊘ 1 blocked  ○ 1 pending +plan ✓ · rev 3$/u);
+	assert.match(collapsed[0], /^Tasks \S+ 1\/3 done · ⊘ 1 blocked  ○ 1 pending +rev 3$/u);
 	assert.match(collapsed[1], /^ ⊘ T2  Add regression  — Fixture HOME undecided +blocked · 1m35s$/u);
 	assert.match(collapsed[2], /last ✓ T1 1m ago  ·  next ○ T3 Update docs +\/orchestraitor:tasks$/u);
-	assert.match(stale[0], /⚠ plan binding stale/u);
-	assert.doesNotMatch(stale[0], /plan ✓/u);
-	const expectedRows = [/^Tasks \S+ 1\/3 done · 33% · ⊘ 1 blocked  ○ 1 pending +rev 3$/u, /^plan  plan\.md  sha aaaaaa…e21b  ✓ matches the bound plan$/u,
+	const expectedRows = [/^Tasks \S+ 1\/3 done · 33% · ⊘ 1 blocked  ○ 1 pending +rev 3$/u,
 		/^fix ─+ 1\/2$/u, /^ ✓ T1  Fix config +done · 1m ago$/u, /^ {7}evidence  pnpm test passed$/u, /^ ⊘ T2  Add regression +blocked · 1m35s$/u,
 		/^ {7}reason  {3}Fixture HOME undecided$/u, /^docs ─+ 0\/1$/u, /^ ○ T3  Update docs +pending$/u, /\/orchestraitor:tasks collapse/u];
 	assert.equal(expanded.length, expectedRows.length);
 	expectedRows.forEach((pattern, index) => assert.match(expanded[index], pattern));
-	assert.ok(taskHeader(state, true, 120, 16, plainTheme, true, activity, now).every((line) => !/evidence|reason/u.test(line)), "Detail rows drop first on short budgets");
+	const longer = { ...state, tasks: [...state.tasks, { id: "T4", title: "Release notes", status: "pending", group: "docs" }] };
+	assert.ok(taskHeader(longer, true, 120, 16, plainTheme, activity, now).every((line) => !/evidence|reason/u.test(line)), "Detail rows drop first on short budgets");
 });
 
 test("shouldMoveSelectionAndShowEvidenceReasonAndHistoryWhenPanelIsNavigated", async (t) => {
@@ -337,7 +261,7 @@ test("shouldMoveSelectionAndShowEvidenceReasonAndHistoryWhenPanelIsNavigated", a
 	const keys = { matches: (data, name) => data === name };
 	let closed;
 	const agents = [{ role: "implement", label: "Fix isolated config", phase: "running", effectiveModel: "fixture-model" }];
-	const panel = createTaskPanel(() => ({ state, bindingCurrent: true, activity, agents }), { requestRender() {}, terminal: { rows: 40, columns: 120 } }, plainTheme, keys, (result) => { closed = result; });
+	const panel = createTaskPanel(() => ({ state, activity, agents }), { requestRender() {}, terminal: { rows: 40, columns: 120 } }, plainTheme, keys, (result) => { closed = result; });
 	// When
 	const blocked = panel.render(120).join("\n");
 	panel.handleInput("tui.select.up");
@@ -445,66 +369,6 @@ for (const rejection of ["blocked", "transformed"]) {
 	});
 }
 
-test("shouldDiscardOlderBindingCheckAfterNewerRefreshClearsPersistedTasks", { timeout: 5000 }, async (t) => {
-	const fs = await import("node:fs/promises"), { syncBuiltinESMExports } = await import("node:module");
-	const entered = Promise.withResolvers(), release = Promise.withResolvers(), original = fs.default.readFile;
-	let plan, block = false;
-	const mock = t.mock.method(fs.default, "readFile", async (path, ...args) => {
-		if (block && String(path) === plan) { entered.resolve(); await release.promise; }
-		return original(path, ...args);
-	});
-	syncBuiltinESMExports();
-	t.after(() => { release.resolve(); mock.mock.restore(); syncBuiltinESMExports(); });
-	const ui = await createUISession(t), { session } = ui, runner = session.extensionRunner;
-	const cwd = await realpath(session.sessionManager.getCwd());
-	await mkdir(join(cwd, ".git"));
-	plan = join(cwd, "plan.md");
-	await writeFile(plan, "plan");
-	const binding = { project: cwd, path: "plan.md", sha256: createHash("sha256").update("plan").digest("hex"), groups: ["group"] };
-	const tool = runner.getAllRegisteredTools().find(({ definition }) => definition.name === "orchestraitor_tasks").definition;
-	const result = await tool.execute("tasks", { operation: "add", expectedRevision: 0, binding, tasks: [{ ...pending(), group: "group" }] }, undefined, undefined, runner.createToolContext("tasks"));
-	session.sessionManager.appendMessage({ ...receipt(result).message, timestamp: Date.now() });
-	block = true;
-	const oldRefresh = runner.emit({ type: "turn_end", toolResults: [] });
-	await Promise.race([entered.promise, oldRefresh.then(() => { throw new Error("Binding check did not start"); })]);
-	session.sessionManager.appendMessage({ ...receipt({ content: [], details: { version: 1, operation: "clear", state: { version: 1, revision: 2, tasks: [] } } }).message, timestamp: Date.now() });
-	await runner.emit({ type: "turn_end", toolResults: [] });
-	assert.deepEqual(renderHeader(ui), []);
-	release.resolve(); await oldRefresh;
-	assert.deepEqual(renderHeader(ui), []);
-});
-
-test("shouldAwaitBindingRefreshBeforeOpeningNextNativeQuestion", { timeout: 5000 }, async (t) => {
-	const fs = await import("node:fs/promises"), { syncBuiltinESMExports } = await import("node:module");
-	const checking = Promise.withResolvers(), releaseCheck = Promise.withResolvers(), question = Promise.withResolvers(), releaseQuestion = Promise.withResolvers();
-	let plan, persistedCandidate = false, opened = false;
-	const original = fs.default.readFile;
-	const mock = t.mock.method(fs.default, "readFile", async (path, ...args) => {
-		if (persistedCandidate && String(path) === plan) { checking.resolve(); await releaseCheck.promise; }
-		return original(path, ...args);
-	});
-	syncBuiltinESMExports();
-	t.after(() => { releaseCheck.resolve(); releaseQuestion.resolve(); mock.mock.restore(); syncBuiltinESMExports(); });
-	const operation = { operation: "add", expectedRevision: 0, tasks: [{ ...pending(), group: "group" }] };
-	const ui = await nativeTasks(t, [operation, askCall("wait")], {
-		message_end(event) { if (event.message.role === "toolResult" && event.message.toolName === "orchestraitor_tasks") persistedCandidate = true; },
-	});
-	const cwd = await realpath(ui.session.sessionManager.getCwd());
-	await mkdir(join(cwd, ".git"));
-	plan = join(cwd, "plan.md"); await writeFile(plan, "plan");
-	operation.binding = { project: cwd, path: "plan.md", sha256: createHash("sha256").update("plan").digest("hex"), groups: ["group"] };
-	ui.ctx.ui.custom = async () => { opened = true; question.resolve(); await releaseQuestion.promise; return { status: "cancelled" }; };
-	const running = ui.session.prompt("Use the local binding refresh fixture.");
-	try {
-		await Promise.race([checking.promise, running.then(() => { throw new Error("Refresh did not check binding"); })]);
-		assert.equal(opened, false);
-		releaseCheck.resolve();
-		await Promise.race([question.promise, running.then(() => { throw new Error("Question did not open"); })]);
-		assert.match(renderHeader(ui)[0], /^Tasks \S+ 0\/1 done/);
-		assert.deepEqual(ui.errors, []);
-	} finally { releaseCheck.resolve(); releaseQuestion.resolve(); await running; }
-});
-
 test("shouldCommitEachSnapshotBeforeNextSequentialCallWhenNativeModelIssuesTasks", async (t) => {
 	// Given
 	const { replayTasks } = await taskModule(t);
@@ -602,41 +466,6 @@ test("shouldRejectNativeNestedExecutionWithoutMutatingTasksWhenToolIsModelOnly",
 	assert.equal(result.isError, true);
 	assert.ok(!ctx.tools.some(({ name }) => name === "orchestraitor_tasks"));
 	assert.deepEqual(replayTasks(session.sessionManager.getBranch()), { version: 1, revision: 0, tasks: [] });
-});
-
-test("shouldAbortDuringNativeHashCheckWithoutPublishingTasksWhenParentCancels", { timeout: 5000 }, async (t) => {
-	// Given
-	const { replayTasks } = await taskModule(t);
-	const fs = await import("node:fs/promises");
-	const { syncBuiltinESMExports } = await import("node:module");
-	const calls = [{ operation: "replace", expectedRevision: 0, tasks: [{ ...pending(), group: "group-1" }] }];
-	const { session, widgets } = await nativeTasks(t, calls);
-	const cwd = await realpath(session.sessionManager.getCwd());
-	await mkdir(join(cwd, ".git"));
-	const plan = join(cwd, "plan.md");
-	await writeFile(plan, "original");
-	calls[0].binding = { project: cwd, path: "plan.md", sha256: createHash("sha256").update("original").digest("hex"), groups: ["group-1"] };
-	let enter, release;
-	const entered = new Promise((resolve) => { enter = resolve; });
-	const gate = new Promise((resolve) => { release = resolve; });
-	t.after(() => release());
-	const original = fs.default.readFile;
-	const mock = t.mock.method(fs.default, "readFile", async (path, ...args) => {
-		if (String(path) === plan) { enter(); await gate; }
-		return original(path, ...args);
-	});
-	syncBuiltinESMExports();
-	t.after(() => { mock.mock.restore(); syncBuiltinESMExports(); });
-	const running = session.prompt("Use local bound-task fixture.");
-	await Promise.race([entered, running.then(() => { throw new Error("Fixture never entered hash verification"); })]);
-	// When
-	const aborted = session.abort();
-	release();
-	await Promise.all([running, aborted]);
-	// Then
-	assert.deepEqual(replayTasks(session.sessionManager.getBranch()), { version: 1, revision: 0, tasks: [] });
-	assert.ok(!widgets.has("orchestraitor:work"));
-	assert.ok(session.messages.some((message) => message.role === "toolResult" && message.isError));
 });
 
 test("shouldReplayForkedNativeReceiptsAndIsolateFreshSessionsWhenHistoryIsCopied", async (t) => {

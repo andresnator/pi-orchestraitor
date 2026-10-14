@@ -60,7 +60,7 @@ test("shouldKeepTasksAsEvidenceProjectionWhenExecutionGuidanceIsLoaded", async (
 	assert.match(instructions, /direct model-only `orchestraitor_tasks`/);
 	assert.match(instructions, /Child completion never marks tasks done/);
 	assert.match(instructions, /not execution authority or durable SDD recovery/);
-	assert.match(instructions, /original plan path\/hash and stable group references/);
+	assert.match(instructions, /set each task's group to its plan group/);
 });
 
 test("shouldKeepQuestionsAsClarificationWithoutGrantingPermissionsWhenGuidanceIsLoaded", async () => {
