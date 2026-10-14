@@ -77,7 +77,7 @@ export function validateBatch(tasks) {
 			if (task.mode === "background") throw new Error("Implementation must be synchronous");
 			if (tasks.length !== 1 || !Array.isArray(task.files) || !task.files.length) throw new Error("An implementer requires exclusive execution and assigned files");
 			task.files.forEach((file) => concreteFile(file));
-		} else if (task.files?.length) throw new Error("Readers cannot have editable files");
+		} else if (task.files?.length) throw new Error("Readers cannot have editable files; name the paths to inspect in instruction or context");
 	}
 }
 
