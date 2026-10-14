@@ -113,8 +113,7 @@ syncBuiltinESMExports();
 `);
 	let failPretty = false;
 	const runWithEnv = (env, ...args) => execFileSync(process.execPath, [...(env.PRETTY_TEST_CONFIG_FAULT ? ["--import", faultModule] : []), join(packageRoot, "scripts/install-pi.mjs"), "--local", ...args], {
-		// HOME isolates Pretty's theme fallback from personal Pi settings.
-		cwd, encoding: "utf8", stdio: "pipe", env: { ...process.env, HOME: root, PI_CODING_AGENT_DIR: agentDir, PI_TEST_PACKAGE_DIR: hostRoot,
+		cwd, encoding: "utf8", stdio: "pipe", env: { ...process.env, PI_CODING_AGENT_DIR: agentDir, PI_TEST_PACKAGE_DIR: hostRoot,
 			PATH: `${bin}:${process.env.PATH}`, PRETTY_TEST_FAIL: failPretty ? "1" : "0", PRETTY_CONFIG_DIR: agentDir, PRETTY_DISABLE_TOOLS: "", ...env },
 	});
 	const run = (...args) => runWithEnv({}, ...args);

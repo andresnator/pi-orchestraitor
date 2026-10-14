@@ -4,23 +4,6 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
 const isBash = (name) => typeof name === "string" && name.trim().toLowerCase() === "bash";
-// Pi's built-in themes are not Shiki themes, so Pretty warns on every session
-// and highlights with github-dark. Pin the matching Shiki theme instead.
-const SHIKI_THEMES = new Map([["dark", "github-dark"], ["light", "github-light"]]);
-
-/** Mirror Pretty: it reads only `$HOME/.pi/agent/settings.json` and ignores an unreadable file. */
-async function piTheme(env) {
-	if (!env.HOME) return;
-	try { return JSON.parse(await readFile(join(env.HOME, ".pi", "agent", "settings.json"), "utf8")).theme; }
-	catch { return; }
-}
-
-async function plannedAdditions(config, env) {
-	return {
-		bash: !config.disableTools?.some(isBash),
-		theme: Object.hasOwn(config, "theme") ? undefined : SHIKI_THEMES.get(await piTheme(env)),
-	};
-}
 
 async function writeConfig(path, text) {
 	const temporary = `${path}.${randomUUID()}.tmp`;
@@ -67,7 +50,7 @@ async function readConfig(path, validateTools = true) {
 	return { text, config, destination };
 }
 
-/** Own only the added bash exclusion and pinned theme; retain other Pretty edits on rollback. */
+/** Own only the added bash exclusion; retain other Pretty edits on rollback. */
 export async function planPrettyConfig(env = process.env) {
 	const disabled = (env.PRETTY_DISABLE_TOOLS ?? "").split(",").map((name) => name.trim().toLowerCase()).filter(Boolean);
 	if (disabled.length && !disabled.includes("bash")) {
@@ -77,47 +60,33 @@ export async function planPrettyConfig(env = process.env) {
 	// Pretty's default follows HOME, independently of PI_CODING_AGENT_DIR.
 	const path = resolve(join(env.PRETTY_CONFIG_DIR ?? join(env.HOME ?? homedir(), ".pi", "agent"), "pi-pretty.json"));
 	const initial = await readConfig(path);
-	const planned = await plannedAdditions(initial.config, env);
 	let applied;
 	return {
-		preview: { path, disableTools: planned.bash
-			? [...(initial.config.disableTools ?? []), "bash"] : initial.config.disableTools,
-			...(planned.theme && { theme: planned.theme }),
-			changed: planned.bash || Boolean(planned.theme) },
+		preview: { path, disableTools: initial.config.disableTools?.some(isBash)
+			? initial.config.disableTools : [...(initial.config.disableTools ?? []), "bash"],
+			changed: !initial.config.disableTools?.some(isBash) },
 		async apply() {
 			// Re-read under the install transaction, retaining edits since preview.
 			const before = await readConfig(path);
-			const added = await plannedAdditions(before.config, env);
-			if (!added.bash && !added.theme) return;
-			const after = { ...before.config };
-			if (added.theme) after.theme = added.theme;
-			if (added.bash) after.disableTools = [...(before.config.disableTools ?? []), "bash"];
+			if (before.config.disableTools?.some(isBash)) return;
+			const after = { ...before.config, disableTools: [...(before.config.disableTools ?? []), "bash"] };
 			const text = `${JSON.stringify(after, null, 2)}\n`;
 			await mkdir(dirname(before.destination), { recursive: true });
 			await writeConfig(before.destination, text);
-			applied = { before, text, added };
+			applied = { before, text };
 		},
 		async rollback() {
 			if (!applied) return;
-			const { before, added } = applied;
+			const before = applied.before;
 			// Recover the file we published even if its alias now points elsewhere.
 			const current = await readConfig(before.destination, false);
 			if (current.destination !== before.destination) throw new Error(`${path}: configuration target changed since installation; cannot roll back through a new link.`);
 			if (current.text === undefined) { applied = undefined; return; }
 			if (current.text !== applied.text) {
-				// Revert only additions another writer left in place.
-				let reverted = false;
-				const index = added.bash && Array.isArray(current.config.disableTools) ? current.config.disableTools.indexOf("bash") : -1;
-				if (index >= 0) {
-					current.config.disableTools.splice(index, 1);
-					if (!current.config.disableTools.length && !Object.hasOwn(before.config, "disableTools")) delete current.config.disableTools;
-					reverted = true;
-				}
-				if (added.theme && current.config.theme === added.theme) {
-					delete current.config.theme;
-					reverted = true;
-				}
-				if (!reverted) { applied = undefined; return; }
+				const index = Array.isArray(current.config.disableTools) ? current.config.disableTools.indexOf("bash") : -1;
+				if (index < 0) { applied = undefined; return; }
+				current.config.disableTools.splice(index, 1);
+				if (!current.config.disableTools.length && !Object.hasOwn(before.config, "disableTools")) delete current.config.disableTools;
 				if (JSON.stringify(current.config) !== JSON.stringify(before.config)) {
 					await writeConfig(before.destination, `${JSON.stringify(current.config, null, 2)}\n`);
 					applied = undefined;

@@ -40,6 +40,7 @@
       "./extensions/instructions.ts",
       "./extensions/mcp.ts",
       "./extensions/nan.ts",
+      "./extensions/pretty-theme.ts",
       "./extensions/subagents.ts",
       "./extensions/status-ui.ts",
       "./extensions/skill-registry.ts"

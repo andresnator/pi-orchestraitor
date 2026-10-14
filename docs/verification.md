@@ -10,15 +10,18 @@ The current deterministic baseline is Pi 1.2.0, Node 22.19+, and pnpm 12.9.1. En
 | `pnpm run install:pi --dry-run` | Complete lexical discovery inventory, including aliases hidden by native deduplication, and proposed standalone-skill moves, without migration or registration. |
 | `pnpm pack --dry-run --ignore-scripts` | Distributed resource inventory and exclusion of tests, local reports, and personal data. |
 
-## Pretty theme pin — 2026-10-14
+## Pretty highlight theme — 2026-10-14
 
-Pretty resolves its Shiki theme from `PRETTY_THEME`, then `pi-pretty.json`, then `$HOME/.pi/agent/settings.json`. Pi's built-in `dark` and `light` themes are not Shiki themes, so each session printed `theme "dark" from ~/.pi/agent/settings.json is not a bundled Shiki theme; falling back to "github-dark"` when Pretty first highlighted code. `install:pi` now pins `github-dark` or `github-light` in `pi-pretty.json` when the file has no `theme` and Pi selects a built-in theme. Rollback removes the pin only while it still has the installer's value. Both names were checked against the `bundledThemes` of Shiki 4.0.2, as installed with Pretty 0.6.30.
+Pi's built-in `dark` and `light` themes are not Shiki themes, so Pretty 0.6.30 warned on its first highlight and used `github-dark` for both. `extensions/pretty-theme.ts` now sets `PRETTY_THEME` to the matching `github-dark`/`github-light` on every start and `/reload`, unless a Pretty theme is already set. It writes no files. An earlier version pinned the theme into `pi-pretty.json` during `install:pi`; review showed that pin went stale when Pi's theme changed, so it was replaced before merge.
 
 Fresh checks, Node 24.20.0 / pnpm 12.9.1 / locked Pi 1.2.0:
 
-- `node --test tests/pretty-config.test.mjs` against the preceding `pretty-config.mjs`: RED, 41/45 passed; the four failures were the expected pins, while the two unchanged-theme cases already passed.
-- The same file with the change: GREEN, 45/45; together with `tests/install-pi.test.mjs`, which now isolates `HOME` from personal Pi settings, 47/47.
-- `node --test tests/*.test.mjs`: GREEN, 767/767 after rebasing onto #12. An earlier full run failed only `shouldKeepObservedPoisonedControllerLockWhenNativeUiReloads`, which does not involve Pretty configuration; `tests/ui-extension.test.mjs` passed 27/27 in three isolated reruns.
+- Real Pretty `getTheme()` from the installed 0.6.30 package, temporary HOME, one process per case: without the extension, `dark` and `light` each produced the warning and `github-dark`; with it, `github-dark` and `github-light` with no warning.
+- Same package, one process reloaded as Pi does (`moduleCache: false`) through Pi themes `light`, `dark`, `dracula`, `dark`: Pretty used `github-light`, `github-dark`, `dracula`, `github-dark`, with no warning and only `settings.json` in the agent directory.
+- `node --test tests/pretty-theme.test.mjs`: RED, 4/5 with a helper that treated its own earlier value as explicit (reload kept `github-light` after a switch to `dark`); GREEN, 5/5.
+- `node --test tests/*.test.mjs`: 766/766 passed, zero failures/cancellations/skips. `git diff --check` passed.
+
+Physical TUI acceptance in a live Pi session was not run.
 
 ## Productivity frontmatter follow-up — 2026-10-13
 

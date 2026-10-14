@@ -46,6 +46,7 @@ flowchart TB
   X -->|compact-tools.ts decorates: I| T[Native tool presentation]
   X -->|context-budget.ts caps: N| CB[Model-issued codemode output]
   INS[install-pi.mjs] -->|registers pinned companion: I| PP[pi-pretty]
+  X -->|pretty-theme.ts sets PRETTY_THEME: I| PP
   PP -->|read / bash / search / editor presentation: I| PUI[Pi native tool and UI APIs]
   X -->|mcp.ts registers: J| MCP[Context7 / Engram]
   X -->|subagents.ts registers: K| SR[subagent_run]
@@ -62,7 +63,7 @@ flowchart TB
 | F | [prompts/plan.md:5–8](../../prompts/plan.md), [prompts/orchestraitor.md:5–6](../../prompts/orchestraitor.md), [prompts/review.md:5–8](../../prompts/review.md), [prompts/absorb.md:5–7](../../prompts/absorb.md). |
 | G | [README.md](../../README.md), [skills/jag-routing/SKILL.md:20–28](../../skills/jag-routing/SKILL.md): catalog selection, then body loading. |
 | H | [extensions/instructions.ts:4–26](../../extensions/instructions.ts): adds sections without replacing Pi/project context; only Pi's docs reading rule is narrowed, in place. |
-| I | [extensions/compact-tools.ts](../../extensions/compact-tools.ts): presentation, not a scheduler; yields read/bash to existing extension owners. The installer separately registers [pi-pretty](../pi-pretty.md). |
+| I | [extensions/compact-tools.ts](../../extensions/compact-tools.ts): presentation, not a scheduler; yields read/bash to existing extension owners. The installer separately registers [pi-pretty](../pi-pretty.md); [extensions/pretty-theme.ts](../../extensions/pretty-theme.ts) only maps Pi's built-in themes to its [highlight theme](../pi-pretty.md#highlight-theme). |
 | J | [extensions/mcp.ts:8–28](../../extensions/mcp.ts). |
 | K | [extensions/subagents.ts](../../extensions/subagents.ts), [instructions/orchestraitor.md](../../instructions/orchestraitor.md). |
 | L | [extensions/subagent/controller.mjs](../../extensions/subagent/controller.mjs), [extensions/subagent/child.mjs:18–28](../../extensions/subagent/child.mjs), [extensions/subagent/runtime.mjs:13–25](../../extensions/subagent/runtime.mjs). |
