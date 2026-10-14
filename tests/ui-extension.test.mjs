@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { dirname, join } from "node:path";
-import { mkdir, realpath, rm, writeFile } from "node:fs/promises";
-import { createHash } from "node:crypto";
+import { realpath, rm } from "node:fs/promises";
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
 import { stripVTControlCharacters } from "node:util";
@@ -86,24 +85,6 @@ test("shouldRefreshBranchTasksWhenNavigationKeepsEntryCount", async (t) => {
 	// Then
 	assert.equal(manager.getEntryCount(), count);
 	assert.equal(widgets.has("orchestraitor:work"), false);
-});
-
-test("shouldDetectExternalPlanDriftEvenWhenTaskProjectionIsCached", async (t) => {
-	// Given
-	const ui = await createUISession(t), { session } = ui;
-	const cwd = await realpath(session.extensionRunner.createContext().cwd);
-	await mkdir(join(cwd, ".git")); await writeFile(join(cwd, "plan.md"), "original");
-	const binding = { project: cwd, path: "plan.md", sha256: createHash("sha256").update("original").digest("hex"), groups: ["g1"] };
-	session.sessionManager.appendMessage({ role: "toolResult", toolName: "orchestraitor_tasks", toolCallId: "bound", content: [], isError: false, timestamp: 0,
-		details: { version: 1, operation: "replace", state: { version: 1, revision: 1, binding, tasks: [{ id: "one", title: "Bound work", group: "g1", status: "pending" }] } } });
-	await session.extensionRunner.emit({ type: "turn_end" });
-	assert.doesNotMatch(header(ui), /plan binding stale/);
-	session.sessionManager.getBranch = () => { assert.fail("Unchanged branch must not be reconstructed"); };
-	// When
-	await writeFile(join(cwd, "plan.md"), "external edit");
-	await session.extensionRunner.emit({ type: "turn_end" });
-	// Then
-	assert.match(header(ui), /plan binding stale/);
 });
 
 test("shouldClearOnlyOwnedChromeWhenDisposedRepeatedly", async (t) => {

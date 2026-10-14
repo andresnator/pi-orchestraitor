@@ -72,7 +72,7 @@ These are hypotheses until measured. After a week of comparable work, run `pnpm 
 
 About 15% of the baseline's assistant turns only updated tasks or memory. The package makes those updates smaller and asks for them to travel with work:
 
-- `orchestraitor_tasks` mutations return the operation, the new revision and only the affected tasks, plus `bindingCurrent` when a plan is bound. `list` still returns the complete board with `bindingCurrent` and the project identity, and every receipt keeps the full versioned state in `details`. On the benchmark's one-task update on a 20-task board, the model-facing response fell from 261 to 146 characters.
+- `orchestraitor_tasks` mutations return the operation, the new revision and only the affected tasks. `list` still returns the complete board, and every receipt keeps the full versioned state in `details`. On the benchmark's one-task update on a 20-task board, the model-facing response fell from 261 to 146 characters.
 - The task tool runs sequentially, so several updates in one assistant message, alongside work calls, take consecutive revisions. Pi then runs every call in that message sequentially: two 400 ms calls plus a task update take about 800 ms instead of 400 ms. `instructions/orchestraitor.md` therefore asks for updates with the next work calls only when at most one of them is slow, and for done evidence that has already returned.
 - `extensions/mcp.ts` registers Engram when the session starts, unless another package, such as gentle-engram, already provides `mem_search`; both routes would expose the same memory twice. An `engram` entry in `mcp.json` still adds this package's route.
 - This guidance and the codemode rules add 439 characters to the owned instructions and 40 to the tool declarations. Prompt plus tool declarations grew by 528 characters, about 130 estimated tokens per request, in a prefix that stays stable and is mostly read from cache. Package startup stayed within 1% of the baseline.
@@ -117,7 +117,7 @@ Raw reports are retained privately under `.ai/verification/performance/`; that d
 
 ## Native UI after integration removal
 
-The optional workbench, publisher, private snapshot transport and duplicate usage projection are removed. Native Pi owns session accounting; child attribution remains in full native receipts. Task projection caching still avoids branch reads when the manager/leaf are unchanged, and bound plans are still checked for external drift.
+The optional workbench, publisher, private snapshot transport and duplicate usage projection are removed. Native Pi owns session accounting; child attribution remains in full native receipts. Task projection caching still avoids branch reads when the manager/leaf are unchanged. Tasks no longer bind a plan, so nothing checks plans for external drift.
 
 Historical benchmark report version 2 measured only native and package configurations. It removes duplicate package startup samples and the removed usage projection fixture. Comparisons record `sameMethodology`; prompt/task size and print-mode startup fields are unchanged, but the hook fixture now measures native UI alone. Do not compare hook timings across report versions as the same operation. Removal reduces code and background work; it does not itself prove provider-token savings.
 

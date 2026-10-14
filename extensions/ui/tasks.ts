@@ -1,6 +1,3 @@
-import { createHash } from "node:crypto";
-import { lstat, readFile, realpath } from "node:fs/promises";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import type { ExtensionContext, ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
@@ -17,19 +14,16 @@ const TASK_STATUSES = ["pending", "in_progress", "blocked", "done"] as const;
 const OPERATIONS = ["replace", "add", "update", "list", "clear"] as const;
 export type TaskStatus = typeof TASK_STATUSES[number];
 export type Task = { id: string; title: string; status: TaskStatus; evidence?: string; reason?: string; group?: string };
-export type PlanBinding = { project: string; path: string; sha256: string; groups: string[] };
-export type TaskState = { version: number; revision: number; tasks: Task[]; binding?: PlanBinding };
+export type TaskState = { version: number; revision: number; tasks: Task[] };
 export type TaskEvent = { revision: number; at?: number; change: string };
 /** Keyed by task ID; `since` is when the current status began. */
 export type TaskActivity = Map<string, { since?: number; events: TaskEvent[] }>;
 export type TaskReplay = { state: TaskState; activity: TaskActivity };
 export type TaskOperation = { operation: typeof OPERATIONS[number]; expectedRevision?: number; tasks?: Task[];
-	id?: string; changes?: Partial<Omit<Task, "id">>; binding?: PlanBinding };
+	id?: string; changes?: Partial<Omit<Task, "id">> };
 
 const boundedText = (limit: number) => Type.String({ minLength: 1, maxLength: limit });
 const statusSchema = StringEnum(TASK_STATUSES);
-const bindingSchema = Type.Object({ project: boundedText(TASK_NOTE_LIMIT), path: boundedText(TASK_NOTE_LIMIT),
-	sha256: Type.String({ pattern: "^[a-f0-9]{64}$" }), groups: Type.Array(boundedText(ID_LIMIT), { minItems: 1, maxItems: TASK_LIMIT }) }, { additionalProperties: false });
 const taskFields = { title: boundedText(TASK_TITLE_LIMIT), status: statusSchema,
 	evidence: Type.Optional(boundedText(TASK_NOTE_LIMIT)), reason: Type.Optional(boundedText(TASK_NOTE_LIMIT)), group: Type.Optional(boundedText(ID_LIMIT)) };
 export const TaskParameters = Type.Object({ operation: StringEnum(OPERATIONS),
@@ -37,8 +31,7 @@ export const TaskParameters = Type.Object({ operation: StringEnum(OPERATIONS),
 	tasks: Type.Optional(Type.Array(Type.Object({ id: boundedText(ID_LIMIT), ...taskFields }, { additionalProperties: false }), { maxItems: TASK_LIMIT })),
 	id: Type.Optional(boundedText(ID_LIMIT)),
 	changes: Type.Optional(Type.Object({ title: Type.Optional(taskFields.title), status: Type.Optional(statusSchema),
-		evidence: taskFields.evidence, reason: taskFields.reason, group: taskFields.group }, { additionalProperties: false })),
-	binding: Type.Optional(bindingSchema) }, { additionalProperties: false });
+		evidence: taskFields.evidence, reason: taskFields.reason, group: taskFields.group }, { additionalProperties: false })) }, { additionalProperties: false });
 
 export function emptyTasks(): TaskState { return { version: TASK_SCHEMA_VERSION, revision: 0, tasks: [] }; }
 
@@ -47,31 +40,20 @@ function text(value: unknown, label: string, limit: number): asserts value is st
 	if (typeof value !== "string" || !value.trim() || (value.length > limit && !Value.Check(Type.String({ maxLength: limit }), value))) throw new Error(`Invalid ${label}: non-empty text up to ${limit} characters required`);
 }
 
-function validateBinding(binding: PlanBinding) {
-	text(binding.project, "binding project", TASK_NOTE_LIMIT);
-	text(binding.path, "binding path", TASK_NOTE_LIMIT);
-	if (isAbsolute(binding.path) || binding.path.includes("\\") || binding.path.split("/").some((part) => !part || part === "." || part === "..") || /[\x00-\x1f]/u.test(binding.path)) throw new Error("Invalid repository-relative binding path");
-	if (!/^[a-f0-9]{64}$/u.test(binding.sha256)) throw new Error("Invalid binding SHA-256");
-	if (!Array.isArray(binding.groups) || !binding.groups.length || binding.groups.length > TASK_LIMIT || new Set(binding.groups).size !== binding.groups.length) throw new Error("Binding groups must be unique and bounded");
-	for (const group of binding.groups) text(group, "binding group", ID_LIMIT);
-}
-
-function validateTask(task: Task, binding?: PlanBinding) {
+function validateTask(task: Task) {
 	text(task.id, "task ID", ID_LIMIT);
 	if (!/^[a-zA-Z0-9][a-zA-Z0-9._:-]*$/u.test(task.id)) throw new Error("Invalid stable task ID");
 	text(task.title, "task title", TASK_TITLE_LIMIT);
 	if (!TASK_STATUSES.includes(task.status)) throw new Error("Invalid task status");
 	for (const field of ["evidence", "reason", "group"] as const) if (task[field] !== undefined) text(task[field], field, field === "group" ? ID_LIMIT : TASK_NOTE_LIMIT);
 	if (task.status === "done" && !task.evidence?.trim()) throw new Error("Done requires parent-reported evidence");
-	if (binding && (!task.group || !binding.groups.includes(task.group))) throw new Error("Plan-bound tasks require a stable group reference from the binding");
 }
 
 function validateState(state: TaskState) {
 	if (!state || state.version !== TASK_SCHEMA_VERSION || !Number.isSafeInteger(state.revision) || state.revision < 0) throw new Error("Invalid task state version/revision");
 	if (!Array.isArray(state.tasks) || state.tasks.length > TASK_LIMIT) throw new Error(`Task limit is ${TASK_LIMIT}`);
-	if (state.binding) validateBinding(state.binding);
 	if (new Set(state.tasks.map((task) => task?.id)).size !== state.tasks.length) throw new Error("Task IDs must be unique");
-	for (const task of state.tasks) validateTask(task, state.binding);
+	for (const task of state.tasks) validateTask(task);
 }
 
 function validateTransition(previous: Task | undefined, next: Task, supplied: Partial<Task>) {
@@ -88,7 +70,6 @@ export function applyTaskOperation(current: TaskState, params: TaskOperation): T
 	if (current.revision === Number.MAX_SAFE_INTEGER) throw new Error("Task revision limit reached");
 	const next = structuredClone(current);
 	next.revision++;
-	if (params.binding) { validateBinding(params.binding); next.binding = structuredClone(params.binding); }
 	switch (params.operation) {
 		case "replace":
 			if (!Array.isArray(params.tasks)) throw new Error("replace requires tasks");
@@ -109,7 +90,7 @@ export function applyTaskOperation(current: TaskState, params: TaskOperation): T
 			validateTransition(current.tasks[index], next.tasks[index], params.changes);
 			break;
 		}
-		case "clear": next.tasks = []; delete next.binding; break;
+		case "clear": next.tasks = []; break;
 	}
 	validateState(next);
 	return next;
@@ -156,7 +137,8 @@ export function replayTaskActivity(branch: any[], start: TaskReplay = { state: e
 				next.set(task.id, { since: !previous || previous.status !== task.status ? at : record.since,
 					events: change ? [...record.events, { revision: details.state.revision, at, change }].slice(-ACTIVITY_LIMIT) : record.events });
 			}
-			state = structuredClone(details.state);
+			// Receipts written before plan binding was removed may carry a binding; the board drops it.
+			state = { version: details.state.version, revision: details.state.revision, tasks: structuredClone(details.state.tasks) };
 			activity = next;
 		} catch { /* Invalid receipts never reset or advance the active projection. */ }
 	}
@@ -189,69 +171,23 @@ export function createTaskReplay() {
 	};
 }
 
-/** The repository root, or the cwd realpath outside git; list reports it as the binding project identity. */
-async function repositoryRoot(cwd: string) {
-	const original = await realpath(cwd);
-	let candidate = original;
-	while (true) {
-		try { await lstat(join(candidate, ".git")); return candidate; }
-		catch (error: any) { if (error.code !== "ENOENT") throw error; }
-		const parent = dirname(candidate);
-		if (parent === candidate) return original;
-		candidate = parent;
-	}
-}
-
-/** Names what did not match, or undefined when the bound plan is current. */
-async function bindingMismatch(binding: PlanBinding, cwd: string): Promise<string | undefined> {
-	try {
-		validateBinding(binding);
-		const root = await repositoryRoot(cwd);
-		if (binding.project !== root) return `project ${binding.project} is not the project identity ${root}`;
-		const target = await realpath(resolve(root, binding.path));
-		const path = relative(root, target);
-		if (isAbsolute(path) || path === ".." || path.startsWith("../")) return `${binding.path} resolves outside the project`;
-		if (createHash("sha256").update(await readFile(target)).digest("hex") !== binding.sha256) return `${binding.path} changed since its SHA-256 was recorded`;
-	} catch (error: any) { return `${binding.path} could not be verified (${error.code ?? error.message})`; }
-}
-
-/** Called before mutations or display refreshes, never from a render callback. */
-export async function checkTaskBinding(binding: PlanBinding | undefined, cwd: string): Promise<boolean> {
-	return !binding || !await bindingMismatch(binding, cwd);
-}
-
-export function createTaskTool(getGeneration: () => number): ToolDefinition {
+export function createTaskTool(): ToolDefinition {
 	const replay = createTaskReplay();
 	return {
 		name: TASK_TOOL_NAME, label: "Work tasks", exposure: "model-only", executionMode: "sequential",
 		annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
-		description: "Track authorized branch work. Mutations require expectedRevision (reuse returned revisions); done needs parent evidence, reopening a reason. list returns the complete board and project identity. Pi runs the whole message sequentially: pair updates with at most one slow call. Plan binding verifies the plan, not execution recovery.",
+		description: "Track authorized branch work. Mutations require expectedRevision (reuse returned revisions); done needs parent evidence, reopening a reason. list returns the complete board. Pi runs the whole message sequentially: pair updates with at most one slow call.",
 		parameters: TaskParameters,
 		async execute(_id, params: TaskOperation, signal, _onUpdate, ctx: ExtensionContext) {
-			const combined = signal && ctx.signal ? AbortSignal.any([signal, ctx.signal]) : signal ?? ctx.signal;
-			const generation = getGeneration();
-			const leaf = ctx.sessionManager.getLeafId();
-			const before = replay(ctx.sessionManager).state;
-			if (combined?.aborted) throw new Error("Task update cancelled");
-			const state = applyTaskOperation(before, params);
-			// Clear drops the binding and a supplied binding replaces it, so only the resulting binding is checked.
-			const mismatch = state.binding && await bindingMismatch(state.binding, ctx.cwd);
-			const bindingCurrent = !mismatch;
-			if (mismatch && params.operation !== "list") throw new Error(params.binding ? `Supplied plan binding does not match: ${mismatch}. Use the projectIdentity from list and the current plan SHA-256.`
-				: `Plan binding is stale: ${mismatch}. Recover with replace and a fresh binding (projectIdentity from list, current SHA-256), or clear to drop the binding.`);
-			const projectIdentity = await repositoryRoot(ctx.cwd);
-			if (combined?.aborted) throw new Error("Task update cancelled");
-			// The branch ending at an unchanged leaf is unchanged, and so is its replay.
-			if (generation !== getGeneration() || leaf !== ctx.sessionManager.getLeafId()) throw new Error("Session changed during task operation; retry from current branch state");
-			// Mutations fail on a stale binding, so only bound boards report it; list returns the project identity.
-			const response = params.operation === "list" ? { state, bindingCurrent, projectIdentity } : {
-				operation: params.operation, revision: state.revision, ...(state.binding ? { bindingCurrent } : {}),
+			if (signal?.aborted || ctx.signal?.aborted) throw new Error("Task update cancelled");
+			const state = applyTaskOperation(replay(ctx.sessionManager).state, params);
+			const response = params.operation === "list" ? { state } : {
+				operation: params.operation, revision: state.revision,
 				tasks: params.operation === "clear" ? [] : params.operation === "update" ? state.tasks.filter(task => task.id === params.id)
 					: state.tasks.filter(task => params.tasks?.some(changed => changed.id === task.id)),
-				...(params.binding ? { binding: state.binding } : {}),
 			};
 			return { content: [{ type: "text", text: JSON.stringify(response) }],
-				details: { version: TASK_SCHEMA_VERSION, operation: params.operation, state, bindingCurrent, projectIdentity } };
+				details: { version: TASK_SCHEMA_VERSION, operation: params.operation, state } };
 		},
 	};
 }

@@ -145,7 +145,8 @@ export default function subagents(pi: ExtensionAPI) {
 		parameters: Type.Object({ tasks: Type.Array(Type.Object({
 			role: StringEnum(["explore", "review", "implement"]),
 			instruction: Type.String({ minLength: 1 }), context: Type.Optional(Type.String()),
-			skills: Type.Optional(Type.Array(Type.String())), files: Type.Optional(Type.Array(Type.String())),
+			skills: Type.Optional(Type.Array(Type.String())),
+			files: Type.Optional(Type.Array(Type.String(), { description: "Implement only: exact editable paths. Readers name paths to inspect in instruction or context" })),
 			model: Type.Optional(Type.String({ description: "Exact available provider/model ID; defaults to the parent model" })),
 			mode: Type.Optional(StringEnum(["sync", "background"])),
 			reasoning: Type.Optional(StringEnum(THINKING_LEVELS)),

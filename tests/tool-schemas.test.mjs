@@ -38,6 +38,18 @@ test("shouldDeclareEveryStringEnumAsPlainEnumAndKeepPiValidationWhenToolsAreRegi
 	for (const name of new Set(ENUMS.map(({ tool }) => tool))) assert.doesNotMatch(JSON.stringify(tools.get(name).parameters), /"anyOf"|"const"/, `${name} declares no literal unions`);
 });
 
+test("shouldDeclareFilesAsImplementOnlyWhenSubagentRunIsRegistered", async (t) => {
+	// Given
+	const cwd = await createWorkspace(t);
+	const { session } = await startSession(t, cwd, await loadPackage(cwd));
+	const tool = session.getAllTools().find(({ name }) => name === "subagent_run");
+	// When
+	const { description } = field(tool.parameters, ["tasks", "items", "files"]);
+	// Then
+	assert.match(description ?? "", /implement only/i);
+	assert.match(description ?? "", /instruction or context/);
+});
+
 test("shouldAcceptExactlyTheTextLengthsPiValidatorAcceptsWhenTasksAndQuestionsCheckAtRuntime", async (t) => {
 	// Given
 	const cwd = await createWorkspace(t);

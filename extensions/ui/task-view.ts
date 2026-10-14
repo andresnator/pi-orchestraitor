@@ -2,7 +2,7 @@ import type { KeybindingsManager, Theme, ThemeColor } from "@earendil-works/pi-c
 import { matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type TUI } from "@earendil-works/pi-tui";
 import type { AgentRow } from "./agents.ts";
 import { sanitizeDisplay } from "./display.ts";
-import type { PlanBinding, Task, TaskActivity, TaskState, TaskStatus } from "./tasks.ts";
+import type { Task, TaskActivity, TaskState, TaskStatus } from "./tasks.ts";
 
 const SHORT_TERMINAL_ROWS = 16;
 const PANEL_RESERVED_ROWS = 8;
@@ -20,7 +20,7 @@ const STATUS: Record<TaskStatus, { glyph: string; color: ThemeColor; label: stri
 	pending: { glyph: "○", color: "muted", label: "pending", tally: "pending" },
 };
 
-export type TaskViewState = { state: TaskState; bindingCurrent: boolean; activity?: TaskActivity; agents?: AgentRow[] };
+export type TaskViewState = { state: TaskState; activity?: TaskActivity; agents?: AgentRow[] };
 
 const clean = (text: string) => sanitizeDisplay(text).replace(/\s+/gu, " ").trim();
 const fit = (text: string, width: number, pad = false) => truncateToWidth(text, Math.max(0, width), "…", pad);
@@ -78,14 +78,13 @@ function tallies(tasks: Task[], theme: Theme, statuses: TaskStatus[], compact = 
 }
 
 function summary(view: TaskViewState, width: number, theme: Theme, expanded: boolean) {
-	const { state, bindingCurrent } = view, tally = counts(state.tasks), total = state.tasks.length;
+	const { state } = view, tally = counts(state.tasks), total = state.tasks.length;
 	const allDone = tally.done === total;
 	const cells = width >= 80 ? 20 : width >= 50 ? 10 : 0;
 	let left = theme.bold("Tasks") + (cells ? " " + progressBar(state.tasks, cells, theme) : "")
 		+ " " + theme.fg(allDone ? "success" : "text", `${tally.done}/${total} done${allDone ? " ✓" : ""}`);
 	if (expanded) left += theme.fg("muted", ` · ${Math.floor(tally.done / total * 100)}%`);
-	if (!bindingCurrent) left += theme.fg("muted", " · ") + theme.fg("error", "⚠ plan binding stale");
-	const right = theme.fg("muted", [state.binding && bindingCurrent && !expanded ? "plan ✓" : "", `rev ${state.revision}`].filter(Boolean).join(" · "));
+	const right = theme.fg("muted", `rev ${state.revision}`);
 	if (allDone) return row(left, right, width);
 	// Counts collapse to glyphs before anything is truncated, so narrow rows keep every status visible.
 	const full = left + theme.fg("muted", " · ") + tallies(state.tasks, theme, ["in_progress", "blocked", "pending"]);
@@ -101,15 +100,10 @@ function taskLine(task: Task, width: number, theme: Theme, view: TaskViewState, 
 	return row(left, theme.fg(meta.color, right), width);
 }
 
-function planLine(binding: PlanBinding, current: boolean, width: number, theme: Theme, label = "plan  ") {
-	return fit(theme.fg("muted", label) + theme.fg("text", clean(binding.path)) + theme.fg("muted", `  sha ${binding.sha256.slice(0, 6)}…${binding.sha256.slice(-4)}  `)
-		+ (current ? theme.fg("success", "✓ matches the bound plan") : theme.fg("error", "⚠ plan changed or unavailable · list may be outdated")), width);
-}
-
-/** Plan groups in binding order, then first appearance; ungrouped lists render without a rule. */
+/** Plan groups in first-appearance order; ungrouped lists render without a rule. */
 function grouped(state: TaskState): [string | undefined, Task[]][] {
 	if (!state.tasks.some((task) => task.group)) return [[undefined, state.tasks]];
-	const names = [...new Set([...state.binding?.groups ?? [], ...state.tasks.map((task) => task.group ?? "other")])];
+	const names = [...new Set(state.tasks.map((task) => task.group ?? "other"))];
 	return names.map((name): [string, Task[]] => [name, state.tasks.filter((task) => (task.group ?? "other") === name)]).filter(([, tasks]) => tasks.length);
 }
 
@@ -135,7 +129,6 @@ function shortRow(view: TaskViewState, width: number, theme: Theme) {
 	const { state } = view, tally = counts(state.tasks);
 	const focus = state.tasks.find((task) => task.status === "in_progress") ?? state.tasks.find((task) => task.status === "blocked");
 	let line = theme.bold("Tasks") + (width >= 50 ? " " + progressBar(state.tasks, 8, theme) : "") + " " + `${tally.done}/${state.tasks.length}`;
-	if (!view.bindingCurrent) line += " " + theme.fg("error", "⚠ plan binding stale");
 	for (const status of ["in_progress", "blocked"] as const) if (tally[status]) line += " " + theme.fg(STATUS[status].color, `${STATUS[status].glyph}${tally[status]}`);
 	if (focus) line += theme.fg("muted", " · ") + theme.fg(STATUS[focus.status].color, STATUS[focus.status].glyph) + " " + theme.fg("muted", clean(focus.id)) + " " + clean(focus.title);
 	return fit(line, width);
@@ -159,7 +152,6 @@ function expandedRows(view: TaskViewState, width: number, height: number, theme:
 	const { state } = view;
 	const budget = Math.min(EXPANDED_MAX_ROWS, Math.max(EXPANDED_MIN_ROWS, Math.floor(height / 2)));
 	const head = [summary(view, width, theme, true)];
-	if (state.binding) head.push(planLine(state.binding, view.bindingCurrent, width, theme));
 	const build = (details: boolean) => grouped(state).flatMap(([name, tasks]) => [
 		...name === undefined ? [] : [{ line: groupRule(name, tasks, width, theme), task: false }],
 		...tasks.flatMap((task) => {
@@ -180,10 +172,10 @@ function expandedRows(view: TaskViewState, width: number, height: number, theme:
 }
 
 /** Bounded work header: four rows collapsed, at most EXPANDED_MAX_ROWS expanded, one row on short terminals. */
-export function taskHeader(state: TaskState, expanded: boolean, width: number, height: number, theme: Theme, bindingCurrent: boolean,
+export function taskHeader(state: TaskState, expanded: boolean, width: number, height: number, theme: Theme,
 	activity?: TaskActivity, now = Date.now()) {
 	if (!state.tasks.length) return [];
-	const view = { state, bindingCurrent, activity };
+	const view = { state, activity };
 	if (height < SHORT_TERMINAL_ROWS) return [shortRow(view, width, theme)];
 	return expanded ? expandedRows(view, width, height, theme, now) : collapsedRows(view, width, theme, now);
 }
@@ -254,9 +246,7 @@ export function createTaskPanel(getState: () => TaskViewState, tui: TUI, theme: 
 		render(width: number) {
 			const view = getState(), { state } = view, now = Date.now();
 			width = Math.max(1, width);
-			const head = [row(theme.bold("Tasks") + theme.fg("muted", ` · ${state.binding ? "plan-bound" : "unbound"} · rev ${state.revision}`), theme.fg("muted", "esc close"), width)];
-			if (state.binding) head.push(planLine(state.binding, view.bindingCurrent, width, theme, "plan    "));
-			else if (!view.bindingCurrent) head.push(fit(theme.fg("error", "⚠ plan binding stale or unavailable; this projection is not current"), width));
+			const head = [row(theme.bold("Tasks") + theme.fg("muted", ` · rev ${state.revision}`), theme.fg("muted", "esc close"), width)];
 			head.push(...agentRows(view.agents, width, theme));
 			if (state.tasks.length) head.push(fit(theme.fg("muted", "status  ") + progressBar(state.tasks, Math.min(20, Math.max(4, width - 60)), theme)
 				+ " " + theme.bold(`${Math.floor(counts(state.tasks).done / state.tasks.length * 100)}%`) + "   " + tallies(state.tasks, theme, ORDER), width));

@@ -17,6 +17,16 @@ test("shouldRejectMixedAndUnboundedTasksWhenValidatingBatch", () => {
 	}
 });
 
+test("shouldPointReadersToInstructionOrContextWhenTheyAssignFiles", () => {
+	// Given
+	const reader = { role: "explore", instruction: "inspect" };
+	// When / Then
+	assert.doesNotThrow(() => validateBatch([{ ...reader, files: [] }]));
+	for (const role of ["explore", "review"]) {
+		assert.throws(() => validateBatch([{ ...reader, role, files: ["README.md"] }]), /Readers cannot have editable files.*instruction or context/, role);
+	}
+});
+
 test("shouldRejectEscapesAndUnsafeLinksWhenAccessingFiles", async (t) => {
 	// Given
 	const cwd = await realpath(await createWorkspace(t));
