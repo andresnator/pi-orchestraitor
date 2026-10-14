@@ -32,7 +32,7 @@ The agents panel shows assignment order, IDs, roles, requested/effective model e
 
 Tasks start collapsed in at most four rows. The first row shows a status-colored progress bar, the done count, the counts by status and the revision. Up to two rows follow for in-progress or blocked tasks, with time in the current status and any blocked reason. The last row names the most recently finished task and the next pending task. Expanded chrome adds rules for each plan group with a done count, and evidence or reason rows. It uses half the terminal height, between five and 18 rows. It drops detail rows first and then ends with a `… N more` row. Terminals under 16 rows temporarily collapse it to one row. Empty lists contribute no task row.
 
-The task panel is read-only. Selection keys move through tasks grouped by plan group, and page keys scroll the detail of the selected task. Wide terminals show the list and the detail side by side; narrow terminals stack them. The detail shows the title, group, time in the current status, evidence with its parent-reported caption, the reason, and the task's history on this branch. The panel header lists the plan binding, up to two live agents and the status distribution.
+The task panel is read-only. Selection keys move through tasks grouped by plan group, and page keys scroll the detail of the selected task. Wide terminals show the list and the detail side by side; narrow terminals stack them. The detail shows the title, group, time in the current status, evidence with its parent-reported caption, the reason, and the task's history on this branch. The panel header lists the revision, up to two live agents and the status distribution.
 
 Times and history come from the timestamps of the same validated receipts. They are display-only: they never enter task state, revision checks or the `list` response. The footer contributes one status with this precedence: known launch block, awaiting input, active agents; idle contributes nothing. Native counters are not repeated.
 
@@ -156,7 +156,7 @@ Commands in that isolated run:
 | ID | Exercise | Required evidence |
 | --- | --- | --- |
 | V1 | Two readers, one writer, failure, cancellation, retry | Starting/running/final frames, order, diagnostics, no acceptance label; separate actual termination/bytes checks. |
-| V2 | Task create/update/block/done/reopen/collapse/expand | Before/after header and full-panel frames, stable IDs, evidence/reason and unchanged supplied plan hash. |
+| V2 | Task create/update/block/done/reopen/collapse/expand | Before/after header and full-panel frames, stable IDs and evidence/reason. |
 | V3 | Single choice, multi-select, free text, correction, cancel | Option/form frames, exact native values, no partial answer on cancel, restored editor text/focus. |
 | V4 | Chrome/coexistence/hide/show | Native editor/footer/context/usage, compact tools and foreign widget/status remain; state/execution unchanged. |
 | V5 | Layout, focus and lifecycle | Actual narrow/wide and short terminal sizes, dark/light/system theme checks, both native modes, scrolling, Unicode, reload/new/tree without stale UI. |
