@@ -35,11 +35,14 @@ Do not register both the checkout and the Git source. See [installation, conflic
 /plan prepare change Z
 /review src/module.ts
 /btw explain this without changing the main task
+/auto-compact 150k
 /skill:jag-debug investigate this failure
 /skill:jag-wait-what explain the last answer
 ```
 
 Skills load on demand. Replies follow your language; repository artifacts use English. Changes stay unstaged unless you explicitly authorize Git delivery.
+
+Use `/auto-compact <tokens>` to persist the current model's automatic compaction threshold (`150k`, `0.5m`, or `300000`); no argument shows it, and `default` restores inherited settings. Saving reloads Pi and closes active readers/panels. See [automatic compaction](docs/usage.md#automatic-compaction).
 
 For NaN, run `/reload`, then `/login nan` and enter your API key in Pi's private prompt. Select a NaN model through `/model`; your defaults stay unchanged. See [NaN setup and credential boundaries](docs/nan.md).
 

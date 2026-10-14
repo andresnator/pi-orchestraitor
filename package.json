@@ -36,6 +36,7 @@
     "extensions": [
       "./extensions/compact-tools.ts",
       "./extensions/context-budget.ts",
+      "./extensions/auto-compact.ts",
       "./extensions/btw/index.ts",
       "./extensions/instructions.ts",
       "./extensions/mcp.ts",
