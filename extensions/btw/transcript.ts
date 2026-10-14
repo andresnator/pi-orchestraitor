@@ -7,7 +7,8 @@ export function selectTranscript(turns: readonly SideTurn[], selection = "latest
 	if (selection === "latest") {
 		const latest = [...turns].reverse().find(turn => turn.answer);
 		if (!latest) throw new Error("The side conversation has no answers yet.");
-		return latest.answer;
+		// A truncation or cancellation note travels with its answer, as in range exports.
+		return latest.answer + (latest.note ? "\n\n> " + latest.note : "");
 	}
 	let start = 1, end = turns.length;
 	if (selection !== "all") {

@@ -499,8 +499,16 @@ function summary(report) {
 	return lines.join("\n");
 }
 
+// Where Pi writes sessions, without loading the SDK: PI_CODING_AGENT_SESSION_DIR (main.js), else the agent
+// directory's sessions (config.js getAgentDir: PI_CODING_AGENT_DIR or ~/.pi/agent). A sessionDir setting needs --sessions.
+function defaultSessions(env = process.env) {
+	const expand = path => path === "~" ? homedir() : path.startsWith("~/") ? join(homedir(), path.slice(2)) : path;
+	if (env.PI_CODING_AGENT_SESSION_DIR) return expand(env.PI_CODING_AGENT_SESSION_DIR);
+	return join(env.PI_CODING_AGENT_DIR ? expand(env.PI_CODING_AGENT_DIR) : join(homedir(), ".pi/agent"), "sessions");
+}
+
 function parseArgs(args) {
-	const options = { sessions: join(homedir(), ".pi/agent/sessions") };
+	const options = { sessions: defaultSessions() };
 	// pnpm forwards a literal "--" separator to the script.
 	const values = args.filter(arg => arg !== "--");
 	for (let index = 0; index < values.length; index++) {

@@ -1,6 +1,8 @@
 import type { KeybindingsManager, Theme, ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { Input, getKeybindings, matchesKey, truncateToWidth, visibleWidth, wrapTextWithAnsi, type TUI } from "@earendil-works/pi-tui";
+import { StringEnum } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
+import { Value } from "typebox/value";
 import type { createUIOwner } from "../status-ui.ts";
 import { sanitizeDisplay } from "./display.ts";
 
@@ -21,7 +23,7 @@ type Answered = { status: "answered"; answers: Answer[] };
 type Outcome = Answered | { status: "cancelled" | "unavailable" | "busy" };
 const bounded = (limit: number) => Type.String({ minLength: 1, maxLength: limit });
 export const QuestionParameters = Type.Object({ questions: Type.Array(Type.Object({
-	id: bounded(ID_LIMIT), prompt: bounded(QUESTION_TEXT_LIMIT), selection: Type.Union([Type.Literal("single"), Type.Literal("multiple")]),
+	id: bounded(ID_LIMIT), prompt: bounded(QUESTION_TEXT_LIMIT), selection: StringEnum(["single", "multiple"]),
 	options: Type.Array(Type.Object({ label: bounded(QUESTION_LABEL_LIMIT), value: bounded(ANSWER_TEXT_LIMIT), recommended: Type.Optional(Type.Boolean()) }, { additionalProperties: false }), { minItems: 2, maxItems: OPTION_LIMIT }),
 	required: Type.Optional(Type.Boolean()), allowText: Type.Optional(Type.Boolean()),
 }, { additionalProperties: false }), { minItems: 1, maxItems: QUESTION_LIMIT }) }, { additionalProperties: false });
@@ -29,8 +31,9 @@ export const QuestionParameters = Type.Object({ questions: Type.Array(Type.Objec
 function object(value: unknown, fields: string[], label: string) {
 	if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).some((key) => !fields.includes(key))) throw new Error(`Invalid ${label} object`);
 }
+// Counted like Pi's TypeBox argument validator: grapheme clusters, which never outnumber UTF-16 units.
 function text(value: unknown, limit: number, label: string) {
-	if (typeof value !== "string" || !value.trim() || value.length > limit) throw new Error(`Invalid ${label}: non-empty text up to ${limit} characters required`);
+	if (typeof value !== "string" || !value.trim() || (value.length > limit && !Value.Check(Type.String({ maxLength: limit }), value))) throw new Error(`Invalid ${label}: non-empty text up to ${limit} characters required`);
 }
 
 /** Validate once before claiming focus. Payload values are never sanitized or normalized. */

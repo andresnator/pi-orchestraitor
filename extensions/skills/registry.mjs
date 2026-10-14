@@ -1,5 +1,4 @@
 import { inspectCatalog } from "./sources.mjs";
-import { publishRegistry } from "./store.mjs";
 
 export const REGISTRY_RESOLVE_EVENT = "pi-orchestraitor:skill-registry-resolve";
 export const DEFAULT_SEARCH_LIMIT = 5;
@@ -8,7 +7,7 @@ const MAX_QUERY_LENGTH = 500;
 const MAX_DESCRIPTION_LENGTH = 512;
 const sessionKey = (ctx) => `${ctx.cwd}\0${ctx.sessionManager?.getSessionId?.() ?? ""}`;
 
-/** A per-extension native snapshot. Persistence never participates in selection. */
+/** A per-extension, in-memory native snapshot. Nothing is written to the project. */
 export function createSkillRegistry(sdk) {
 	let key;
 	let canonicalCwd;
@@ -36,19 +35,14 @@ export function createSkillRegistry(sdk) {
 		queue = current;
 		return current;
 	}
-	async function publish(snapshot, signal) {
-		const persistence = await publishRegistry(snapshot, { signal, mutate: sdk.withFileMutationQueue });
-		signal.throwIfAborted();
-		state = { ...snapshot, persistence };
-		return state;
-	}
+	const remember = (snapshot) => (state = snapshot);
 	async function start(ctx) {
 		if (canonicalCwd !== ctx.cwd) { canonicalPaths.clear(); canonicalCwd = ctx.cwd; }
 		invalidate();
 		key = sessionKey(ctx);
-		return enqueue(ctx, async (signal) => publish({ ...await inspectCatalog(sdk, [], {
+		return enqueue(ctx, async (signal) => remember({ ...await inspectCatalog(sdk, [], {
 			cwd: ctx.cwd, trusted: ctx.isProjectTrusted(), signal,
-		}), pending: true }, signal));
+		}), pending: true }));
 	}
 	async function capture(skills, ctx) {
 		if (key !== sessionKey(ctx)) await start(ctx);
@@ -60,9 +54,9 @@ export function createSkillRegistry(sdk) {
 	async function refresh(ctx) {
 		if (key !== sessionKey(ctx) || !catalog) throw new Error("Native catalog is not captured; use /orchestraitor:skills refresh");
 		const native = structuredClone(catalog);
-		return enqueue(ctx, async (signal) => publish(await inspectCatalog(sdk, native, {
+		return enqueue(ctx, async (signal) => remember(await inspectCatalog(sdk, native, {
 			cwd: ctx.cwd, trusted: ctx.isProjectTrusted(), signal, canonicalPaths,
-		}), signal));
+		})));
 	}
 	async function search(query, limit, ctx) {
 		if (typeof query !== "string" || !query.trim() || query.length > MAX_QUERY_LENGTH) throw new Error("Provide a non-empty skill query of at most 500 characters");
@@ -87,7 +81,8 @@ export function createSkillRegistry(sdk) {
 		});
 	}
 	function status() {
-		return { pending: state?.pending ?? true, registered: catalog?.length ?? 0,
+		// Only the startup snapshot is pending; snapshots from the captured native catalog are not.
+		return { pending: !state || state.pending === true, registered: catalog?.length ?? 0,
 			available: state?.entries.filter(({ status }) => status === "available").length ?? 0,
 			manualOnly: state?.entries.filter(({ status }) => status === "manual-only").length ?? 0,
 			unavailable: state?.entries.filter(({ status }) => status === "unavailable").length ?? 0,

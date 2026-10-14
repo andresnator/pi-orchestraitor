@@ -1,4 +1,5 @@
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { SettingsManager, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { providerRequestOptions } from "../provider-options.mjs";
 import { buildSideContext } from "./context.ts";
 import { SideConversation } from "./conversation.ts";
 import { BtwPopup } from "./popup.ts";
@@ -22,7 +23,8 @@ export default function (pi: ExtensionAPI) {
 			let conversation: SideConversation | undefined;
 			let popup: BtwPopup | undefined;
 			try {
-				conversation = new SideConversation(ctx, buildSideContext(ctx.sessionManager.getBranch(), ctx.getSystemPrompt()));
+				conversation = new SideConversation(ctx, buildSideContext(ctx.sessionManager.getBranch(), ctx.getSystemPrompt()),
+					model => providerRequestOptions(SettingsManager.inMemory(pi.getSettings()), model, ctx.sessionManager.getSessionId()));
 				const current = conversation;
 				const imported = await ctx.ui.custom<string | undefined>((tui, theme, keybindings, done) => {
 					popup = new BtwPopup(tui, theme, keybindings, current, done);

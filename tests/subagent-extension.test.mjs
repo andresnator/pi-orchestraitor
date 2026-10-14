@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdir, realpath, writeFile } from "node:fs/promises";
+import fs, { mkdir, realpath, writeFile } from "node:fs/promises";
+import { syncBuiltinESMExports } from "node:module";
 import { join } from "node:path";
 import test from "node:test";
 import { createWorkspace, importHost, loadExtensions, packageRoot, pi } from "./helpers/pi-host.mjs";
@@ -27,8 +28,8 @@ async function fixture(t, results = []) {
 	const cwd = await realpath(await createWorkspace(t));
 	const batches = [];
 	const previous = globalThis[controllerKey];
-	globalThis[controllerKey] = { cancelCount: 0, async cancel() { this.cancelCount++; }, async run(manifests, promptFor) {
-		batches.push({ manifests, prompts: manifests.map(promptFor) }); return results;
+	globalThis[controllerKey] = { cancelCount: 0, async cancel() { this.cancelCount++; }, async run(manifests, promptFor, _signal, _observer, options = this.options) {
+		batches.push({ manifests, prompts: manifests.map(promptFor), options }); return results;
 	} };
 	t.after(() => { globalThis[controllerKey] = previous; });
 	const eventBus = pi.createEventBus();
@@ -36,6 +37,7 @@ async function fixture(t, results = []) {
 	assert.deepEqual(loaded.errors, []);
 	loaded.runtime.getThinkingLevel = () => "high";
 	loaded.runtime.getActiveTools = () => ["read", "edit", "write", "subagent_run"];
+	loaded.runtime.getSettings = () => ({});
 	const extension = loaded.extensions[0];
 	const models = [{ provider: "fixture", id: "first", reasoning: true }, { provider: "fixture", id: "second", reasoning: true }];
 	const ctx = { cwd, model: models[0], modelRegistry: { getAvailable: () => models }, scopedModels: [] };
@@ -146,15 +148,58 @@ test("shouldDeriveOneClosableProviderSessionPerChildOnlyWhenParentSessionIsKnown
 	const tasks = [{ role: "explore", instruction: "first" }, { role: "review", instruction: "second" }];
 	// When
 	await tool.execute("batch", { tasks }, undefined, undefined, { ...ctx, sessionManager: { getSessionId: () => "parent" } });
-	const sessions = batches[0].manifests.map(globalThis[controllerKey].options.providerSessionFor);
+	const sessions = batches[0].manifests.map(batches[0].options.providerSessionFor);
 	for (const session of sessions) session.close();
 	await tool.execute("anonymous", { tasks }, undefined, undefined, ctx);
 	// Then
 	const expected = batches[0].manifests.map(({ id }) => createHash("sha256").update(`parent:${id}`).digest("hex"));
 	assert.notEqual(expected[0], expected[1]);
 	assert.deepEqual({ ids: sessions.map(({ id }) => id), closed }, { ids: expected, closed: expected });
-	assert.deepEqual(batches[1].manifests.map(globalThis[controllerKey].options.providerSessionFor), [undefined, undefined]);
+	assert.deepEqual(batches[1].manifests.map(batches[1].options.providerSessionFor), [undefined, undefined]);
 });
+
+for (const mode of ["sync", "background"]) {
+	test(`shouldLaunchEachInterleaved${mode === "sync" ? "Sync" : "Background"}CallWithItsOwnModelsRegistryAndSessions`, async (t) => {
+		// Given
+		const backgroundKey = Symbol.for("pi-orchestraitor.subagent-background"), previousBackground = globalThis[backgroundKey];
+		if (mode === "background") {
+			globalThis[backgroundKey] = { jobs: new Map(), blocked: false, async cancel() {}, async run(manifests, _prompt, _signal, _observer, options) {
+				globalThis[controllerKey].launches.push({ manifests, options }); return { results: [], pending: manifests.map(({ id }) => id) };
+			} };
+			t.after(() => { globalThis[backgroundKey] = previousBackground; });
+		}
+		// Hold the first call's skill-body read, which follows its launch preparation.
+		let reached, release;
+		const holding = new Promise((resolve) => { reached = resolve; }), gate = new Promise((resolve) => { release = resolve; });
+		const original = fs.readFile;
+		fs.readFile = async (path, ...rest) => {
+			if (String(path).endsWith(join("held", "SKILL.md"))) { reached(); await gate; }
+			return original(path, ...rest);
+		};
+		syncBuiltinESMExports();
+		t.after(() => { release(); fs.readFile = original; syncBuiltinESMExports(); });
+		const { cwd, tool, ctx, capture, loaded, batches } = await fixture(t);
+		const controller = Object.assign(globalThis[controllerKey], { launches: [] });
+		if (mode === "sync") controller.launches = batches;
+		loaded.runtime.getActiveTools = () => ["read", "subagent_run", "subagent_collect"];
+		await mkdir(join(cwd, "held"));
+		await writeFile(join(cwd, "held", "SKILL.md"), "Held skill body.");
+		capture([{ name: "held", filePath: join(cwd, "held", "SKILL.md"), baseDir: join(cwd, "held") }]);
+		const registries = [0, 1].map(() => ({ getAvailable: ctx.modelRegistry.getAvailable }));
+		const call = (session, task, modelRegistry) => tool.execute(session, { tasks: [{ role: "explore", instruction: session, mode, ...task }] },
+			undefined, undefined, { ...ctx, modelRegistry, sessionManager: { getSessionId: () => session } });
+		// When
+		const first = call("first", { skills: ["held"] }, registries[0]);
+		await holding;
+		await call("second", { model: "fixture/second" }, registries[1]);
+		release();
+		await first;
+		// Then
+		const launched = ({ manifests, options }) => ({ registry: registries.indexOf(options.registry), children: manifests.map((manifest) =>
+			({ model: options.modelFor(manifest)?.id, session: options.providerSessionFor(manifest)?.id === createHash("sha256").update(`${manifest.instruction}:${manifest.id}`).digest("hex") })) });
+		assert.deepEqual(controller.launches.map(launched), [{ registry: 1, children: [{ model: "second", session: true }] }, { registry: 0, children: [{ model: "first", session: true }] }]);
+	});
+}
 
 test("shouldPassOnlySelectedSkillBodiesWhenCapturingEffectiveCatalog", async (t) => {
 	// Given

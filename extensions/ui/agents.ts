@@ -9,7 +9,7 @@ const PANEL_RESERVED_ROWS = 8;
 const PENDING_CALL_LIMIT = 20;
 type BatchObservation = { callId: string; parent?: string; sequence: number; generation?: number; rows: AgentRow[]; pending?: Set<string> };
 const LIVE_PHASES = ["preparing", "starting", "running", "stopping"];
-const FINAL_PHASES = ["completed", "failed", "cancelled", "timed_out", "termination_failed"];
+const FINAL_PHASES = ["completed", "failed", "cancelled", "timed_out", "termination_failed", "interrupted"];
 const ROLES = ["explore", "review", "implement"];
 export type AgentRow = {
 	id?: string; role: string; label: string; requestedModel?: string; effectiveModel?: string;
@@ -43,6 +43,10 @@ function boundedRow(value: any, toolCallId: string, label?: string): AgentRow {
 	};
 }
 
+function instruction(task: any) {
+	return typeof task?.instruction === "string" ? task.instruction : undefined;
+}
+
 function matchingRow(result: any, rows: AgentRow[], index: number, count: number) {
 	const identified = rows.find((row) => row.id !== undefined && row.id === result.id);
 	// Full foreground receipts preserve input order even if progress was unavailable.
@@ -72,8 +76,9 @@ export function createAgentsProjection() {
 		start(callId: string, tasks: any[], parent?: string) {
 			if (calls.has(callId) || !Array.isArray(tasks) || tasks.length < 1 || tasks.length > 2) return;
 			if (calls.size >= PENDING_CALL_LIMIT) { historyLimited = true; return; }
+			// Pi reports raw arguments before validating them, so entries may be malformed.
 			calls.set(callId, { callId, parent, sequence: 0, rows: tasks.map((task) =>
-				boundedRow({ role: task.role, phase: "preparing", requestedModel: task.model }, callId, task.instruction)) });
+				boundedRow({ role: task?.role, phase: "preparing", requestedModel: task?.model }, callId, instruction(task))) });
 			activeCall ??= callId;
 		},
 		update(callId: string, progress: any) {
@@ -96,9 +101,11 @@ export function createAgentsProjection() {
 			launchBlocked ||= progress.launchBlocked === true || call.rows.some((row) => row.phase === "termination_failed");
 			return true;
 		},
-		finish(callId: string, result: any, isError = false) {
+		/** `blocked` is the controller's lock as the call ends; error text can quote anything. */
+		finish(callId: string, result: any, isError = false, blocked = false) {
 			const call = calls.get(callId);
 			if (!call) return;
+			launchBlocked ||= blocked;
 			const results = result?.details?.results;
 			if (Array.isArray(results) && results.length <= 2) {
 				retain(results.map((row, index) => {
@@ -106,9 +113,9 @@ export function createAgentsProjection() {
 					return boundedRow({ ...row, effectiveModel: observation?.effectiveModel ?? row.effectiveModel }, callId, observation?.label);
 				}));
 			} else {
-				const diagnostic = result?.content?.filter((block: any) => block.type === "text").map((block: any) => block.text).join("\n") ?? "Outcome unavailable";
+				const diagnostic = Array.isArray(result?.content) ? result.content.filter((block: any) => block?.type === "text")
+					.map((block: any) => block.text).join("\n") : "Outcome unavailable";
 				retain(call.rows.map((row) => boundedRow({ ...row, phase: isError ? "failed" : "unavailable", diagnostic }, callId)));
-				launchBlocked ||= /launches blocked.*termination/i.test(diagnostic);
 			}
 			if (call.parent) nestedHistoryUnavailable = true;
 			if (Array.isArray(result?.details?.pending) && result.details.pending.length) {
@@ -142,27 +149,31 @@ export function createAgentsProjection() {
 			nestedHistoryUnavailable = true;
 			launchBlocked = knownBlocked;
 			sessionId = identity;
+			// Persisted arguments may be the ones Pi rejected, so only nonempty task arrays count as assignments.
 			const assignments = new Map<string, any[]>();
 			for (const entry of branch) {
-				if (entry.type !== "message") continue;
+				if (entry?.type !== "message" || !entry.message) continue;
 				const message = entry.message;
-				if (message.role === "assistant") {
-					for (const call of message.content ?? []) if (call.type === "toolCall" && call.name === "subagent_run") assignments.set(call.id, call.arguments?.tasks ?? []);
+				if (message.role === "assistant" && Array.isArray(message.content)) {
+					for (const call of message.content) if (call?.type === "toolCall" && call.name === "subagent_run") {
+						const tasks = call.arguments?.tasks;
+						if (Array.isArray(tasks) && tasks.length) assignments.set(call.id, tasks); else assignments.delete(call.id);
+					}
 				}
 				if (message.role !== "toolResult" || !["subagent_run", "subagent_collect"].includes(message.toolName)) continue;
 				if (!message.isError && Array.isArray(message.details?.results) && message.details.results.length <= 2) {
 					retain(message.details.results.filter((row: any) => row && ROLES.includes(row.role) && FINAL_PHASES.includes(row.status))
 						.map((row: any, index: number) => {
 							const tasks = assignments.get(message.toolCallId);
-							const label = tasks?.length === message.details.results.length ? tasks[index]?.instruction : undefined;
+							const label = tasks?.length === message.details.results.length ? instruction(tasks[index]) : undefined;
 							return boundedRow(row, message.toolCallId, label);
 						}));
 				} else if (message.isError) {
-					const diagnostic = message.content?.filter((block: any) => block.type === "text")
-						.map((block: any) => block.text).join("\n") ?? "Launch failed; diagnostic unavailable";
+					const diagnostic = Array.isArray(message.content) ? message.content.filter((block: any) => block?.type === "text")
+						.map((block: any) => block.text).join("\n") : "Launch failed; diagnostic unavailable";
 					const tasks = assignments.get(message.toolCallId)?.slice(0, 2) ?? [{ role: "unavailable" }];
-					retain(tasks.map((task) => boundedRow({ role: task.role, phase: "failed", diagnostic },
-						message.toolCallId, task.instruction)));
+					retain(tasks.map((task) => boundedRow({ role: task?.role, phase: "failed", diagnostic },
+						message.toolCallId, instruction(task))));
 				}
 			}
 		},

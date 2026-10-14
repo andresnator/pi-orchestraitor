@@ -89,6 +89,21 @@ test("shouldRejectInvalidConfigBeforeMutation", async (t) => {
 	}
 });
 
+test("shouldReadAnEmptyConfigAsEmptyLikePrettyAndNameTheFileWhenJsonIsMalformed", async (t) => {
+	const root = await createWorkspace(t), path = join(root, "pi-pretty.json");
+	for (const text of ["", " \n"]) {
+		await writeFile(path, text);
+		const update = await planPrettyConfig({ PRETTY_CONFIG_DIR: root });
+		assert.deepEqual(update.preview, { path, disableTools: ["bash"], changed: true });
+		await update.apply();
+		assert.deepEqual(JSON.parse(await readFile(path, "utf8")), { disableTools: ["bash"] });
+		await update.rollback();
+		assert.equal(await readFile(path, "utf8"), text);
+	}
+	await writeFile(path, "{bad-json");
+	await assert.rejects(planPrettyConfig({ PRETTY_CONFIG_DIR: root }), error => error.message.startsWith(`${path}: invalid JSON (`));
+});
+
 test("shouldLeaveConcurrentReplacementOfDisabledToolsUntouchedOnRollback", async (t) => {
 	const root = await createWorkspace(t), path = join(root, "pi-pretty.json");
 	const update = await planPrettyConfig({ PRETTY_CONFIG_DIR: root });

@@ -2,7 +2,9 @@ import { createHash } from "node:crypto";
 import { lstat, readFile, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import type { ExtensionContext, ToolDefinition } from "@earendil-works/pi-coding-agent";
+import { StringEnum } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
+import { Value } from "typebox/value";
 
 export const TASK_TOOL_NAME = "orchestraitor_tasks";
 export const TASK_SCHEMA_VERSION = 1;
@@ -20,16 +22,17 @@ export type TaskState = { version: number; revision: number; tasks: Task[]; bind
 export type TaskEvent = { revision: number; at?: number; change: string };
 /** Keyed by task ID; `since` is when the current status began. */
 export type TaskActivity = Map<string, { since?: number; events: TaskEvent[] }>;
+export type TaskReplay = { state: TaskState; activity: TaskActivity };
 export type TaskOperation = { operation: typeof OPERATIONS[number]; expectedRevision?: number; tasks?: Task[];
 	id?: string; changes?: Partial<Omit<Task, "id">>; binding?: PlanBinding };
 
 const boundedText = (limit: number) => Type.String({ minLength: 1, maxLength: limit });
-const statusSchema = Type.Union(TASK_STATUSES.map((status) => Type.Literal(status)));
+const statusSchema = StringEnum(TASK_STATUSES);
 const bindingSchema = Type.Object({ project: boundedText(TASK_NOTE_LIMIT), path: boundedText(TASK_NOTE_LIMIT),
 	sha256: Type.String({ pattern: "^[a-f0-9]{64}$" }), groups: Type.Array(boundedText(ID_LIMIT), { minItems: 1, maxItems: TASK_LIMIT }) }, { additionalProperties: false });
 const taskFields = { title: boundedText(TASK_TITLE_LIMIT), status: statusSchema,
 	evidence: Type.Optional(boundedText(TASK_NOTE_LIMIT)), reason: Type.Optional(boundedText(TASK_NOTE_LIMIT)), group: Type.Optional(boundedText(ID_LIMIT)) };
-export const TaskParameters = Type.Object({ operation: Type.Union(OPERATIONS.map((operation) => Type.Literal(operation))),
+export const TaskParameters = Type.Object({ operation: StringEnum(OPERATIONS),
 	expectedRevision: Type.Optional(Type.Integer({ minimum: 0 })),
 	tasks: Type.Optional(Type.Array(Type.Object({ id: boundedText(ID_LIMIT), ...taskFields }, { additionalProperties: false }), { maxItems: TASK_LIMIT })),
 	id: Type.Optional(boundedText(ID_LIMIT)),
@@ -39,8 +42,9 @@ export const TaskParameters = Type.Object({ operation: Type.Union(OPERATIONS.map
 
 export function emptyTasks(): TaskState { return { version: TASK_SCHEMA_VERSION, revision: 0, tasks: [] }; }
 
+// Pi validates tool arguments with TypeBox, which counts maxLength in grapheme clusters; they never outnumber UTF-16 units.
 function text(value: unknown, label: string, limit: number): asserts value is string {
-	if (typeof value !== "string" || !value.trim() || value.length > limit) throw new Error(`Invalid ${label}: non-empty text up to ${limit} characters required`);
+	if (typeof value !== "string" || !value.trim() || (value.length > limit && !Value.Check(Type.String({ maxLength: limit }), value))) throw new Error(`Invalid ${label}: non-empty text up to ${limit} characters required`);
 }
 
 function validateBinding(binding: PlanBinding) {
@@ -132,9 +136,8 @@ function receiptTime(entry: any, message: any) {
 
 /** Only successful, schema-valid mutation receipts on the active branch are authoritative.
  * Activity is display-only history derived from those same receipts; it never enters task state. */
-export function replayTaskActivity(branch: any[]): { state: TaskState; activity: TaskActivity } {
-	let state = emptyTasks();
-	let activity: TaskActivity = new Map();
+export function replayTaskActivity(branch: any[], start: TaskReplay = { state: emptyTasks(), activity: new Map() }): TaskReplay {
+	let { state, activity } = start;
 	for (const entry of branch) {
 		if (entry.type !== "message") continue;
 		const message = entry.message;
@@ -162,54 +165,84 @@ export function replayTaskActivity(branch: any[]): { state: TaskState; activity:
 
 export function replayTasks(branch: any[]): TaskState { return replayTaskActivity(branch).state; }
 
-async function repositoryRoot(cwd: string, required = false) {
+/** Entries after `ancestor` on the branch ending at `leaf`, or undefined when `ancestor` is not on it. */
+function appendedSince(manager: ExtensionContext["sessionManager"], leaf: string | null, ancestor: string | null) {
+	const entries = [];
+	for (let id = leaf; id !== ancestor;) {
+		const entry = id === null ? undefined : manager.getEntry(id);
+		if (!entry) return undefined;
+		entries.push(entry); id = entry.parentId;
+	}
+	return entries.reverse();
+}
+
+/** Entries are immutable, so a session's replay extends with the entries appended since its last leaf;
+ * a leaf that does not descend from it (branch switch, /tree) replays the whole branch. */
+export function createTaskReplay() {
+	const last = new WeakMap<object, { leaf: string | null; replay: TaskReplay }>();
+	return (manager: ExtensionContext["sessionManager"]) => {
+		const leaf = manager.getLeafId(), previous = last.get(manager);
+		const appended = previous && appendedSince(manager, leaf, previous.leaf);
+		const replay = appended ? replayTaskActivity(appended, previous.replay) : replayTaskActivity(manager.getBranch());
+		last.set(manager, { leaf, replay });
+		return replay;
+	};
+}
+
+/** The repository root, or the cwd realpath outside git; list reports it as the binding project identity. */
+async function repositoryRoot(cwd: string) {
 	const original = await realpath(cwd);
 	let candidate = original;
 	while (true) {
 		try { await lstat(join(candidate, ".git")); return candidate; }
 		catch (error: any) { if (error.code !== "ENOENT") throw error; }
 		const parent = dirname(candidate);
-		if (parent === candidate) {
-			if (required) throw new Error("Plan binding requires a repository root");
-			return original;
-		}
+		if (parent === candidate) return original;
 		candidate = parent;
 	}
 }
 
-/** Called before mutations or display refreshes, never from a render callback. */
-export async function checkTaskBinding(binding: PlanBinding | undefined, cwd: string): Promise<boolean> {
-	if (!binding) return true;
+/** Names what did not match, or undefined when the bound plan is current. */
+async function bindingMismatch(binding: PlanBinding, cwd: string): Promise<string | undefined> {
 	try {
 		validateBinding(binding);
-		const root = await repositoryRoot(cwd, true);
-		if (binding.project !== root) return false;
+		const root = await repositoryRoot(cwd);
+		if (binding.project !== root) return `project ${binding.project} is not the project identity ${root}`;
 		const target = await realpath(resolve(root, binding.path));
 		const path = relative(root, target);
-		if (isAbsolute(path) || path === ".." || path.startsWith("../")) return false;
-		return createHash("sha256").update(await readFile(target)).digest("hex") === binding.sha256;
-	} catch { return false; }
+		if (isAbsolute(path) || path === ".." || path.startsWith("../")) return `${binding.path} resolves outside the project`;
+		if (createHash("sha256").update(await readFile(target)).digest("hex") !== binding.sha256) return `${binding.path} changed since its SHA-256 was recorded`;
+	} catch (error: any) { return `${binding.path} could not be verified (${error.code ?? error.message})`; }
+}
+
+/** Called before mutations or display refreshes, never from a render callback. */
+export async function checkTaskBinding(binding: PlanBinding | undefined, cwd: string): Promise<boolean> {
+	return !binding || !await bindingMismatch(binding, cwd);
 }
 
 export function createTaskTool(getGeneration: () => number): ToolDefinition {
+	const replay = createTaskReplay();
 	return {
 		name: TASK_TOOL_NAME, label: "Work tasks", exposure: "model-only", executionMode: "sequential",
 		annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
-		description: "Track authorized branch work: replace/add/update/list/clear. Mutations require expectedRevision; done needs parent evidence, reopening a reason. Reuse returned revisions; list retrieves the complete board and project identity. Prefer sending updates with work calls. Plan binding verifies the plan, not execution recovery.",
+		description: "Track authorized branch work. Mutations require expectedRevision (reuse returned revisions); done needs parent evidence, reopening a reason. list returns the complete board and project identity. Pi runs the whole message sequentially: pair updates with at most one slow call. Plan binding verifies the plan, not execution recovery.",
 		parameters: TaskParameters,
 		async execute(_id, params: TaskOperation, signal, _onUpdate, ctx: ExtensionContext) {
 			const combined = signal && ctx.signal ? AbortSignal.any([signal, ctx.signal]) : signal ?? ctx.signal;
 			const generation = getGeneration();
 			const leaf = ctx.sessionManager.getLeafId();
-			const before = replayTasks(ctx.sessionManager.getBranch());
+			const before = replay(ctx.sessionManager).state;
 			if (combined?.aborted) throw new Error("Task update cancelled");
 			const state = applyTaskOperation(before, params);
-			const binding = params.binding ?? before.binding;
-			const bindingCurrent = await checkTaskBinding(binding, ctx.cwd);
-			if (params.operation !== "list" && !bindingCurrent) throw new Error("Plan binding is stale: project/path/hash did not match");
+			// Clear drops the binding and a supplied binding replaces it, so only the resulting binding is checked.
+			const mismatch = state.binding && await bindingMismatch(state.binding, ctx.cwd);
+			const bindingCurrent = !mismatch;
+			if (mismatch && params.operation !== "list") throw new Error(params.binding ? `Supplied plan binding does not match: ${mismatch}. Use the projectIdentity from list and the current plan SHA-256.`
+				: `Plan binding is stale: ${mismatch}. Recover with replace and a fresh binding (projectIdentity from list, current SHA-256), or clear to drop the binding.`);
 			const projectIdentity = await repositoryRoot(ctx.cwd);
 			if (combined?.aborted) throw new Error("Task update cancelled");
-			if (generation !== getGeneration() || leaf !== ctx.sessionManager.getLeafId() || JSON.stringify(before) !== JSON.stringify(replayTasks(ctx.sessionManager.getBranch()))) throw new Error("Session changed during task operation; retry from current branch state");
+			// The branch ending at an unchanged leaf is unchanged, and so is its replay.
+			if (generation !== getGeneration() || leaf !== ctx.sessionManager.getLeafId()) throw new Error("Session changed during task operation; retry from current branch state");
 			// Mutations fail on a stale binding, so only bound boards report it; list returns the project identity.
 			const response = params.operation === "list" ? { state, bindingCurrent, projectIdentity } : {
 				operation: params.operation, revision: state.revision, ...(state.binding ? { bindingCurrent } : {}),

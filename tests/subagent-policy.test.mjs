@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { mkdir, writeFile, symlink, link, realpath } from "node:fs/promises";
-import { join, win32 } from "node:path";
+import { mkdir, writeFile, symlink, link, realpath, stat } from "node:fs/promises";
+import { basename, dirname, join, win32 } from "node:path";
 import test from "node:test";
-import { createWorkspace, pi } from "./helpers/pi-host.mjs";
+import { createWorkspace, packageRoot, pi } from "./helpers/pi-host.mjs";
 import { validateBatch, validatePath, selectModel, concreteFile, protectedPath, projectRelativePath } from "../extensions/subagent/policy.mjs";
 
 test("shouldRejectMixedAndUnboundedTasksWhenValidatingBatch", () => {
@@ -46,8 +46,83 @@ test("shouldInheritOrSelectExactAvailableModelWhenResolvingTask", () => {
 
 test("shouldProtectCaseAliasesWhenFilesystemMayBeCaseInsensitive", () => {
 	// Given / When / Then
-	for (const path of [".GIT/config", ".Pi/settings.json", "Extensions/guard.ts", "agents.md", "Package.JSON"]) {
+	for (const path of [".GIT/config", ".Pi/settings.json", "agents.md", ".giT/config"]) {
 		assert.throws(() => validateBatch([{ role: "implement", instruction: "change", files: [path] }]));
+	}
+});
+
+test("shouldProtectEveryPiContextFileInAnyCaseWhenImplementersAreAssigned", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	await writeFile(join(cwd, "AGENTS.md"), "Synthetic context.");
+	const names = ["CLAUDE.md", "claude.MD", "docs/CLAUDE.md", "AGENTS.override.md", "agents.OVERRIDE.md", "AGENTS.MD", "AGENT\u017f.md", "\u017fystem.md"];
+	// When / Then
+	for (const file of names) {
+		assert.throws(() => validateBatch([{ role: "implement", instruction: "change", files: [file] }]), /Protected/, file);
+		await assert.rejects(validatePath({ cwd, role: "implement", files: [file], skills: [] }, file, true), /Protected/, file);
+	}
+	// On case-insensitive volumes (APFS by default) the long-s spelling opens the context file itself.
+	const aliased = await stat(join(cwd, "AGENT\u017f.md")).then(() => true, () => false);
+	t.diagnostic(`U+017F resolves to AGENTS.md on this filesystem: ${aliased}`);
+});
+
+test("shouldScopeHarnessProtectionToThisPackageWhenProjectsUseTheSameNames", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const harness = await realpath(packageRoot);
+	const files = ["skills/x.md", "package.json", "extensions/a.ts", "instructions/core.md", "prompts/p.md"];
+	const project = { cwd, role: "implement", files, skills: [] };
+	// When / Then
+	assert.doesNotThrow(() => validateBatch([{ role: "implement", instruction: "change", files }]));
+	for (const file of files) assert.equal(await validatePath(project, file, true), join(cwd, file));
+	for (const file of [...files, "Extensions/guard.ts", "Package.JSON", "\u017fkills/x.md"]) {
+		await assert.rejects(validatePath({ cwd: harness, role: "implement", files: [file], skills: [] }, file, true), /Protected/, file);
+	}
+	for (const directory of [basename(harness), basename(harness).toUpperCase()]) {
+		const file = `${directory}/package.json`;
+		await assert.rejects(validatePath({ cwd: dirname(harness), role: "implement", files: [file], skills: [] }, file, true), /Protected/, file);
+	}
+	const nested = { cwd: join(harness, "extensions"), role: "implement", files: ["guard.ts"], skills: [] };
+	await assert.rejects(validatePath(nested, "guard.ts", true), /Protected/);
+	assert.equal(await validatePath({ cwd: harness, role: "explore", skills: [] }, "package.json"), join(harness, "package.json"));
+});
+
+test("shouldAssignLiteralBracketAndBraceNamesWhenFrameworksUseThemInRoutes", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const files = ["app/[slug]/page.tsx", "src/{a}.ts", "src/routes/[[...rest]]/+page.svelte", "pages/[...id].astro"];
+	// When / Then
+	for (const file of files) assert.equal(concreteFile(file), file);
+	assert.doesNotThrow(() => validateBatch([{ role: "implement", instruction: "change", files }]));
+	for (const file of files) assert.equal(await validatePath({ cwd, role: "implement", files, skills: [] }, file, true), join(cwd, file));
+	for (const file of ["src/*.ts", "src/?.ts"]) assert.throws(() => concreteFile(file));
+});
+
+test("shouldReadSelectedPackageSkillsWhenPiInstalledThemInTheProject", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const roots = [".pi/npm/node_modules/fixture-pkg", ".pi/npm/node_modules/@scope/fixture-pkg", ".pi/git/github.com/owner/repo"];
+	await mkdir(join(cwd, ".pi"), { recursive: true });
+	await writeFile(join(cwd, ".pi", "settings.json"), "Synthetic protected configuration.");
+	for (const root of roots) {
+		const baseDir = join(cwd, root, "skills", "chosen"), other = join(cwd, root, "skills", "other");
+		await mkdir(join(baseDir, "references"), { recursive: true });
+		await mkdir(other, { recursive: true });
+		await writeFile(join(baseDir, "SKILL.md"), "Selected package instructions.");
+		await writeFile(join(baseDir, "references", "guide.md"), "Selected package resource.");
+		await writeFile(join(other, "SKILL.md"), "Unselected package instructions.");
+		await writeFile(join(cwd, root, "package.json"), "{}");
+		const manifest = { cwd, role: "explore", skills: [{ baseDir, filePath: join(baseDir, "SKILL.md") }] };
+		// When / Then
+		for (const path of [join(baseDir, "SKILL.md"), join(baseDir, "references", "guide.md")]) assert.equal(await validatePath(manifest, path), path);
+		for (const path of [join(other, "SKILL.md"), join(cwd, root, "package.json"), join(cwd, ".pi", "settings.json")]) await assert.rejects(validatePath(manifest, path), /Protected/, path);
+		await assert.rejects(validatePath(manifest, join(baseDir, "SKILL.md"), true));
+		const collection = { ...manifest, skills: [{ baseDir: join(cwd, root, "skills") }] };
+		await assert.rejects(validatePath(collection, join(other, "SKILL.md")), /Protected/);
+	}
+	for (const baseDir of [join(cwd, ".pi", "npm"), join(cwd, ".pi", "git", "github.com"), join(cwd, ".pi", "npm", "node_modules", "fixture-pkg", "node_modules", "dep", "skills", "x")]) {
+		await mkdir(baseDir, { recursive: true });
+		await assert.rejects(validatePath({ cwd, role: "explore", skills: [{ baseDir }] }, join(cwd, ".pi", "settings.json")), /Protected/);
 	}
 });
 

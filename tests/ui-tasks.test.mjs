@@ -159,6 +159,58 @@ test("shouldVerifyPlanHashAndRejectDriftBeforeMutationWhenTasksAreBound", async 
 	await assert.rejects(tool.execute("escape", { operation: "replace", expectedRevision: 1, binding: { ...binding, path: "../plan.md" }, tasks: [{ ...pending(), group: "group-1" }] }, undefined, undefined, ctx), /path|binding/i);
 });
 
+async function boundBoard(t, git) {
+	const { createTaskTool } = await taskModule(t);
+	const cwd = await realpath(await createWorkspace(t));
+	if (git) await mkdir(join(cwd, ".git"));
+	await writeFile(join(cwd, "plan.md"), "original plan");
+	const manager = pi.SessionManager.inMemory(cwd);
+	const ctx = { cwd, sessionManager: manager };
+	const tool = createTaskTool(() => 0);
+	const run = async (params) => {
+		const result = await tool.execute(params.operation, params, undefined, undefined, ctx);
+		if (params.operation !== "list") manager.appendMessage({ role: "toolResult", toolName: tool.name, toolCallId: params.operation, isError: false, timestamp: Date.now(), ...result });
+		return { ...result, response: JSON.parse(result.content[0].text) };
+	};
+	const hash = (text) => createHash("sha256").update(text).digest("hex");
+	return { cwd, run, hash, binding: (project, text) => ({ project, path: "plan.md", sha256: hash(text), groups: ["group-1"] }) };
+}
+
+test("shouldRecoverWithClearOrAFreshReplaceAndExplainTheMismatchWhenTheBoundPlanChanges", async (t) => {
+	// Given
+	const { cwd, run, binding } = await boundBoard(t, true);
+	await run({ operation: "replace", expectedRevision: 0, binding: binding(cwd, "original plan"), tasks: [{ ...pending(), group: "group-1" }] });
+	await writeFile(join(cwd, "plan.md"), "ticked plan");
+	// When / Then
+	const stale = await run({ operation: "update", expectedRevision: 1, id: "g1", changes: { status: "in_progress" } }).catch((error) => error);
+	assert.match(stale.message, /plan\.md.*(?:changed|SHA-256)/i);
+	assert.match(stale.message, /replace.*fresh binding.*clear|clear.*replace.*fresh binding/i);
+	const project = await run({ operation: "replace", expectedRevision: 1, binding: binding("/elsewhere", "ticked plan"), tasks: [{ ...pending(), group: "group-1" }] }).catch((error) => error);
+	assert.match(project.message, new RegExp(`/elsewhere.*${cwd}`));
+	const rebound = await run({ operation: "replace", expectedRevision: 1, binding: binding(cwd, "ticked plan"), tasks: [{ ...pending(), group: "group-1" }] });
+	assert.equal(rebound.response.bindingCurrent, true);
+	assert.equal((await run({ operation: "update", expectedRevision: 2, id: "g1", changes: { status: "in_progress" } })).response.revision, 3);
+	await writeFile(join(cwd, "plan.md"), "edited again");
+	const cleared = await run({ operation: "clear", expectedRevision: 3 });
+	assert.deepEqual(cleared.response, { operation: "clear", revision: 4, tasks: [] });
+	assert.equal(cleared.details.state.binding, undefined);
+	assert.equal((await run({ operation: "add", expectedRevision: 4, tasks: [pending("next")] })).response.revision, 5);
+});
+
+test("shouldBindWithTheListedIdentityAndKeepWorkingWhenTheProjectIsNotAGitRepository", async (t) => {
+	// Given
+	const { cwd, run, binding } = await boundBoard(t, false);
+	// When
+	const { projectIdentity } = (await run({ operation: "list" })).response;
+	const bound = await run({ operation: "replace", expectedRevision: 0, binding: binding(projectIdentity, "original plan"), tasks: [{ ...pending(), group: "group-1" }] });
+	const updated = await run({ operation: "update", expectedRevision: 1, id: "g1", changes: { status: "in_progress" } });
+	// Then
+	assert.equal(projectIdentity, cwd);
+	assert.equal(bound.response.bindingCurrent, true);
+	assert.deepEqual({ revision: updated.response.revision, bindingCurrent: updated.response.bindingCurrent }, { revision: 2, bindingCurrent: true });
+	assert.equal((await run({ operation: "list" })).response.bindingCurrent, true);
+});
+
 test("shouldAbortOrRejectChangedSessionWithoutCommittingWhenPlanVerificationIsPending", async (t) => {
 	// Given
 	const { createTaskTool } = await taskModule(t);
@@ -174,6 +226,36 @@ test("shouldAbortOrRejectChangedSessionWithoutCommittingWhenPlanVerificationIsPe
 	generation++;
 	await assert.rejects(waiting, /session changed/i);
 	assert.deepEqual(ctx.sessionManager.getBranch(), []);
+});
+
+test("shouldReplayOnlyAppendedReceiptsAndStillRejectLeafMovesWhenTaskToolRuns", async (t) => {
+	// Given
+	const { createTaskTool, replayTasks } = await taskModule(t);
+	const cwd = await createWorkspace(t);
+	const manager = pi.SessionManager.inMemory(cwd);
+	const ctx = { cwd, sessionManager: manager };
+	const tool = createTaskTool(() => 0);
+	const run = (id, params) => tool.execute(id, params, undefined, undefined, ctx);
+	const commit = async (id, params) => { manager.appendMessage({ role: "toolResult", toolName: tool.name, toolCallId: id, isError: false, timestamp: Date.now(), ...await run(id, params) }); };
+	await commit("seed", { operation: "add", expectedRevision: 0, tasks: [pending("one"), pending("two")] });
+	const seeded = manager.getLeafId();
+	let branchReads = 0;
+	const branch = manager.getBranch.bind(manager);
+	manager.getBranch = (...args) => { branchReads++; return branch(...args); };
+	// When
+	await commit("start", { operation: "update", expectedRevision: 1, id: "one", changes: { status: "in_progress" } });
+	await run("appended", { operation: "list" });
+	const appendedReads = branchReads;
+	manager.branch(seeded);
+	await commit("other", { operation: "update", expectedRevision: 1, id: "two", changes: { status: "in_progress" } });
+	const listed = await run("switched", { operation: "list" });
+	const moving = run("moving", { operation: "update", expectedRevision: 2, id: "one", changes: { status: "in_progress" } });
+	manager.appendMessage({ role: "user", content: "meanwhile", timestamp: Date.now() });
+	// Then
+	assert.deepEqual({ appendedReads, switchedReads: branchReads }, { appendedReads: 0, switchedReads: 1 });
+	assert.deepEqual(listed.details.state, replayTasks(branch()));
+	assert.deepEqual(listed.details.state.tasks.map(({ status }) => status), ["pending", "in_progress"]);
+	await assert.rejects(moving, /session changed/i);
 });
 
 test("shouldBoundCollapsedAndExpandedHeaderWhenTerminalIsNarrowOrShort", async (t) => {

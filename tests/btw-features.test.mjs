@@ -19,6 +19,14 @@ describe("exports", () => {
 		assert.equal(selectTranscript(turns), "Third");
 	});
 
+	it("shouldKeepTheLatestAnswerNoteWhenItWasTruncated", () => {
+		// Given
+		const truncated = [...turns, { question: "Four", answer: "Partial", note: "Response truncated" }];
+		// When / Then
+		assert.equal(selectTranscript(truncated), "Partial\n\n> Response truncated");
+		assert.ok(selectTranscript(truncated, "4-4").endsWith("## Answer\nPartial\n\n> Response truncated"));
+	});
+
 	it("shouldExportAnInclusiveRangeOrQuestionSuffixWhenRequested", () => {
 		// Given
 		const selected = "## Question 2\nTwo\n\n## Answer\nSecond\n\n---\n\n## Question 3\nThree\n\n## Answer\nThird";
@@ -373,6 +381,17 @@ describe("search and controls", () => {
 	it("shouldKeepThePanelOpenWhenBringHasNoAnswer", async () => {
 		// Given
 		const { popup, done } = popupFixture();
+		// When
+		await popup.submit("/bring");
+		// Then
+		assert.equal(done.mock.calls.length, 0);
+		assert.ok(popup.render(200).join("\n").includes("The side conversation has no answers yet."));
+	});
+
+	it("shouldKeepThePanelOpenWhenBringFollowsAnEmptyAnswer", async () => {
+		// Given
+		const { popup, done } = popupFixture("");
+		await popup.submit(QUESTION);
 		// When
 		await popup.submit("/bring");
 		// Then

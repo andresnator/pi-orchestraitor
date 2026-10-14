@@ -4,7 +4,7 @@ The package ships 57 unique native skills: 54 automatically selectable and three
 
 ## Names and upgrades
 
-Directory basenames and frontmatter names match. Use the new identifiers in `/skill:<name>`, `skill_registry`, child selections and plan `Skills:` fields. This is a breaking rename without old-name aliases. Run native `/reload` after upgrading; refresh alone cannot authorize the new names. Update any explicit skill paths or package resource filters in your own configuration. Existing plans and historical reports are not rewritten automatically. Prompt commands (`/plan`, `/absorb`, `/review`, `/orchestraitor`) are unchanged. The later domain-default change below is separate from the namespace rename and never relocates existing artifacts.
+Directory basenames and frontmatter names match. Use the new identifiers in `/skill:<name>`, `skill_registry`, child selections and plan `Skills:` fields. This is a breaking rename without old-name aliases. Restart Pi after upgrading (`/reload` keeps the cached `.mjs` modules); refresh alone cannot authorize the new names. Update any explicit skill paths or package resource filters in your own configuration. Existing plans and historical reports are not rewritten automatically. Prompt commands (`/plan`, `/absorb`, `/review`, `/orchestraitor`) are unchanged. The later domain-default change below is separate from the namespace rename and never relocates existing artifacts.
 
 ## Adapted workflows
 
@@ -136,18 +136,16 @@ Use your actual OpenCode config path when `XDG_CONFIG_HOME` differs; use Pi's ef
 | New source/name, or changed native filters | Configure Pi and run native `/reload`; refresh alone cannot authorize it. |
 | Authorized body, description or supporting resource edit/removal | Revalidated before the next request, search, load or selected child delegation. |
 | Retargeted alias after its first validation | Unavailable until native `/reload`; the previously validated canonical target is pinned. |
-| Renamed, invalid or missing skill | Unavailable until fixed/reloaded; stale registry rows cannot enable it. |
+| Renamed, invalid or missing skill | Unavailable until fixed/reloaded; a stale index entry cannot enable it. |
 | Manual-only metadata | Preserved from both native and current metadata; use an explicit `/skill:<name>`, not automatic lookup/delegation. |
 
 There is no idle watcher. Public extension APIs do not expose every authoritative discovery input, so unrestricted live registration was deliberately excluded rather than implemented through private hooks. New native command autocomplete may also require reload.
 
-### Generated file and limits
+### In-memory index and limits
 
-Startup creates a pending `<nearest Git root>/.ai/skills/registry.md` (otherwise under cwd); the first request or explicit refresh resolves it. An existing owned snapshot is preserved during pending startup. The file records names, descriptions, source/origin/scope, canonical paths, status and content/resource fingerprints, never bodies. It is a generated diagnostic view, not an availability authority; another session may publish a different complete context, identified by its signature.
+The index lives only in the extension's memory for the current session; nothing is written to the project, its Git root or Pi's agent directory. Startup records a pending index; the first request or explicit refresh resolves it. Entries hold names, descriptions, source/origin/scope, canonical paths, status, content/resource fingerprints and diagnostics. `/orchestraitor:skills status` reports counts, and loading an unavailable name returns its diagnostic. Earlier versions wrote `<nearest Git root>/.ai/skills/registry.md`; that file is no longer read or updated and can be deleted.
 
-Writes are atomic and idempotent, serialized in-process and through the host mutation queue when available. Unchanged text leaves the file untouched. Owned corruption is repaired, foreign files and unsafe symlink destinations are preserved, and unavailable persistence falls back to memory with a diagnostic. Untrusted projects do not persist. `.ai/` is excluded from this repository/package; review ignore rules in other repositories. No cross-process locking or OS sandbox is promised.
-
-Inspection caps the native catalog at 1,000 entries, instructions at 40 KiB, individual resources at 1 MiB, and each skill at 1,000 files / 8 MiB / 2,000 enumerated entries / 32 directory levels. Hidden entries and `node_modules` are skipped; resource symlinks and special files make that skill unavailable. Standalone Markdown skills include only their instruction file and known resource directories. These limits can reject otherwise native-valid skills; native mode is the explicit fallback. Selected project skills below protected metadata roots must live in skill subdirectories for child delegation.
+Inspection caps the native catalog at 1,000 entries, instructions at 40 KiB, individual resources at 1 MiB, and each skill at 1,000 files / 8 MiB / 2,000 enumerated entries / 32 directory levels. Hidden entries and `node_modules` are skipped; resource symlinks and special files make that skill unavailable. Standalone Markdown skills include only their instruction file and known resource directories. These limits can reject otherwise native-valid skills; native mode is the explicit fallback. Selected project skills below protected metadata roots, including packages installed in the project under `.pi/npm` or `.pi/git`, must live in skill subdirectories for child delegation.
 
 See [offline savings and limitations](performance.md) and [child resolution](subagents.md).
 

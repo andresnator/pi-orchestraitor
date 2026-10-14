@@ -26,7 +26,6 @@ test("shouldProduceIsolatedComparableReceiptsWithoutLiveUsageWhenBenchmarkRuns",
 	assert.equal(report.modes["package-native"].samples[0].skills, 57);
 	assert.equal(report.modes.package.samples[0].skillWorkflow.matched, "jag-code");
 	assert.equal(report.modes.package.samples[0].skillWorkflow.refreshMs.samples.length, 5);
-	assert.ok(report.modes.package.samples[0].skillWorkflow.registrySnapshot.characters > 0);
 	assert.ok(report.registryComparison.initialCharacters.reductionPercent > 0);
 	assert.ok(report.registryComparison.oneSelectedSkillCharacters.reductionPercent > 0);
 	assert.equal(report.registryComparison.initialCharacters.nativeHeaders - report.registryComparison.initialCharacters.lazy,

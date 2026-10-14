@@ -23,6 +23,8 @@ function fixture() {
 		on: mock.fn((name, callback) => { if (name === "session_shutdown") shutdown = callback; }),
 		registerCommand: mock.fn((_name, command) => { handler = command.handler; }),
 		sendMessage: mock.fn(), setModel: mock.fn(), setThinkingLevel: mock.fn(),
+		// BTW keeps its stateless transport whatever the host's.
+		getSettings: mock.fn(() => ({ retry: { provider: { timeoutMs: 30000, maxRetries: 4 } }, thinkingBudgets: { low: 1024 }, transport: "websocket" })),
 	};
 	btw(pi);
 	const session = SessionManager.inMemory();
@@ -98,6 +100,23 @@ describe("open, converse, discard", () => {
 			modelChanges: pi.setModel.mock.calls.map(call => call.arguments), thinkingChanges: pi.setThinkingLevel.mock.calls.map(call => call.arguments),
 			waits: ctx.waitForIdle.mock.calls.map(call => call.arguments) },
 			{ entries: before, imports: [], modelChanges: [], thinkingChanges: [], waits: [] });
+	});
+
+	it("shouldSendPiProviderOptionsWithTheSideSessionAndTransport", async () => {
+		// Given
+		const { run, panels, streamSimple, session } = fixture();
+		// When
+		const running = run("Private question");
+		await waitFor(() => assert.ok(panels[0].render(200).join("\n").includes(ANSWER)));
+		panels[0].close();
+		await running;
+		// Then
+		const { signal, transformHeaders, ...options } = streamSimple.mock.calls[0].arguments[2];
+		assert.ok(signal instanceof AbortSignal);
+		assert.deepEqual({ ...options, headers: await transformHeaders({ "x-request": "kept" }) }, {
+			timeoutMs: 30000, websocketConnectTimeoutMs: undefined, maxRetries: 4, maxRetryDelayMs: 60000, thinkingBudgets: { low: 1024 },
+			sessionId: session.getSessionId(), transport: "sse", reasoning: "low", headers: { "x-request": "kept" },
+		});
 	});
 
 	it("shouldUseFreshContextAndForgetAnswersAndDraftWhenReopened", async () => {

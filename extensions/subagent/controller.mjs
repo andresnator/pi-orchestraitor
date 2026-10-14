@@ -1,6 +1,6 @@
 import { parentBridge } from "./bridge.mjs";
 import { spawn } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -9,8 +9,15 @@ import { StringDecoder } from "node:string_decoder";
 import { START_TIMEOUT_MS, TASK_TIMEOUT_MS, validateBatch, concreteFile } from "./policy.mjs";
 
 const MAX_RECORD = 1024 * 1024;
+const RECORD_HEAD = 128;
+// Pi serializes `type`, then `message.role`, first. Oversized records the controller
+// never reads, such as transcripts and tool payloads, may be skipped; any other
+// oversized record, including every assistant message, fails closed.
+const SKIPPABLE_RECORD = /^\{"type":"(agent_end|turn_end|message_update|tool_execution_(?:start|update|end)|message_(?:start|end)(?=","message":\{"role":"(?:user|toolResult)"))"/;
 const MAX_DIAGNOSTIC = 8192;
-const MAX_RESPONSE = 128 * 1024;
+// Two readers' handoffs, as serialized for the model (48 KiB), fit the 50 KB Pi allows its
+// own tool output (DEFAULT_MAX_BYTES); Pi does not cap extension tool results itself.
+const MAX_HANDOFF = 24 * 1024;
 const PROGRESS_LABEL_LIMIT = 200;
 const PROGRESS_DETAIL_LIMIT = 1000;
 const STOP_GRACE_MS = 1000;
@@ -19,6 +26,11 @@ const TOKEN_FIELDS = ["input", "output", "cacheRead", "cacheWrite", "totalTokens
 const OPTIONAL_TOKEN_FIELDS = ["reasoning", "cacheWrite1h"];
 const COST_FIELDS = ["input", "output", "cacheRead", "cacheWrite", "total"];
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** The model-facing part of a result; full receipts stay in tool details. */
+export const handoff = ({ id, status, finalResponse, writes, diagnostic, terminated, usageComplete }) =>
+	({ id, status, finalResponse, writes, diagnostic, terminated, usageComplete });
+const serializedBytes = (value) => Buffer.byteLength(JSON.stringify(value));
 
 /** Merge observed native usage without estimating prices or adding subset counters to totals. */
 export function mergeUsage(values) {
@@ -49,13 +61,14 @@ function observeProgress(observer, manifest, phase, evidence = {}) {
 	} catch { /* Presentation errors cannot change child execution. */ }
 }
 
-/** One manager per parent session; poison survives lifecycle cancellation. */
+/** One manager per parent session; poison survives lifecycle cancellation.
+ * Launch options belong to each run; constructor options are only defaults. */
 export class BatchController {
 	active;
 	blocked = false;
 	orphans = new Set();
 	constructor(options = {}) { this.options = options; }
-	async run(manifests, promptFor, signal, observer) {
+	async run(manifests, promptFor, signal, observer, options) {
 		validateBatch(manifests);
 		if (this.blocked) throw new Error("Subagent launches blocked: child termination was not confirmed");
 		if (this.active) throw new Error("A subagent batch is already active");
@@ -69,7 +82,7 @@ export class BatchController {
 		batch.done = Promise.all(manifests.map(async (manifest) => {
 			let child, exited = false;
 			try {
-				return await runTask(manifest, promptFor(manifest), { ...this.options, signal: abort.signal,
+				return await runTask(manifest, promptFor(manifest), { ...this.options, ...options, signal: abort.signal,
 					onSpawn: (process) => { child = process; }, onExit: () => { exited = true; },
 					onUnterminated: (process) => this.orphans.add(process), onTimeout: cancel, observer });
 			} catch (error) {
@@ -99,20 +112,26 @@ export class BatchController {
 	}
 }
 
-/** Bounded JSONL decoder; oversized/malformed records fail closed rather than losing events. */
+const oversized = () => { throw new Error("RPC record exceeded limit; truncated"); };
+/** Bounded JSONL decoder. Malformed records fail closed. An oversized record is
+ * passed by its leading characters to `skip`, which throws to fail closed or
+ * returns to discard the record through its newline. */
 export class RpcDecoder {
 	buffer = "";
 	decoder = new StringDecoder("utf8");
-	push(chunk, receive) {
+	skipping = false;
+	push(chunk, receive, skip = oversized) {
 		this.buffer += typeof chunk === "string" ? chunk : this.decoder.write(chunk);
 		let newline;
 		while ((newline = this.buffer.indexOf("\n")) !== -1) {
 			const line = this.buffer.slice(0, newline);
 			this.buffer = this.buffer.slice(newline + 1);
-			if (line.length > MAX_RECORD) throw new Error("RPC record exceeded limit; truncated");
-			if (line.trim()) receive(JSON.parse(line));
+			if (this.skipping) this.skipping = false;
+			else if (line.length > MAX_RECORD) skip(line.slice(0, RECORD_HEAD));
+			else if (line.trim()) receive(JSON.parse(line));
 		}
-		if (this.buffer.length > MAX_RECORD) throw new Error("RPC record exceeded limit; truncated");
+		if (!this.skipping && this.buffer.length > MAX_RECORD) { skip(this.buffer.slice(0, RECORD_HEAD)); this.skipping = true; }
+		if (this.skipping) this.buffer = "";
 	}
 }
 
@@ -121,7 +140,7 @@ export async function runTask(manifest, prompt, options = {}) {
 		startTimeout = START_TIMEOUT_MS, taskTimeout = TASK_TIMEOUT_MS, stopGrace = STOP_GRACE_MS } = options;
 	const result = { id: manifest.id, role: manifest.role, cwd: manifest.cwd, model: manifest.model, reasoning: manifest.reasoning,
 		status: "failed", finalResponse: "", writes: [], diagnostic: "", terminated: false, usageComplete: false };
-	let effectiveModel, disposeBridge;
+	let effectiveModel, disposeBridge, response;
 	const observe = (phase, evidence = {}) => observeProgress(options.observer, manifest, phase,
 		{ ...(effectiveModel ? { effectiveModel } : {}), ...evidence });
 	if (signal?.aborted) {
@@ -165,11 +184,12 @@ export async function runTask(manifest, prompt, options = {}) {
 			if (!["stop", "length", "toolUse"].includes(event.message.stopReason)) incompleteUsage("assistant response was not successful");
 		}
 	};
-	const fail = (error) => {
+	// Only the harness deadlines below time out; a child error that mentions a timeout is an ordinary failure.
+	const fail = (error, deadline = false) => {
 		if (!accepting || failure) return;
 		failure = error instanceof Error ? error : new Error(String(error));
 		rejectReady(failure); rejectSettled(failure);
-		if (/timeout/i.test(failure.message)) { timedOut = true; options.onTimeout?.(); }
+		if (deadline) { timedOut = true; options.onTimeout?.(); }
 	};
 	const send = (command) => {
 		if (!child?.stdin.writable || exited) return;
@@ -177,8 +197,8 @@ export async function runTask(manifest, prompt, options = {}) {
 	};
 	const cancel = () => fail(new Error("Task cancelled"));
 	signal?.addEventListener("abort", cancel, { once: true });
-	const startTimer = setTimeout(() => fail(new Error("Guard/RPC startup timeout")), startTimeout);
-	const taskTimer = setTimeout(() => fail(new Error("Task timeout")), taskTimeout);
+	const startTimer = setTimeout(() => fail(new Error("Guard/RPC startup timeout"), true), startTimeout);
+	const taskTimer = setTimeout(() => fail(new Error("Task timeout"), true), taskTimeout);
 	try {
 		directory = await mkdtemp(join(tmpdir(), "pi-subagent-"));
 		const raw = JSON.stringify(manifest);
@@ -187,13 +207,17 @@ export async function runTask(manifest, prompt, options = {}) {
 		await writeFile(manifestPath, raw, { mode: 0o600 });
 		if (signal?.aborted) throw new Error("Task cancelled");
 		// No shell, no inherited stdin, no CLI startup switches or preload flags.
+		// Built before spawn: a failure here must not leave a child whose exit nobody observes.
+		const bridged = Boolean(options.registry && options.modelFor);
+		const session = bridged ? options.providerSessionFor?.(manifest) : undefined;
+		const requestOptions = bridged ? options.requestOptionsFor?.(manifest, session?.id) : undefined;
 		const env = manifest.bridgeModel ? Object.fromEntries(["PATH", "LANG", "LC_ALL", "TMPDIR", "TEMP", "TMP", "SYSTEMROOT", "PI_OFFLINE"].filter(key => process.env[key] !== undefined).map(key => [key, process.env[key]])) : { ...process.env };
 		delete env.NODE_OPTIONS; delete env.NODE_PATH;
 		child = spawnProcess(process.execPath, [childPath, manifestPath, sdkRoot ?? "", credentialDir ?? ""], {
 			cwd: manifest.cwd, env, stdio: ["pipe", "pipe", "pipe", "ipc"],
 		});
 		options.onSpawn?.(child);
-		if (options.registry && options.modelFor) disposeBridge = parentBridge(child, options.registry, options.modelFor(manifest), signal, fail, options.providerSessionFor?.(manifest));
+		if (bridged) disposeBridge = parentBridge(child, options.registry, options.modelFor(manifest), signal, fail, session, requestOptions);
 		child.once("close", () => { closed = true; });
 		child.once("disconnect", () => { ipcClosed = true; });
 		child.once("exit", (code, sig) => {
@@ -247,6 +271,10 @@ export async function runTask(manifest, prompt, options = {}) {
 				if (!prompted || settled) return;
 				if (event.type === "message_end" && event.message?.role === "assistant") finalMessage = event.message;
 				if (event.type === "agent_settled") { settled = true; resolveSettled(); }
+			}, (head) => {
+				const type = SKIPPABLE_RECORD.exec(head)?.[1];
+				if (!type) oversized();
+				diagnose(`Skipped oversized ${type} RPC record.\n`);
 			}); } catch (error) { incompleteUsage("malformed or oversized RPC record"); fail(error); }
 		});
 		if (signal?.aborted) cancel();
@@ -260,7 +288,7 @@ export async function runTask(manifest, prompt, options = {}) {
 		if (!finalMessage || !["stop", "length"].includes(finalMessage.stopReason)) throw new Error(`Child response failed: ${finalMessage?.errorMessage ?? finalMessage?.stopReason ?? "missing final response"}`);
 		const text = finalMessage.content?.filter((block) => block.type === "text").map((block) => block.text).join("\n").trim();
 		if (!text) throw new Error("Child returned an empty final response");
-		result.finalResponse = text.length > MAX_RESPONSE ? `${text.slice(0, MAX_RESPONSE)}\n[Response truncated]` : text;
+		response = text;
 		result.status = "completed";
 	} catch (error) {
 		result.status = timedOut ? "timed_out" : signal?.aborted ? "cancelled" : "failed";
@@ -309,10 +337,47 @@ export async function runTask(manifest, prompt, options = {}) {
 		result.usageComplete = result.status === "completed" && result.usage !== undefined && usageReliable;
 		if (!result.usageComplete) diagnose("Usage accounting is incomplete; observed totals may understate consumption.\n");
 	}
+	// Capped last, so the final diagnostic and status count against the handoff.
+	if (response) Object.assign(result, await capResponse(response, result, diagnose));
 	observe(result.status, { terminated: result.terminated,
 		diagnostic: result.diagnostic.slice(0, PROGRESS_DETAIL_LIMIT),
 		finalResponse: result.finalResponse.slice(0, PROGRESS_DETAIL_LIMIT) });
 	return result;
+}
+
+/** Pi's pattern for truncated tool output (`utils/output-files.js`, not exported): keep whole
+ * leading lines and save the full text to a new owner-only file in the OS temp directory. The cap
+ * covers the handoff as serialized, so JSON escaping, the marker, diagnostic and fields count. */
+async function capResponse(text, result, diagnose) {
+	if (serializedBytes(handoff({ ...result, finalResponse: text })) <= MAX_HANDOFF) return { finalResponse: text };
+	const path = join(tmpdir(), `pi-subagent-response-${randomBytes(8).toString("hex")}.md`);
+	let saved = true;
+	try { await writeFile(path, text, { mode: 0o600, flag: "wx" }); }
+	catch (error) { saved = false; diagnose(`Full response could not be saved: ${String(error)}\n`); }
+	const marker = (next) => `\n\n[Response truncated at ${MAX_HANDOFF / 1024}KB.${saved ? ` Full response: ${path}; continue with read offset=${next}.]` : " The full response could not be saved.]"}`;
+	// The widest possible offset reserves room for the marker before the head is known.
+	const { head, whole } = leadingText(text, MAX_HANDOFF - serializedBytes(handoff({ ...result, finalResponse: marker(text.length + 2) })));
+	return { finalResponse: `${head}${marker(whole ? head.split("\n").length + 1 : 1)}`, ...(saved ? { fullResponsePath: path } : {}) };
+}
+
+/** Leading whole lines within `budget` bytes once JSON-escaped; a first line over budget is cut by characters. */
+function leadingText(text, budget) {
+	const escaped = (part) => serializedBytes(part) - 2;
+	let end = 0, used = 0;
+	for (let start = 0, newline; (newline = text.indexOf("\n", start)) !== -1; start = newline + 1) {
+		used += escaped(text.slice(start, newline)) + (start ? 2 : 0);
+		if (used > budget) break;
+		end = newline;
+	}
+	if (end > 0) return { head: text.slice(0, end), whole: true };
+	let index = 0;
+	used = 0;
+	for (const character of text) {
+		used += escaped(character);
+		if (used > budget) break;
+		index += character.length;
+	}
+	return { head: text.slice(0, index), whole: false };
 }
 
 async function waitForExit(exited, timeout) {

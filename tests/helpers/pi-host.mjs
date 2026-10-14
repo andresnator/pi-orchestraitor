@@ -22,6 +22,10 @@ process.env.PI_TEST_PACKAGE_DIR = hostRoot;
 export const importHost = (path) => import(pathToFileURL(resolveHostPath(hostRoot, path)).href);
 export const pi = await importHost("dist/index.js");
 export const { loadExtensions } = await importHost("dist/core/extensions/loader.js");
+const { withBuiltInRenderers } = await importHost("dist/core/tools/renderers/index.js");
+/** Renderers Pi's interactive mode selects: extension resolvers, then the registered or built-in tool. */
+export const renderersFor = (session, name) => session.extensionRunner.resolveToolRenderers(name,
+	() => withBuiltInRenderers(name, session.getToolDefinition(name)));
 
 async function findHostRoot() {
 	if (process.env.PI_TEST_PACKAGE_DIR) return realpath(resolve(process.env.PI_TEST_PACKAGE_DIR));

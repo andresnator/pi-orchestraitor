@@ -1,6 +1,11 @@
 import { validateBatch } from "./policy.mjs";
 import { BatchController } from "./controller.mjs";
 
+const DIAGNOSTIC_SUMMARY = 200;
+// Status never repeats handoffs or writes: collection delivers each result once.
+const brief = (result) => result?.diagnostic ? { diagnostic: result.diagnostic.slice(0, DIAGNOSTIC_SUMMARY) } : {};
+export const receiptStatus = (receipt) => ({ id: receipt.id, role: receipt.role ?? receipt.result?.role, state: receipt.state, status: receipt.result?.status, ...brief(receipt.result) });
+
 /** Pending readers retain their capacity until collected, including completed readers. */
 export class BackgroundTasks {
 	jobs = new Map();
@@ -47,7 +52,7 @@ export class BackgroundTasks {
 			return { results, pending };
 		} finally { this.foreground = false; }
 	}
-	status() { return [...this.jobs.values()].map(job => ({ id: job.id, role: job.manifest.role, status: job.result?.status ?? "running", usagePending: true, ...(job.persistenceError ? { persistenceError: job.persistenceError } : {}) })); }
+	status() { return [...this.jobs.values()].map(job => ({ id: job.id, role: job.manifest.role, status: job.result?.status ?? "running", usagePending: true, ...brief(job.result), ...(job.persistenceError ? { persistenceError: job.persistenceError } : {}) })); }
 	async wait(ids = [...this.jobs.keys()]) { await Promise.all(ids.map(id => this.jobs.get(id)?.done)); }
 	collect(ids = [...this.jobs.keys()]) {
 		const results = [];
@@ -63,16 +68,21 @@ export function collectedIds(entries) {
 	const delivered = new Set();
 	for (const entry of entries) {
 		if (entry.type !== "message" || entry.message?.role !== "toolResult") continue;
-		for (const result of entry.message.details?.results ?? []) if (typeof result?.id === "string") delivered.add(result.id);
+		const results = entry.message.details?.results;
+		if (Array.isArray(results)) for (const result of results) if (typeof result?.id === "string") delivered.add(result.id);
 	}
 	return delivered;
 }
-/** Result visibility is branch-local; accounting deduplication can be session-wide. */
+const interrupted = ({ id, role }) => ({ id, role, status: "interrupted", finalResponse: "", writes: [], usageComplete: false,
+	diagnostic: "No result receipt on this branch: the host exited or the session moved before the reader finished. Children are never resumed; usage is unknown." });
+/** Result visibility is branch-local; accounting deduplication can be session-wide.
+ * Recovery runs after live jobs are cleared, so a receipt without a result can never finish: it becomes a terminal result. */
 export function recoverReceipts(entries, delivered = collectedIds(entries)) {
 	const pending = new Map();
 	for (const entry of entries) {
 		if (entry.type === "custom" && entry.customType === RECEIPT && entry.data?.id) pending.set(entry.data.id, entry.data);
 	}
 	for (const id of delivered) pending.delete(id);
+	for (const [id, receipt] of pending) if (!receipt.result) pending.set(id, { ...receipt, state: "interrupted", result: interrupted(receipt) });
 	return pending;
 }

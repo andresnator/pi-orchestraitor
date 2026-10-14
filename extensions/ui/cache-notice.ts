@@ -31,7 +31,8 @@ export function registerCacheNotice(pi: ExtensionAPI, settleMs = SETTLE_MS) {
 		}, settleMs);
 		timer.unref?.();
 	};
-	pi.on("session_start", (_event, ctx) => { cancel(); sent = selection(ctx); });
+	// A resumed branch was cached by its latest request, even when the restored or CLI selection differs.
+	pi.on("session_start", (_event, ctx) => { cancel(); sent = latestRequest(ctx) ?? selection(ctx); });
 	pi.on("turn_start", (_event, ctx) => { sent = selection(ctx); });
 	// Tree navigation keeps the active model and thinking level, but the cached context becomes the new branch's.
 	pi.on("session_tree", (_event, ctx) => { sent = latestRequest(ctx); });

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, realpath, readFile, rm } from "node:fs/promises";
+import { access, mkdir, readdir, realpath, readFile, rm, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
@@ -62,6 +62,69 @@ for (const [mode, responses, expected, status] of [
 	});
 }
 
+/** Response files go to the OS temp directory, as Pi's own output files do; isolate it per test. */
+async function isolatedTmpdir(t, cwd) {
+	const directory = join(cwd, "tmp");
+	await mkdir(directory);
+	const previous = process.env.TMPDIR;
+	process.env.TMPDIR = directory;
+	t.after(() => { if (previous === undefined) delete process.env.TMPDIR; else process.env.TMPDIR = previous; });
+	return directory;
+}
+const responseFiles = async (directory) => (await readdir(directory)).filter((name) => name.startsWith("pi-subagent-response-"));
+
+test("shouldReturnWholeLeadingLinesAndSaveFullResponseWhenResponseExceedsCap", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const directory = await isolatedTmpdir(t, cwd);
+	const full = Array.from({ length: 4000 }, (_, index) => `line ${index + 1} 你好 🧪`).join("\n");
+	// When
+	const [result] = await new BatchController(options).run([{ ...task(cwd, "long", "usage"), responses: [{ usage: usage(1), content: [{ type: "text", text: full }] }] }], () => "work");
+	// Then
+	const marker = /\n\n\[Response truncated at 24KB\. Full response: (\S+); continue with read offset=(\d+)\.\]$/.exec(result.finalResponse);
+	assert.ok(marker, result.finalResponse.slice(-300));
+	const head = result.finalResponse.slice(0, marker.index);
+	assert.ok(Buffer.byteLength(head) <= 24 * 1024 && full.startsWith(`${head}\n`), "the head keeps whole leading lines within the cap");
+	assert.deepEqual({ status: result.status, path: result.fullResponsePath, directory: dirname(marker[1]), offset: Number(marker[2]), files: await responseFiles(directory) },
+		{ status: "completed", path: marker[1], directory, offset: head.split("\n").length + 1, files: [marker[1].slice(directory.length + 1)] });
+	assert.equal(await readFile(marker[1], "utf8"), full);
+	assert.equal((await stat(marker[1])).mode & 0o777, 0o600);
+});
+
+test("shouldKeepTwoSerializedHandoffsWithinPiOutputCapWhenResponsesEscapeAndDiagnosticsAreLong", async (t) => {
+	// Given: each response is under 24 KiB raw, but quotes, backslashes and newlines double once JSON-escaped
+	const cwd = await realpath(await createWorkspace(t));
+	const directory = await isolatedTmpdir(t, cwd);
+	const full = Array.from({ length: 700 }, (_, index) => `"C:\\src\\${index}" -> "\\"quoted\\""`).join("\n");
+	const reader = (id) => ({ ...task(cwd, id, "usage"), stderr: "warning ".repeat(2000), responses: [{ usage: usage(1), content: [{ type: "text", text: full }] }] });
+	// When
+	const results = await new BatchController(options).run([reader("first"), reader("second")], () => "work");
+	// Then
+	const serialized = JSON.stringify(results.map(({ id, status, finalResponse, writes, diagnostic, terminated, usageComplete }) => ({ id, status, finalResponse, writes, diagnostic, terminated, usageComplete })));
+	assert.ok(Buffer.byteLength(full) < 24 * 1024 && Buffer.byteLength(serialized) <= 50 * 1024, `serialized ${Buffer.byteLength(serialized)} bytes`);
+	for (const result of results) {
+		assert.match(result.diagnostic, /warning/);
+		const marker = /\n\n\[Response truncated at 24KB\. Full response: (\S+); continue with read offset=(\d+)\.\]$/.exec(result.finalResponse);
+		assert.ok(marker, result.finalResponse.slice(-300));
+		const head = result.finalResponse.slice(0, marker.index);
+		assert.ok(full.startsWith(`${head}\n`), "the head keeps whole leading lines");
+		assert.deepEqual({ status: result.status, path: result.fullResponsePath, directory: dirname(marker[1]), offset: Number(marker[2]), saved: await readFile(marker[1], "utf8") },
+			{ status: "completed", path: marker[1], directory, offset: head.split("\n").length + 1, saved: full });
+	}
+});
+
+test("shouldReturnResponseUnchangedWithoutFileWhenHandoffFitsCap", async (t) => {
+	// Given: the cap covers the serialized handoff, so the response leaves room for its id, status and other fields
+	const cwd = await realpath(await createWorkspace(t));
+	const directory = await isolatedTmpdir(t, cwd);
+	const full = "🧪".repeat(6 * 1024 - 64);
+	// When
+	const [result] = await new BatchController(options).run([{ ...task(cwd, "fits", "usage"), responses: [{ usage: usage(1), content: [{ type: "text", text: full }] }] }], () => "work");
+	// Then
+	assert.deepEqual({ status: result.status, response: result.finalResponse, path: Object.hasOwn(result, "fullResponsePath"), files: await responseFiles(directory) },
+		{ status: "completed", response: full, path: false, files: [] });
+});
+
 for (const trigger of ["cancellation", "timeout"]) {
 	test(`shouldRetainFinalizedUsageDuringTeardownWhen${trigger}StopsChild`, async (t) => {
 		// Given
@@ -120,6 +183,20 @@ for (const drainConfirmed of [true, false]) {
 	});
 }
 
+test("shouldLaunchWithPerCallOptionsAndRejectAnOverlappingCallWhenBatchIsActive", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const { spawn } = await import("node:child_process");
+	const controller = new BatchController(options), spawned = [];
+	const launch = (name) => ({ spawnProcess: (...args) => { spawned.push(name); return spawn(...args); } });
+	// When
+	const running = controller.run([{ ...task(cwd, "first"), delay: 100 }], () => "work", undefined, undefined, launch("first"));
+	await assert.rejects(controller.run([task(cwd, "second")], () => "work", undefined, undefined, launch("second")), /already active/);
+	const [result] = await running;
+	// Then
+	assert.deepEqual({ status: result.status, spawned }, { status: "completed", spawned: ["first"] });
+});
+
 test("shouldReturnOrderedReadersAndRejectOverlappingWriterWhenBatchIsActive", async (t) => {
 	// Given
 	const cwd = await realpath(await createWorkspace(t));
@@ -164,13 +241,40 @@ for (const mode of ["startup-hang", "hang", "ignore-term"]) {
 	});
 }
 
-test("shouldRejectOversizedAndMalformedRecordsWhenDecodingRpc", () => {
+test("shouldSkipOversizedRecordsInBoundedMemoryAndRejectMalformedRecordsWhenDecodingRpc", () => {
 	// Given
-	const decoder = new RpcDecoder();
-	// When / Then
-	assert.throws(() => decoder.push("x".repeat(1024 * 1024 + 1), () => {}), /limit/);
-	assert.throws(() => new RpcDecoder().push("{broken}\n", () => {}));
+	const decoder = new RpcDecoder(), received = [], skipped = [];
+	const receive = (event) => received.push(event.type), skip = (head) => skipped.push(head);
+	let buffered = 0;
+	// When
+	decoder.push('{"type":"agent_end","messages":"', receive, skip);
+	for (let count = 0; count < 48; count++) { decoder.push("x".repeat(64 * 1024), receive, skip); buffered = Math.max(buffered, decoder.buffer.length); }
+	decoder.push('"}\n{"type":"agent_settled"}\n', receive, skip);
+	decoder.push(`{"type":"turn_end","toolResults":"${"y".repeat(1024 * 1024)}"}\n{"type":"agent_settled"}\n`, receive, skip);
+	// Then
+	assert.deepEqual({ received, skipped: skipped.map((head) => head.slice(0, 19)), buffer: decoder.buffer },
+		{ received: ["agent_settled", "agent_settled"], skipped: ['{"type":"agent_end"', '{"type":"turn_end",'], buffer: "" });
+	assert.ok(buffered <= 1024 * 1024 && skipped.every((head) => head.length <= 128), `buffered ${buffered}`);
+	// Without a skip decision, oversized records still fail closed; malformed records always do.
+	assert.throws(() => new RpcDecoder().push("x".repeat(1024 * 1024 + 1), () => {}), /limit/);
+	assert.throws(() => new RpcDecoder().push("{broken}\n", () => {}, skip));
 });
+
+for (const [label, fields, status, expected] of [
+	["AgentEndFollowsFinalMessage", { padEnd: true, responses: [{ usage: usage(1) }] }, "completed", usage(1)],
+	["ToolResultArrivesMidRun", { responses: [{ usage: usage(1), stopReason: "toolUse", toolResult: true }, { usage: usage(2) }] }, "completed", usage(3)],
+	["AssistantMessageIsRequired", { responses: [{ usage: usage(1), padded: true }] }, "failed", undefined],
+]) {
+	test(`shouldOnlySkipUnusedOversizedRecordsWhen${label}`, async (t) => {
+		// Given
+		const cwd = await realpath(await createWorkspace(t));
+		// When
+		const [result] = await new BatchController(options).run([{ ...task(cwd, "oversized", "usage"), ...fields }], () => "work");
+		// Then
+		assert.deepEqual({ status: result.status, usage: result.usage, complete: result.usageComplete }, { status, usage: expected, complete: status === "completed" }, result.diagnostic);
+		assert.match(result.diagnostic, status === "completed" ? /Skipped oversized (agent_end|tool_execution_end) RPC record/ : /RPC record exceeded limit/);
+	});
+}
 
 test("shouldTimeOutRunningTaskAndRetainObservedWritesWhenStopping", async (t) => {
 	// Given
@@ -326,6 +430,17 @@ test("shouldCancelOtherReaderWhenStartupDeadlineExpires", async (t) => {
 	assert.deepEqual(results.map(({ status, terminated }) => ({ status, terminated })), [{ status: "timed_out", terminated: true }, { status: "cancelled", terminated: true }]);
 });
 
+
+test("shouldFailOnlyTheChildWhenItsOwnErrorMentionsTimeout", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const controller = new BatchController(options);
+	// When
+	const results = await controller.run([task(cwd, "broken", "startup-error"), task(cwd, "running")], () => "work");
+	// Then
+	assert.deepEqual(results.map(({ status, diagnostic }) => ({ status, timeout: /Provider login timeout/.test(diagnostic ?? "") })),
+		[{ status: "failed", timeout: true }, { status: "completed", timeout: false }]);
+});
 
 test("shouldRetainObservedUsageWhenTemporaryCleanupFails", async (t) => {
 	// Given
