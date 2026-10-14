@@ -226,6 +226,28 @@ test("a background result above the handoff cap is collected as its head with a 
 	assert.deepEqual(f.errors, []);
 });
 
+test("two synchronous readers whose responses escape heavily return under Pi's 50 KB tool-output cap with both file paths", { timeout: 15000 }, async t => {
+	// Each response is under 24 KiB raw; quotes, backslashes and newlines grow it past 25 KiB once JSON-escaped.
+	const full = Array.from({ length: 700 }, (_, index) => `"C:\\src\\${index}" -> "\\"quoted\\""`).join("\n");
+	const f = await scripted(t, { child: (stream, model) => finish(stream, model, full) });
+	const directory = join(f.cwd, "tmp"), previous = process.env.TMPDIR;
+	await mkdir(directory);
+	process.env.TMPDIR = directory;
+	t.after(() => { if (previous === undefined) delete process.env.TMPDIR; else process.env.TMPDIR = previous; });
+	f.replies.push({ id: "launch", name: "subagent_run", arguments: { tasks: [{ role: "explore", instruction: "inspect the first half" }, { role: "explore", instruction: "inspect the second half" }] } });
+	await within(f.session.prompt("Delegate two readers"), "parent handoff");
+	assert.ok(Buffer.byteLength(full) < 24 * 1024 && Buffer.byteLength(f.text("launch")) <= 50 * 1024, `tool output ${Buffer.byteLength(f.text("launch"))} bytes`);
+	const results = f.output("launch");
+	assert.equal(results.length, 2);
+	for (const result of results) {
+		const marker = /\n\n\[Response truncated at 24KB\. Full response: (\S+); continue with read offset=(\d+)\.\]$/.exec(result.finalResponse);
+		assert.ok(marker, result.finalResponse.slice(-300));
+		assert.ok(full.startsWith(`${result.finalResponse.slice(0, marker.index)}\n`));
+		assert.equal(await readFile(marker[1], "utf8"), full);
+	}
+	assert.deepEqual(f.errors, []);
+});
+
 test("status summarizes recovered and live readers without handoffs, and collect then delivers the recovered handoff once", { timeout: 15000 }, async t => {
 	const handoff = `Recovered handoff: ${"observed evidence ".repeat(200)}`;
 	const childDone = deferred();

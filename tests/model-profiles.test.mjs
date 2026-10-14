@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createRequire, syncBuiltinESMExports } from "node:module";
 import { dirname, join } from "node:path";
 import { mkdir, readFile, realpath, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { createWorkspace, importHost, isolatedAgentDir, pi, hostRoot, packageRoot } from "./helpers/pi-host.mjs";
@@ -49,6 +50,69 @@ test("a lock left by a writer that died mid-save expires while a live lock still
 		assert.equal(saved.length, 1, `round ${round}: exactly one concurrent save succeeds`);
 		assert.deepEqual((await snapshot(path)).data, saved[0].value.data);
 	}
+});
+
+/** Pause the store's own file-system calls to reproduce lock interleavings; restored after the test. */
+function interceptFs(t, replacements) {
+	const fs = createRequire(import.meta.url)("node:fs/promises");
+	const real = Object.fromEntries(Object.keys(replacements).map(name => [name, fs[name]]));
+	for (const [name, replace] of Object.entries(replacements)) fs[name] = (...args) => replace(real[name], ...args);
+	syncBuiltinESMExports();
+	t.after(() => { Object.assign(fs, real); syncBuiltinESMExports(); });
+}
+const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
+
+test("a writer whose lock was reclaimed as stale leaves the new owner's lock in place", async t => {
+	const cwd = await createWorkspace(t), path = join(cwd, "config.json"), lock = `${path}.lock`;
+	const ownerHolds = deferred(), ownerMayFinish = deferred();
+	let renames = 0, owner;
+	interceptFs(t, { rename: async (rename, from, to) => {
+		if (to === path && ++renames === 1) {
+			// The first writer stalls past the stale limit, so a second writer reclaims its lock.
+			const abandoned = new Date(Date.now() - 60_000);
+			await utimes(lock, abandoned, abandoned);
+			owner = save(await snapshot(path), { writer: "second" });
+			owner.catch(() => {});
+			await ownerHolds.promise;
+		} else if (to === path) { ownerHolds.resolve(); await ownerMayFinish.promise; }
+		return rename(from, to);
+	} });
+	await save(await snapshot(path), { writer: "first" });
+	assert.ok((await stat(lock)).isFile(), "the stalled writer must not remove the lock it no longer owns");
+	ownerMayFinish.resolve();
+	await owner;
+	await assert.rejects(stat(lock), { code: "ENOENT" });
+});
+
+test("two writers reclaiming the same abandoned lock never both hold it", async t => {
+	const cwd = await createWorkspace(t), path = join(cwd, "config.json"), lock = `${path}.lock`;
+	await writeFile(lock, "");
+	const abandoned = new Date(Date.now() - 60_000);
+	await utimes(lock, abandoned, abandoned);
+	const bothSawStale = deferred(), firstHolds = deferred(), otherSettled = deferred();
+	let ages = 0, renames = 0;
+	interceptFs(t, {
+		lstat: async (lstat, target, ...rest) => {
+			const result = await lstat(target, ...rest);
+			if (target !== lock) return result;
+			const turn = ++ages;
+			// Both writers see the abandoned lock; the second acts on that view only after the first relocked.
+			if (turn === 1) await bothSawStale.promise;
+			if (turn === 2) { bothSawStale.resolve(); await firstHolds.promise; }
+			return result;
+		},
+		rename: async (rename, from, to) => {
+			if (to === path && ++renames === 1) { firstHolds.resolve(); await otherSettled.promise; }
+			return rename(from, to);
+		},
+	});
+	const before = await snapshot(path);
+	const writers = [save(before, { writer: 1 }), save(before, { writer: 2 })];
+	Promise.race(writers.map(writer => writer.then(() => {}, () => {}))).then(otherSettled.resolve);
+	const attempts = await Promise.allSettled(writers);
+	assert.equal(attempts.filter(result => result.status === "fulfilled").length, 1, JSON.stringify(attempts.map(result => result.reason?.message ?? "saved")));
+	assert.match(attempts.find(result => result.status === "rejected").reason.message, /being changed/);
+	await assert.rejects(stat(lock), { code: "ENOENT" });
 });
 
 test("null assignments load as empty and subagent_run still resolves the parent model", async t => {

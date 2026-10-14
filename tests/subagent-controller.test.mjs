@@ -91,11 +91,33 @@ test("shouldReturnWholeLeadingLinesAndSaveFullResponseWhenResponseExceedsCap", a
 	assert.equal((await stat(marker[1])).mode & 0o777, 0o600);
 });
 
-test("shouldReturnResponseUnchangedWithoutFileWhenResponseFitsCap", async (t) => {
-	// Given
+test("shouldKeepTwoSerializedHandoffsWithinPiOutputCapWhenResponsesEscapeAndDiagnosticsAreLong", async (t) => {
+	// Given: each response is under 24 KiB raw, but quotes, backslashes and newlines double once JSON-escaped
 	const cwd = await realpath(await createWorkspace(t));
 	const directory = await isolatedTmpdir(t, cwd);
-	const full = "🧪".repeat(6 * 1024);
+	const full = Array.from({ length: 700 }, (_, index) => `"C:\\src\\${index}" -> "\\"quoted\\""`).join("\n");
+	const reader = (id) => ({ ...task(cwd, id, "usage"), stderr: "warning ".repeat(2000), responses: [{ usage: usage(1), content: [{ type: "text", text: full }] }] });
+	// When
+	const results = await new BatchController(options).run([reader("first"), reader("second")], () => "work");
+	// Then
+	const serialized = JSON.stringify(results.map(({ id, status, finalResponse, writes, diagnostic, terminated, usageComplete }) => ({ id, status, finalResponse, writes, diagnostic, terminated, usageComplete })));
+	assert.ok(Buffer.byteLength(full) < 24 * 1024 && Buffer.byteLength(serialized) <= 50 * 1024, `serialized ${Buffer.byteLength(serialized)} bytes`);
+	for (const result of results) {
+		assert.match(result.diagnostic, /warning/);
+		const marker = /\n\n\[Response truncated at 24KB\. Full response: (\S+); continue with read offset=(\d+)\.\]$/.exec(result.finalResponse);
+		assert.ok(marker, result.finalResponse.slice(-300));
+		const head = result.finalResponse.slice(0, marker.index);
+		assert.ok(full.startsWith(`${head}\n`), "the head keeps whole leading lines");
+		assert.deepEqual({ status: result.status, path: result.fullResponsePath, directory: dirname(marker[1]), offset: Number(marker[2]), saved: await readFile(marker[1], "utf8") },
+			{ status: "completed", path: marker[1], directory, offset: head.split("\n").length + 1, saved: full });
+	}
+});
+
+test("shouldReturnResponseUnchangedWithoutFileWhenHandoffFitsCap", async (t) => {
+	// Given: the cap covers the serialized handoff, so the response leaves room for its id, status and other fields
+	const cwd = await realpath(await createWorkspace(t));
+	const directory = await isolatedTmpdir(t, cwd);
+	const full = "🧪".repeat(6 * 1024 - 64);
 	// When
 	const [result] = await new BatchController(options).run([{ ...task(cwd, "fits", "usage"), responses: [{ usage: usage(1), content: [{ type: "text", text: full }] }] }], () => "work");
 	// Then

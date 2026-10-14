@@ -30,6 +30,7 @@ input.on("line", async (line) => {
 		if (manifest.timing) await writeFile(manifest.timing, JSON.stringify({ start: Date.now() }));
 		if (manifest.marker) await writeFile(manifest.marker, "prompted");
 		if (mode.startsWith("usage")) {
+			if (manifest.stderr) await new Promise((resolve) => process.stderr.write(manifest.stderr, resolve));
 			for (const response of manifest.responses) {
 				if (!response.unpaired) start();
 				const message = { ...assistant(), ...response, ...(response.padded ? { content: [{ type: "text", text: pad }] } : {}) };

@@ -15,8 +15,9 @@ const RECORD_HEAD = 128;
 // oversized record, including every assistant message, fails closed.
 const SKIPPABLE_RECORD = /^\{"type":"(agent_end|turn_end|message_update|tool_execution_(?:start|update|end)|message_(?:start|end)(?=","message":\{"role":"(?:user|toolResult)"))"/;
 const MAX_DIAGNOSTIC = 8192;
-// Two readers' heads (48 KiB) fit Pi's own 50 KB tool-output cap (DEFAULT_MAX_BYTES).
-const MAX_RESPONSE = 24 * 1024;
+// Two readers' handoffs, as serialized for the model (48 KiB), fit the 50 KB Pi allows its
+// own tool output (DEFAULT_MAX_BYTES); Pi does not cap extension tool results itself.
+const MAX_HANDOFF = 24 * 1024;
 const PROGRESS_LABEL_LIMIT = 200;
 const PROGRESS_DETAIL_LIMIT = 1000;
 const STOP_GRACE_MS = 1000;
@@ -25,6 +26,11 @@ const TOKEN_FIELDS = ["input", "output", "cacheRead", "cacheWrite", "totalTokens
 const OPTIONAL_TOKEN_FIELDS = ["reasoning", "cacheWrite1h"];
 const COST_FIELDS = ["input", "output", "cacheRead", "cacheWrite", "total"];
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** The model-facing part of a result; full receipts stay in tool details. */
+export const handoff = ({ id, status, finalResponse, writes, diagnostic, terminated, usageComplete }) =>
+	({ id, status, finalResponse, writes, diagnostic, terminated, usageComplete });
+const serializedBytes = (value) => Buffer.byteLength(JSON.stringify(value));
 
 /** Merge observed native usage without estimating prices or adding subset counters to totals. */
 export function mergeUsage(values) {
@@ -134,7 +140,7 @@ export async function runTask(manifest, prompt, options = {}) {
 		startTimeout = START_TIMEOUT_MS, taskTimeout = TASK_TIMEOUT_MS, stopGrace = STOP_GRACE_MS } = options;
 	const result = { id: manifest.id, role: manifest.role, cwd: manifest.cwd, model: manifest.model, reasoning: manifest.reasoning,
 		status: "failed", finalResponse: "", writes: [], diagnostic: "", terminated: false, usageComplete: false };
-	let effectiveModel, disposeBridge;
+	let effectiveModel, disposeBridge, response;
 	const observe = (phase, evidence = {}) => observeProgress(options.observer, manifest, phase,
 		{ ...(effectiveModel ? { effectiveModel } : {}), ...evidence });
 	if (signal?.aborted) {
@@ -282,7 +288,7 @@ export async function runTask(manifest, prompt, options = {}) {
 		if (!finalMessage || !["stop", "length"].includes(finalMessage.stopReason)) throw new Error(`Child response failed: ${finalMessage?.errorMessage ?? finalMessage?.stopReason ?? "missing final response"}`);
 		const text = finalMessage.content?.filter((block) => block.type === "text").map((block) => block.text).join("\n").trim();
 		if (!text) throw new Error("Child returned an empty final response");
-		Object.assign(result, await capResponse(text, diagnose));
+		response = text;
 		result.status = "completed";
 	} catch (error) {
 		result.status = timedOut ? "timed_out" : signal?.aborted ? "cancelled" : "failed";
@@ -331,6 +337,8 @@ export async function runTask(manifest, prompt, options = {}) {
 		result.usageComplete = result.status === "completed" && result.usage !== undefined && usageReliable;
 		if (!result.usageComplete) diagnose("Usage accounting is incomplete; observed totals may understate consumption.\n");
 	}
+	// Capped last, so the final diagnostic and status count against the handoff.
+	if (response) Object.assign(result, await capResponse(response, result, diagnose));
 	observe(result.status, { terminated: result.terminated,
 		diagnostic: result.diagnostic.slice(0, PROGRESS_DETAIL_LIMIT),
 		finalResponse: result.finalResponse.slice(0, PROGRESS_DETAIL_LIMIT) });
@@ -338,21 +346,38 @@ export async function runTask(manifest, prompt, options = {}) {
 }
 
 /** Pi's pattern for truncated tool output (`utils/output-files.js`, not exported): keep whole
- * leading lines within the cap and save the full text to a new owner-only file in the OS temp directory. */
-async function capResponse(text, diagnose) {
-	if (Buffer.byteLength(text) <= MAX_RESPONSE) return { finalResponse: text };
-	const { read } = new TextEncoder().encodeInto(text, new Uint8Array(MAX_RESPONSE));
-	const newline = text.lastIndexOf("\n", read);
-	const head = text.slice(0, newline > 0 ? newline : read);
-	const marker = `\n\n[Response truncated at ${MAX_RESPONSE / 1024}KB.`;
+ * leading lines and save the full text to a new owner-only file in the OS temp directory. The cap
+ * covers the handoff as serialized, so JSON escaping, the marker, diagnostic and fields count. */
+async function capResponse(text, result, diagnose) {
+	if (serializedBytes(handoff({ ...result, finalResponse: text })) <= MAX_HANDOFF) return { finalResponse: text };
 	const path = join(tmpdir(), `pi-subagent-response-${randomBytes(8).toString("hex")}.md`);
+	let saved = true;
 	try { await writeFile(path, text, { mode: 0o600, flag: "wx" }); }
-	catch (error) {
-		diagnose(`Full response could not be saved: ${String(error)}\n`);
-		return { finalResponse: `${head}${marker} The full response could not be saved.]` };
+	catch (error) { saved = false; diagnose(`Full response could not be saved: ${String(error)}\n`); }
+	const marker = (next) => `\n\n[Response truncated at ${MAX_HANDOFF / 1024}KB.${saved ? ` Full response: ${path}; continue with read offset=${next}.]` : " The full response could not be saved.]"}`;
+	// The widest possible offset reserves room for the marker before the head is known.
+	const { head, whole } = leadingText(text, MAX_HANDOFF - serializedBytes(handoff({ ...result, finalResponse: marker(text.length + 2) })));
+	return { finalResponse: `${head}${marker(whole ? head.split("\n").length + 1 : 1)}`, ...(saved ? { fullResponsePath: path } : {}) };
+}
+
+/** Leading whole lines within `budget` bytes once JSON-escaped; a first line over budget is cut by characters. */
+function leadingText(text, budget) {
+	const escaped = (part) => serializedBytes(part) - 2;
+	let end = 0, used = 0;
+	for (let start = 0, newline; (newline = text.indexOf("\n", start)) !== -1; start = newline + 1) {
+		used += escaped(text.slice(start, newline)) + (start ? 2 : 0);
+		if (used > budget) break;
+		end = newline;
 	}
-	const next = newline > 0 ? head.split("\n").length + 1 : 1;
-	return { finalResponse: `${head}${marker} Full response: ${path}; continue with read offset=${next}.]`, fullResponsePath: path };
+	if (end > 0) return { head: text.slice(0, end), whole: true };
+	let index = 0;
+	used = 0;
+	for (const character of text) {
+		used += escaped(character);
+		if (used > budget) break;
+		index += character.length;
+	}
+	return { head: text.slice(0, index), whole: false };
 }
 
 async function waitForExit(exited, timeout) {

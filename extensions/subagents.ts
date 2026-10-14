@@ -11,7 +11,7 @@ import { getAgentDir, getPackageDir, SettingsManager, type ExtensionAPI } from "
 import { Type } from "typebox";
 import { compactTool } from "./compact-tools.ts";
 import { providerRequestOptions } from "./provider-options.mjs";
-import { BatchController, mergeUsage } from "./subagent/controller.mjs";
+import { BatchController, handoff, mergeUsage } from "./subagent/controller.mjs";
 import { REGISTRY_RESOLVE_EVENT } from "./skills/registry.mjs";
 import type { SkillResolutionRequest } from "./skills/types.ts";
 import { READ_TOOLS, WRITE_TOOLS, THINKING_LEVELS, selectModel, validateBatch, validatePath, within, concreteFile } from "./subagent/policy.mjs";
@@ -46,7 +46,7 @@ export default function subagents(pi: ExtensionAPI) {
 	const persist = (data) => pi.appendEntry(RECEIPT, data);
 	const pack = (results, pending = []) => {
 		const usage = mergeUsage(results.map(result => result.usage));
-		return { content: [{ type: "text", text: JSON.stringify({ results: results.map(({ id, status, finalResponse, writes, diagnostic, terminated, usageComplete }) => ({ id, status, finalResponse, writes, diagnostic, terminated, usageComplete })), pending }) }],
+		return { content: [{ type: "text", text: JSON.stringify({ results: results.map(handoff), pending }) }],
 			details: { results, pending, usageComplete: !pending.length && results.every(result => result.usageComplete === true) }, ...(usage ? { usage } : {}) };
 	};
 	let generation = 0;
@@ -261,9 +261,7 @@ export default function subagents(pi: ExtensionAPI) {
 			const results = await controller.run(manifests, (manifest) => prompts.get(manifest.id), combinedSignal, publish, launch);
 			publish();
 			const usage = mergeUsage(results.map((result) => result.usage));
-			const handoffs = results.map(({ id, status, finalResponse, writes, diagnostic, terminated, usageComplete }) =>
-				({ id, status, finalResponse, writes, diagnostic, terminated, usageComplete }));
-			return { content: [{ type: "text", text: JSON.stringify(handoffs) }],
+			return { content: [{ type: "text", text: JSON.stringify(results.map(handoff)) }],
 				details: { results, usageComplete: results.length > 0 && results.every((result) => result.usageComplete === true) },
 				...(usage ? { usage } : {}) };
 		},

@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, readFile, open, rename, rm, lstat } from "node:fs/promises";
+import { mkdir, readFile, writeFile, open, rename, rm, lstat, link } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 export const ROLES = ["explore", "review", "implement"];
@@ -23,30 +23,45 @@ export async function snapshot(path) {
 	if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Configuration must be a JSON object");
 	return { path, revision: hash(raw ?? ""), data };
 }
-/** Exclusive lock; one left by a writer that died mid-save is removed once it is stale. */
+const busy = () => new Error("Configuration is being changed; reopen the panel");
+const expired = path => lstat(path).then(stat => Date.now() - stat.mtimeMs >= STALE_LOCK_MS, error => { if (error.code === "ENOENT") return true; throw error; });
+/** Exclusive lock holding the writer's own token. One left by a writer that died mid-save is moved
+ * aside once stale; a live lock moved there by a racing reclaim goes back unless a third writer relocked. */
 async function acquire(lock, stale = true) {
-	try { return await open(lock, "wx", 0o600); }
+	const token = randomUUID();
+	try { await writeFile(lock, token, { flag: "wx", mode: 0o600 }); return token; }
 	catch (error) {
 		if (error.code !== "EEXIST") throw error;
-		const age = await lstat(lock).then(stat => Date.now() - stat.mtimeMs, error => { if (error.code === "ENOENT") return Infinity; throw error; });
-		if (!stale || age < STALE_LOCK_MS) throw new Error("Configuration is being changed; reopen the panel");
-		await rm(lock, { force: true });
+		if (!stale || !await expired(lock)) throw busy();
+		const aside = `${lock}.${token}.stale`;
+		try { await rename(lock, aside); }
+		catch (error) { if (error.code === "ENOENT") return acquire(lock, false); throw error; }
+		if (!await expired(aside)) {
+			await link(aside, lock).catch(() => {});
+			await rm(aside, { force: true });
+			throw busy();
+		}
+		await rm(aside, { force: true });
 		return acquire(lock, false);
 	}
+}
+/** A lock reclaimed while this writer stalled belongs to its new owner. */
+async function release(lock, token) {
+	if (await readFile(lock, "utf8").catch(() => undefined) === token) await rm(lock, { force: true });
 }
 /** Cooperative lock plus revision check; never overwrite a changed snapshot. */
 export async function save(snapshotBefore, data) {
 	const { path, revision } = snapshotBefore;
 	await mkdir(dirname(path), { recursive: true });
 	const lock = `${path}.lock`, temporary = `${path}.${randomUUID()}.tmp`;
-	const handle = await acquire(lock);
+	const token = await acquire(lock);
 	try {
 		if ((await snapshot(path)).revision !== revision) throw new Error("Configuration changed concurrently; reopen the panel");
 		const file = await open(temporary, "wx", 0o600);
 		try { await file.writeFile(JSON.stringify(data, null, 2) + "\n"); await file.sync(); } finally { await file.close(); }
 		if ((await snapshot(path)).revision !== revision) throw new Error("Configuration changed concurrently; reopen the panel");
 		await rename(temporary, path);
-	} finally { await rm(temporary, { force: true }); await handle.close(); await rm(lock, { force: true }); }
+	} finally { await rm(temporary, { force: true }); await release(lock, token); }
 	return snapshot(path);
 }
 export function validateAssignments(assignments) {
