@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 
 const COMMAND = "auto-compact";
 const RESET = "default";
+const UTF8_BOM = "\uFEFF";
 const TOKEN_PLACES: Record<string, number> = { "": 0, k: 3, m: 6 };
 const USAGE = "Usage: /auto-compact <tokens|default> (e.g. 150k, 0.5m, 300000); no argument shows the current threshold.";
 
@@ -35,17 +36,19 @@ export default function autoCompact(pi: ExtensionAPI) {
 				// then the command-only reload API to refresh the live SettingsManager.
 				const { FileSettingsStorage } = await import(pathToFileURL(join(getPackageDir(), "dist/core/settings-manager.js")).href);
 				const storage = new FileSettingsStorage(ctx.cwd, getAgentDir());
-				storage.withLock("project", (text: string | undefined) => {
-					const project = object(text === undefined ? undefined : JSON.parse(text), "Project settings");
-					const compaction = object(project.compaction, "Project compaction settings");
-					const overrides = object(compaction.modelOverrides, "Project model overrides");
-					if (compaction.enabled === false || object(overrides[key], "Project model override").reserveTokens !== undefined) {
-						throw new Error(".pi/settings.json overrides auto-compaction for this model; adjust the project setting first. Personal settings were not changed.");
-					}
-					return undefined;
-				});
+				if (ctx.isProjectTrusted()) {
+					storage.withLock("project", (text: string | undefined) => {
+						const project = settingsObject(text, "Project settings");
+						const compaction = object(project.compaction, "Project compaction settings");
+						const overrides = object(compaction.modelOverrides, "Project model overrides");
+						if (compaction.enabled === false || object(overrides[key], "Project model override").reserveTokens !== undefined) {
+							throw new Error(".pi/settings.json overrides auto-compaction for this model; adjust the project setting first. Personal settings were not changed.");
+						}
+						return undefined;
+					});
+				}
 				storage.withLock("global", (text: string | undefined) => {
-					const personal = object(text === undefined ? undefined : JSON.parse(text), "Personal settings");
+					const personal = settingsObject(text, "Personal settings");
 					const compaction = object(personal.compaction, "Personal compaction settings");
 					const overrides = object(compaction.modelOverrides, "Personal model overrides");
 					const current = object(overrides[key], "Personal model override");
@@ -85,6 +88,12 @@ function parseTokens(argument: string) {
 	const tokens = Number(match[1] + fraction.slice(0, places).padEnd(places, "0"));
 	if (!Number.isSafeInteger(tokens) || tokens <= 0) throw new Error("Threshold must resolve to a positive safe integer of tokens.");
 	return tokens;
+}
+
+function settingsObject(text: string | undefined, label: string): Record<string, unknown> {
+	if (text === undefined) return {};
+	const normalized = text.startsWith(UTF8_BOM) ? text.slice(UTF8_BOM.length) : text;
+	return object(JSON.parse(normalized), label);
 }
 
 function object(value: unknown, label: string): Record<string, unknown> {

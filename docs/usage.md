@@ -125,7 +125,7 @@ The argument is variable: `k` means 1,000 tokens and `m` means 1,000,000; suffix
 
 The command persists `compaction.modelOverrides["provider/modelId"].reserveTokens = contextWindow - threshold` in Pi's personal `settings.json` (`getAgentDir()`, respecting `PI_CODING_AGENT_DIR`). It preserves retained-history settings and other models' thresholds, and enables Pi's global automatic-compaction flag. Without an argument it reports the effective setting without writing. `default` removes only this model's personal reserve override, restoring inheritance; it does not disable compaction.
 
-Saving waits for the parent run to finish, then **reloads Pi**, closing active readers and panels. Project `.pi/settings.json` settings take precedence; if they disable compaction or override this model's reserve, the command refuses to modify personal settings. Adjust that project setting first.
+Saving waits for the parent run to finish, then **reloads Pi**, closing active readers and panels. Trusted project `.pi/settings.json` settings take precedence; if they disable compaction or override this model's reserve, the command refuses to modify personal settings. Adjust that project setting first. When project trust is disabled, that project layer is ignored.
 
 This uses the native scheduler, summary generation and overflow recovery, with no second compaction loop. Native `reserveTokens` also affects the summary output budget. If you later change a model's context-window definition, rerun the command to maintain the same absolute threshold. The writer uses Pi 1.2.0's installed `FileSettingsStorage` lock protocol; recheck this internal storage integration when upgrading Pi. Original session history remains stored.
 

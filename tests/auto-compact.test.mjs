@@ -9,6 +9,7 @@ const { createAssistantMessageEventStream } = await importHost("node_modules/@ea
 const MODEL_KEY = "fixture/model";
 const CONTEXT_WINDOW = 1_000_000;
 const SECOND_MODEL = "fixture/other";
+const UTF8_BOM = "\uFEFF";
 // The retained user span must exceed Pi's 20k keepRecentTokens budget to leave older history to summarize.
 const RECENT_REQUEST = "Recent request: " + "x".repeat(100000);
 const manifest = JSON.parse(await readFile(join(packageRoot, "package.json"), "utf8"));
@@ -22,7 +23,7 @@ function assistant(model, tokens = 1) {
 			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } };
 }
 
-async function fixture(t, initial = {}, project) {
+async function fixture(t, initial = {}, project, { projectTrusted = true } = {}) {
 	const cwd = await createWorkspace(t);
 	const agentDir = join(cwd, "agent");
 	const previousAgentDir = process.env.PI_CODING_AGENT_DIR;
@@ -33,10 +34,10 @@ async function fixture(t, initial = {}, project) {
 	await writeFile(path, typeof initial === "string" ? initial : JSON.stringify(initial));
 	if (project) {
 		await mkdir(join(cwd, ".pi"));
-		await writeFile(join(cwd, ".pi/settings.json"), JSON.stringify(project));
+		await writeFile(join(cwd, ".pi/settings.json"), typeof project === "string" ? project : JSON.stringify(project));
 	}
 	const notifications = [], reasons = [], errors = [], actions = [];
-	const settingsManager = pi.SettingsManager.create(cwd, agentDir);
+	const settingsManager = pi.SettingsManager.create(cwd, agentDir, { projectTrusted });
 	const resourceLoader = new pi.DefaultResourceLoader({ cwd, agentDir, settingsManager,
 		noExtensions: true, additionalExtensionPaths: extensionPaths,
 		noSkills: true, noPromptTemplates: true, noThemes: true, noContextFiles: true,
@@ -183,6 +184,76 @@ for (const project of [{ compaction: { modelOverrides: { [MODEL_KEY]: { reserveT
 		assert.equal(notifications.at(-1).type, "error");
 	});
 }
+
+for (const [name, project] of [
+	["Disabled", { compaction: { enabled: false } }],
+	["ReserveOverride", { compaction: { modelOverrides: { [MODEL_KEY]: { reserveTokens: 100000, keepRecentTokens: 900000 } } } }],
+	["MalformedJson", '{ "compaction":'],
+]) {
+	test(`shouldIgnoreProjectSettingsWhenProjectIsUntrustedAndSettingsAre${name}`, async (t) => {
+		// Given
+		const { cwd, session, settingsManager, path, run, actions, errors } = await fixture(t, { theme: "light" }, project, { projectTrusted: false });
+		const projectPath = join(cwd, ".pi/settings.json");
+		const before = await readFile(projectPath, "utf8");
+		assert.equal(session.extensionRunner.createCommandContext().isProjectTrusted(), false);
+		assert.deepEqual(settingsManager.getProjectSettings(), {});
+		// When
+		await run("400k");
+		// Then
+		assert.deepEqual({ personal: JSON.parse(await readFile(path, "utf8")), project: await readFile(projectPath, "utf8"), actions, errors }, {
+			personal: { theme: "light", compaction: { enabled: true, modelOverrides: { [MODEL_KEY]: { reserveTokens: 600000 } } } },
+			project: before, actions: ["idle", "reload"], errors: [],
+		});
+		assert.deepEqual(settingsManager.getCompactionSettings(session.model), { enabled: true, reserveTokens: 600000, keepRecentTokens: 20000 });
+	});
+}
+
+test("shouldSkipProjectStorageWhenAnUntrustedProjectSettingsFileIsLocked", async (t) => {
+	// Given
+	const { cwd, path, run, actions } = await fixture(t, {}, { compaction: { enabled: false } }, { projectTrusted: false });
+	await mkdir(join(cwd, ".pi/settings.json.lock"));
+	// When
+	await run("400k");
+	// Then
+	assert.deepEqual({ personal: JSON.parse(await readFile(path, "utf8")), actions }, {
+		personal: { compaction: { enabled: true, modelOverrides: { [MODEL_KEY]: { reserveTokens: 600000 } } } },
+		actions: ["idle", "reload"],
+	});
+});
+
+for (const argument of ["150k", "default"]) {
+	test(`shouldSaveNativeCompatibleSettingsWhenPersonalJsonStartsWithBomAndArgumentIs${argument}`, async (t) => {
+		// Given
+		const initial = { theme: "light", compaction: { enabled: true, reserveTokens: 16000,
+			modelOverrides: { [MODEL_KEY]: { reserveTokens: 600000, keepRecentTokens: 25000 }, [SECOND_MODEL]: { reserveTokens: 500000 } } } };
+		const { session, settingsManager, path, run, actions, errors } = await fixture(t, UTF8_BOM + JSON.stringify(initial));
+		assert.deepEqual(settingsManager.drainErrors(), []);
+		assert.deepEqual(settingsManager.getGlobalSettings(), initial);
+		// When
+		await run(argument);
+		// Then
+		assert.deepEqual({ personal: JSON.parse(await readFile(path, "utf8")), actions, errors }, {
+			personal: { ...initial, compaction: { ...initial.compaction, modelOverrides: {
+				...initial.compaction.modelOverrides,
+				[MODEL_KEY]: { keepRecentTokens: 25000, ...(argument === "default" ? {} : { reserveTokens: 850000 }) },
+			} } }, actions: ["idle", "reload"], errors: [],
+		});
+		assert.equal(settingsManager.getCompactionReserveTokens(session.model), argument === "default" ? 16000 : 850000);
+	});
+}
+
+test("shouldReportTrustedProjectConflictWhenProjectJsonStartsWithBom", async (t) => {
+	// Given
+	const project = UTF8_BOM + JSON.stringify({ compaction: { modelOverrides: { [MODEL_KEY]: { reserveTokens: 100000 } } } });
+	const { path, run, settingsManager, notifications, actions } = await fixture(t, { theme: "light" }, project);
+	const before = await readFile(path, "utf8");
+	assert.deepEqual(settingsManager.drainErrors(), []);
+	// When
+	await run("400k");
+	// Then
+	assert.deepEqual({ personal: await readFile(path, "utf8"), actions }, { personal: before, actions: ["idle"] });
+	assert.match(notifications.at(-1).message, /\.pi\/settings\.json overrides auto-compaction/);
+});
 
 test("shouldCreatePersonalSettingsWhenTheFileDoesNotExist", async (t) => {
 	// Given
