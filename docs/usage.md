@@ -89,6 +89,7 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 | Resource | Purpose |
 | --- | --- |
 | `extensions/compact-tools.ts` | Compact presentation of Pi's read/bash/edit/write/codemode through a renderer resolver; registers no tools, so Pi or another extension keeps execution and shell settings. Expand to inspect arguments, results and error explanations. |
+| `extensions/auto-compact.ts` | `/auto-compact <tokens>` persists the current model's native compaction threshold; no argument shows it, and `default` restores inheritance. See [automatic compaction](#automatic-compaction). |
 | `extensions/context-budget.ts` | Caps output of top-level codemode scripts that set no options at 8,000 estimated tokens; Pi saves the full output to a temporary file. `--orchestraitor-codemode-max-output N` sets another cap, and `0` keeps Pi's 10,000. The transcript keeps the original script. See the [codemode output budget](performance.md#codemode-output-budget). |
 | `@heyhuynhgiabuu/pi-pretty@0.6.30` | Separately installed companion: highlighted reads, FFF-backed find/grep, prompt editor and activity indicators. Its bash tool is disabled so Pi's bash keeps the user's shell settings. |
 | `extensions/pretty-theme.ts` | Maps Pi's built-in `dark`/`light` themes to Pretty's `github-dark`/`github-light` through `PRETTY_THEME` on each start or reload; writes no files and yields to any theme set for Pretty. See [highlight theme](pi-pretty.md#highlight-theme). |
@@ -109,6 +110,24 @@ The harness preserves personal model, theme, editor, credentials, and MCP overri
 ## NaN model provider
 
 Reload Pi, run `/login nan`, and enter a key generated in NAN Cloud's API Keys settings into Pi's native secret prompt. Alternatively provide `NAN_API_KEY` before starting Pi. Select **NaN / GLM 5.3 Flash** through `/model` for coding; no default-provider change is required. Keys remain in Pi's private credential storage or process environment, never in this package. `glm5.3` requires premium membership; the model list is static and Pi's zero per-token cost display does not account for membership fees or quota. See [NaN setup, overrides, and limits](nan.md).
+
+## Automatic compaction
+
+```text
+/auto-compact 150k
+/auto-compact 0.5m
+/auto-compact 300000
+/auto-compact
+/auto-compact default
+```
+
+The argument is variable: `k` means 1,000 tokens and `m` means 1,000,000; suffixes are case-insensitive and exact decimals are accepted. It measures **estimated active-context tokens**, not cumulative session usage. Pi compacts when context **exceeds** the threshold at its normal request boundaries, not immediately when the command is entered. The amount must resolve to a positive safe integer, exceed the effective `keepRecentTokens`, and stay below the current model's context window.
+
+The command persists `compaction.modelOverrides["provider/modelId"].reserveTokens = contextWindow - threshold` in Pi's personal `settings.json` (`getAgentDir()`, respecting `PI_CODING_AGENT_DIR`). It preserves retained-history settings and other models' thresholds, and enables Pi's global automatic-compaction flag. Without an argument it reports the effective setting without writing. `default` removes only this model's personal reserve override, restoring inheritance; it does not disable compaction.
+
+Saving waits for the parent run to finish, then **reloads Pi**, closing active readers and panels. Trusted project `.pi/settings.json` settings take precedence; if they disable compaction or override this model's reserve, the command refuses to modify personal settings. Adjust that project setting first. When project trust is disabled, that project layer is ignored.
+
+This uses the native scheduler, summary generation and overflow recovery, with no second compaction loop. Native `reserveTokens` also affects the summary output budget. If you later change a model's context-window definition, rerun the command to maintain the same absolute threshold. The writer uses Pi 1.2.0's installed `FileSettingsStorage` lock protocol; recheck this internal storage integration when upgrading Pi. Original session history remains stored.
 
 ## Temporary side conversations
 
