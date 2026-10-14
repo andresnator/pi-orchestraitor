@@ -28,8 +28,45 @@ test("shouldReuseTaskProjectionWhenNativeHistoryIsUnchangedAcrossHooks", async (
 	manager.appendMessage({ role: "toolResult", toolName: "orchestraitor_tasks", toolCallId: "seed", content: [], isError: false, timestamp: 1,
 		details: { version: 1, operation: "add", state: { version: 1, revision: 1, tasks: [{ id: "one", title: "Branch work", status: "pending" }] } } });
 	await runner.emit({ type: "tool_execution_start", toolName: "read" });
-	assert.equal(branchReads, 1);
+	assert.equal(branchReads, 0, "appended entries are folded without reading the whole branch");
 	assert.match(header(ui), /0\/1 done/);
+});
+
+test("shouldFoldOnlyAppendedTaskReceiptsAndReplayWholeBranchAfterLeafLeavesIt", async (t) => {
+	// Given
+	const ui = await createUISession(t), { session } = ui;
+	const manager = session.sessionManager, runner = session.extensionRunner;
+	let branchReads = 0;
+	const branch = manager.getBranch.bind(manager);
+	manager.getBranch = (...args) => { branchReads++; return branch(...args); };
+	const pending = (id) => ({ id, title: `Task ${id}`, status: "pending" });
+	const done = (id) => ({ ...pending(id), status: "done", evidence: "checked" });
+	const board = (revision, tasks) => ({ role: "toolResult", toolName: "orchestraitor_tasks", toolCallId: `board-${revision}`, content: [], isError: false, timestamp: revision,
+		details: { version: 1, operation: "replace", state: { version: 1, revision, tasks } } });
+	manager.appendMessage({ role: "user", content: "root", timestamp: 0 });
+	const added = manager.appendMessage(board(1, [pending("one"), pending("two")]));
+	// When
+	const finished = manager.appendMessage(board(2, [done("one"), pending("two")]));
+	await runner.emit({ type: "tool_execution_start", toolName: "read" });
+	// Then
+	assert.deepEqual({ reads: branchReads, header: header(ui).match(/\d\/2 done/)?.[0] }, { reads: 0, header: "1/2 done" });
+	// When
+	manager.branch(added);
+	manager.appendMessage(board(2, [pending("one"), { ...pending("two"), status: "blocked", reason: "waiting" }]));
+	await runner.emit({ type: "tool_execution_start", toolName: "read" });
+	manager.appendMessage(board(3, [{ ...pending("one"), status: "in_progress" }, { ...pending("two"), status: "blocked", reason: "waiting" }]));
+	await runner.emit({ type: "turn_end" });
+	// Then
+	assert.equal(branchReads, 1);
+	assert.match(header(ui), /0\/2 done.*1 active.*1 blocked/);
+	// When
+	manager.branch(finished);
+	await runner.emit({ type: "session_tree", oldLeafId: null, newLeafId: finished });
+	const treeHeader = header(ui).match(/\d\/2 done/)?.[0], treeReads = branchReads;
+	manager.appendMessage(board(3, [done("one"), done("two")]));
+	await runner.emit({ type: "agent_settled" });
+	// Then
+	assert.deepEqual({ treeHeader, appendedReads: branchReads - treeReads, header: header(ui).match(/\d\/2 done/)?.[0] }, { treeHeader: "1/2 done", appendedReads: 0, header: "2/2 done" });
 });
 
 test("shouldRefreshBranchTasksWhenNavigationKeepsEntryCount", async (t) => {
@@ -212,6 +249,46 @@ test("shouldKeepObservedPoisonedControllerLockWhenNativeUiReloads", async (t) =>
 	assert.deepEqual({ blocked: controller.blocked, retained: controller.orphans.has(child), errors },
 		{ blocked: true, retained: true, errors: [] });
 	await assert.rejects(controller.run([manifest], () => "work"), /launches blocked/i);
+});
+
+test("shouldShowLaunchBlockFromControllerStateNotErrorTextWhenRunFails", async (t) => {
+	// Given
+	const key = Symbol.for("pi-orchestraitor.subagent-controller");
+	const previous = globalThis[key];
+	t.after(() => { globalThis[key] = previous; });
+	const fail = async (blocked, text) => {
+		const { session, statuses, dialogs } = await createUISession(t, "tui");
+		const runner = session.extensionRunner;
+		globalThis[key] = { blocked };
+		await runner.emit({ type: "tool_execution_start", toolName: "subagent_run", toolCallId: "run", args: { tasks: [{ role: "explore", instruction: "inspect" }] } });
+		await runner.emit({ type: "tool_execution_end", toolName: "subagent_run", toolCallId: "run", isError: true, result: { content: [{ type: "text", text }] } });
+		const shown = runner.getCommand("orchestraitor:agents").handler("", runner.createCommandContext());
+		const visible = dialogs.at(-1).component.render(120).map(stripVTControlCharacters).join("\n");
+		dialogs.at(-1).done({ status: "closed" });
+		await shown;
+		return { panel: /Launches blocked/.test(visible), status: statuses.get("orchestraitor:status") === "Agents blocked" };
+	};
+	// When
+	const quoted = await fail(false, "Validation failed: instruction \"explain why launches blocked after termination\" is too long");
+	const locked = await fail(true, "Subagent launches blocked");
+	// Then
+	assert.deepEqual({ quoted, locked }, { quoted: { panel: false, status: false }, locked: { panel: true, status: true } });
+});
+
+test("shouldReportAgentReplayFailureEvenWhenTaskRefreshAlsoFailsOnSessionStart", async (t) => {
+	// Given
+	const { session, errors } = await createUISession(t, "tui");
+	const manager = session.sessionManager;
+	const branch = manager.getBranch.bind(manager), leaf = manager.getLeafId.bind(manager);
+	let branchReads = 0;
+	manager.getBranch = () => { if (branchReads++ === 0) throw new Error("Agent history unreadable"); return branch(); };
+	manager.getLeafId = () => { throw new Error("Task history unreadable"); };
+	// When
+	await session.extensionRunner.emit({ type: "session_start", reason: "reload" });
+	manager.getLeafId = leaf;
+	// Then
+	const reported = errors.filter(({ event }) => event === "session_start").map(({ error }) => error).join("\n");
+	assert.deepEqual({ agents: /Agent history unreadable/.test(reported), tasks: /Task history unreadable/.test(reported) }, { agents: true, tasks: true }, reported);
 });
 
 test("shouldUpdateOneNativeFooterEntryDuringAgentsAndQuestionsWhenChromeIsVisible", async (t) => {

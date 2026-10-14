@@ -1,5 +1,6 @@
 import * as sdk from "@earendil-works/pi-coding-agent";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { StringEnum } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
 import { compactTool } from "./compact-tools.ts";
 import { createSkillRegistry, DEFAULT_SEARCH_LIMIT, MAX_SEARCH_LIMIT, REGISTRY_RESOLVE_EVENT } from "./skills/registry.mjs";
@@ -47,7 +48,7 @@ export default function skillRegistry(pi: ExtensionAPI) {
 		name: TOOL, label: "Skill registry",
 		description: "Search the native-authorized skill index or load one selected skill. New sources/names require Pi configuration and /reload; manual-only skills use explicit /skill commands.",
 		parameters: Type.Object({
-			operation: Type.Union([Type.Literal("search"), Type.Literal("load")]),
+			operation: StringEnum(["search", "load"]),
 			query: Type.Optional(Type.String({ minLength: 1, maxLength: 500 })),
 			name: Type.Optional(Type.String({ minLength: 1, maxLength: 64 })),
 			limit: Type.Optional(Type.Integer({ minimum: 1, maximum: MAX_SEARCH_LIMIT })),

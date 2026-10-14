@@ -131,6 +131,22 @@ test("shouldLeaveTheProjectTreeUntouchedWhenTheRegistryRunsInAGitRepositoryOrIts
 	}
 });
 
+test("shouldReportPendingOnlyUntilTheNativeCatalogIsCapturedWhenStatusIsRequested", async (t) => {
+	// Given
+	const { session, prepare } = await fixture(t);
+	const command = session.extensionRunner.getCommand("orchestraitor:skills");
+	const ctx = session.extensionRunner.createCommandContext();
+	const notices = [];
+	const status = async () => { await command.handler("status", { ...ctx, ui: { ...ctx.ui, notify: (message) => notices.push(message) } }); return JSON.parse(notices.at(-1)); };
+	// When
+	const started = await status();
+	await prepare();
+	const captured = await status();
+	// Then
+	assert.deepEqual([started, captured].map(({ pending, available, manualOnly }) => ({ pending, available, manualOnly })),
+		[{ pending: true, available: 0, manualOnly: 0 }, { pending: false, available: 1, manualOnly: 1 }]);
+});
+
 test("shouldReplaceHeadersWithLazyDiscoveryWhenTheFirstPromptIsPrepared", async (t) => {
 	// Given
 	const { session, loader, prepare } = await fixture(t);

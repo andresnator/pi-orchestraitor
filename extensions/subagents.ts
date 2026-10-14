@@ -1,8 +1,8 @@
-import { cleanupSessionResources, getSupportedThinkingLevels, clampThinkingLevel } from "@earendil-works/pi-ai/compat";
+import { cleanupSessionResources, getSupportedThinkingLevels, clampThinkingLevel, StringEnum } from "@earendil-works/pi-ai/compat";
 import { paths, readConfiguration, resolveAssignment } from "./models/store.mjs";
 import { profilesPanel } from "./models/panel.mjs";
 import { selectProfileOption } from "./models/selector.ts";
-import { BackgroundTasks, RECEIPT, recoverReceipts, collectedIds } from "./subagent/background.mjs";
+import { BackgroundTasks, RECEIPT, recoverReceipts, collectedIds, receiptStatus } from "./subagent/background.mjs";
 import { publicModel } from "./subagent/bridge.mjs";
 import { createHash, randomUUID } from "node:crypto";
 import { realpath, readFile } from "node:fs/promises";
@@ -95,8 +95,8 @@ export default function subagents(pi: ExtensionAPI) {
 		}
 	});
 	pi.registerTool(compactTool({ name: "subagent_collect", label: "Collect subagents",
-		description: "Inspect status, wait, collect results and usage once, or cancel pending readers. Wait/collect/cancel require a direct model-issued call (not codemode). Parent verification is required before completing board tasks.",
-		parameters: Type.Object({ action: Type.Union([Type.Literal("status"), Type.Literal("collect"), Type.Literal("wait"), Type.Literal("cancel")]), ids: Type.Optional(Type.Array(Type.String())) }),
+		description: "Status summarizes readers without results; wait, collect (results and usage, once) or cancel. Wait/collect/cancel require a direct model-issued call (not codemode). Verify results before completing board tasks.",
+		parameters: Type.Object({ action: StringEnum(["status", "collect", "wait", "cancel"]), ids: Type.Optional(Type.Array(Type.String())) }),
 		async execute(_id, args, signal, _update, ctx) {
 			const current = generation;
 			reconcileCollected(ctx);
@@ -108,7 +108,7 @@ export default function subagents(pi: ExtensionAPI) {
 				if (args.action === "cancel") await background.cancel(ids);
 				if (["wait", "cancel"].includes(args.action)) await background.wait(ids);
 				if (current !== generation) throw new Error("Parent session changed during collection");
-				if (args.action === "status") return { content: [{ type: "text", text: JSON.stringify({ live: background.status(), recovered: [...recovered.values()] }) }], details: {} };
+				if (args.action === "status") return { content: [{ type: "text", text: JSON.stringify({ live: background.status(), recovered: [...recovered.values()].map(receiptStatus) }) }], details: {} };
 				const results = background.collect(ids);
 				for (const id of ids) if (!delivered.has(id) && !results.some(result => result.id === id) && recovered.get(id)?.result) results.push(recovered.get(id).result);
 				const fresh = results.filter(result => !delivered.has(result.id));
@@ -127,10 +127,11 @@ export default function subagents(pi: ExtensionAPI) {
 		// children here: only a subsequent tool execution has a live abort signal.
 		const pending = [...background.jobs.keys()];
 		const firstReminder = pending.filter(id => !reminded.has(id));
-		if (!firstReminder.length) return { continue: false, entries: [{ type: "custom_message", customType: "orchestraitor-subagents-uncollected", display: true,
+		// Pi replaces the proposal with each handler's result: extend earlier handlers' entries and keep their continuation.
+		if (!firstReminder.length) return { entries: [...event.entries, { type: "custom_message", customType: "orchestraitor-subagents-uncollected", display: true,
 			content: `Subagent results remain uncollected: ${pending.join(", ")}. The automatic collection reminder limit has been reached. Receipts and consumption remain pending; call subagent_collect directly to retrieve them. Parent verification is still required.` }] };
 		for (const id of pending) reminded.add(id);
-		return { continue: true, entries: [
+		return { continue: true, entries: [...event.entries,
 			{ type: "custom", customType: COLLECTION_REMINDER, data: { ids: pending } },
 			{ type: "custom_message", customType: "orchestraitor-subagents-ready", display: true,
 				content: `Pending subagent results: ${pending.join(", ")}. Call subagent_collect directly with action wait before finishing; waiting and collection must happen in that cancellable tool call. This is the only automatic reminder for these tasks. Verify findings before marking board tasks completed.` },
@@ -142,12 +143,12 @@ export default function subagents(pi: ExtensionAPI) {
 		label: "Subagents",
 		description: "Run one or two bounded explore/review readers, or one exclusive implementer with exact editable files. Readers can run in background; collect pending results with subagent_collect. Children cannot run commands. Inspect their results and run verification in the parent.",
 		parameters: Type.Object({ tasks: Type.Array(Type.Object({
-			role: Type.Union([Type.Literal("explore"), Type.Literal("review"), Type.Literal("implement")]),
+			role: StringEnum(["explore", "review", "implement"]),
 			instruction: Type.String({ minLength: 1 }), context: Type.Optional(Type.String()),
 			skills: Type.Optional(Type.Array(Type.String())), files: Type.Optional(Type.Array(Type.String())),
 			model: Type.Optional(Type.String({ description: "Exact available provider/model ID; defaults to the parent model" })),
-			mode: Type.Optional(Type.Union([Type.Literal("sync"), Type.Literal("background")])),
-			reasoning: Type.Optional(Type.Union(THINKING_LEVELS.map((level: string) => Type.Literal(level)))),
+			mode: Type.Optional(StringEnum(["sync", "background"])),
+			reasoning: Type.Optional(StringEnum(THINKING_LEVELS)),
 		}), { minItems: 1, maxItems: 2 }) }),
 		async execute(_id, args, signal, update, ctx) {
 			validateBatch(args.tasks);

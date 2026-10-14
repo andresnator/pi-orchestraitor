@@ -5,7 +5,7 @@ import { registerCacheNotice } from "./ui/cache-notice.ts";
 import { workStatus } from "./ui/display.ts";
 import { subagentLaunchesBlocked, SUBAGENT_PROGRESS_EVENT } from "./subagents.ts";
 import { compactTool } from "./compact-tools.ts";
-import { checkTaskBinding, createTaskTool, emptyTasks, replayTaskActivity, TASK_TOOL_NAME, type TaskActivity } from "./ui/tasks.ts";
+import { checkTaskBinding, createTaskReplay, createTaskTool, emptyTasks, TASK_TOOL_NAME, type TaskActivity } from "./ui/tasks.ts";
 import { createTaskPanel, taskHeader } from "./ui/task-view.ts";
 import { createQuestionTool, QUESTION_TOOL_NAME } from "./ui/questions.ts";
 
@@ -130,8 +130,7 @@ export default function statusUI(pi: ExtensionAPI) {
 	let visible = true;
 	let context: ExtensionContext | undefined;
 	let refreshRequest = 0;
-	let taskManager: ExtensionContext["sessionManager"] | undefined;
-	let taskLeaf: string | null | undefined;
+	const replayTasks = createTaskReplay();
 	let bindingCheck: { binding: typeof tasks.binding; cwd: string; promise: Promise<boolean> } | undefined;
 	function refreshStatus() {
 		const snapshot = agents.snapshot();
@@ -143,8 +142,7 @@ export default function statusUI(pi: ExtensionAPI) {
 		const activeContext = context;
 		const generation = owner.generation;
 		const request = ++refreshRequest;
-		const leaf = ctx.sessionManager.getLeafId();
-		const replayed = taskManager === ctx.sessionManager && taskLeaf === leaf ? { state: tasks, activity } : replayTaskActivity(ctx.sessionManager.getBranch());
+		const replayed = replayTasks(ctx.sessionManager);
 		const state = replayed.state;
 		// Coalesce only concurrent checks. External plan edits must still be detected
 		// on later refreshes, even when the native branch has not changed.
@@ -156,7 +154,6 @@ export default function statusUI(pi: ExtensionAPI) {
 		const current = await bindingCheck.promise;
 		if (context !== activeContext || generation !== owner.generation || request !== refreshRequest || !owner.isCurrent(ctx)) return;
 		tasks = state; activity = replayed.activity;
-		taskManager = ctx.sessionManager; taskLeaf = leaf;
 		bindingCurrent = current;
 		owner.setWidget(visible && tasks.tasks.length ? (tui, _theme) => ({
 			invalidate() {},
@@ -168,14 +165,21 @@ export default function statusUI(pi: ExtensionAPI) {
 		context = ctx;
 		expanded = false;
 		visible = true;
-		tasks = emptyTasks(); activity = new Map();
-		taskManager = undefined; taskLeaf = undefined; bindingCheck = undefined;
-		// Agent history is display-only: a replay failure must not leave tasks and questions without a UI owner.
+		tasks = emptyTasks(); activity = new Map(); bindingCheck = undefined;
+		// Agent history is display-only: a replay failure must not leave tasks and questions without a UI owner,
+		// and a later task refresh failure must not hide it.
+		let replayError: unknown;
 		try { agents.replay(ctx.sessionManager.getBranch(), ctx.sessionManager.getSessionId(), subagentLaunchesBlocked()); }
-		finally {
+		catch (error) { replayError = error; }
+		try {
 			owner.activate(ctx);
 			await refreshTasks(ctx);
+		} catch (error) {
+			if (replayError === undefined) throw error;
+			const causes = [replayError, error];
+			throw new AggregateError(causes, causes.map((cause) => cause instanceof Error ? cause.message : String(cause)).join("; "));
 		}
+		if (replayError !== undefined) throw replayError;
 	};
 	pi.registerTool(compactTool(createTaskTool(() => owner.generation)));
 	pi.registerTool(compactTool(createQuestionTool(owner)));
@@ -193,7 +197,7 @@ export default function statusUI(pi: ExtensionAPI) {
 	}
 	pi.on("session_shutdown", () => {
 		context = undefined; owner.dispose(); agents.replay([]); tasks = emptyTasks(); activity = new Map(); bindingCurrent = true;
-		taskManager = undefined; taskLeaf = undefined; bindingCheck = undefined;
+		bindingCheck = undefined;
 	});
 	pi.on("tool_execution_start", async (event, ctx) => {
 		if (!context || !owner.isCurrent(ctx)) return;
@@ -215,7 +219,7 @@ export default function statusUI(pi: ExtensionAPI) {
 	});
 	pi.on("tool_execution_end", (event, ctx) => {
 		if (!context || !owner.isCurrent(ctx)) return;
-		if (event.toolName === "subagent_run") agents.finish(event.toolCallId, event.result, event.isError);
+		if (event.toolName === "subagent_run") agents.finish(event.toolCallId, event.result, event.isError, subagentLaunchesBlocked());
 		if (event.toolName === "subagent_collect") agents.collect(event.toolCallId, event.result);
 		refreshStatus(); owner.refresh();
 	});

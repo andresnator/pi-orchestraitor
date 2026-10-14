@@ -82,6 +82,25 @@ function linearSession() {
 	return log;
 }
 
+test("shouldReadPiAgentAndSessionDirectoriesFromTheEnvironmentWhenNoSessionsArgumentIsGiven", async (t) => {
+	// Given
+	const home = await createWorkspace(t), elsewhere = await createWorkspace(t);
+	const sessions = (agentDir, count) => Promise.all(Array.from({ length: count }, async (_, index) => {
+		await mkdir(join(agentDir, "sessions", "--work-app--"), { recursive: true });
+		await write(join(agentDir, "sessions", "--work-app--", `${index}.jsonl`), linearSession());
+	}));
+	await sessions(join(home, ".pi", "agent"), 1);
+	await sessions(join(home, "custom"), 2);
+	await sessions(elsewhere, 3);
+	const counted = env => JSON.parse(execFileSync(process.execPath, [SCRIPT, "--json"],
+		{ cwd: packageRoot, encoding: "utf8", stdio: "pipe", env: { PATH: process.env.PATH, HOME: home, ...env } })).sources.sessions;
+	// When
+	const found = { home: counted({}), tilde: counted({ PI_CODING_AGENT_DIR: "~/custom" }), absolute: counted({ PI_CODING_AGENT_DIR: elsewhere }),
+		sessionDir: counted({ PI_CODING_AGENT_DIR: elsewhere, PI_CODING_AGENT_SESSION_DIR: join(home, "custom", "sessions") }) };
+	// Then
+	assert.deepEqual(found, { home: 1, tilde: 2, absolute: 3, sessionDir: 2 });
+});
+
 test("shouldAttributeEachCacheMissToTheChangeBeforeItWhenALinearSessionIsReplayed", async (t) => {
 	// Given
 	const dir = await createWorkspace(t);

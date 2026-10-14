@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { dirname, join } from "node:path";
-import { writeFile, realpath, readFile } from "node:fs/promises";
-import { createWorkspace, importHost, pi, hostRoot, packageRoot } from "./helpers/pi-host.mjs";
-import { paths, snapshot, save, resolveAssignment, validateAssignments, validateCatalog } from "../extensions/models/store.mjs";
+import { mkdir, readFile, realpath, rm, stat, utimes, writeFile } from "node:fs/promises";
+import { createWorkspace, importHost, isolatedAgentDir, pi, hostRoot, packageRoot } from "./helpers/pi-host.mjs";
+import { paths, snapshot, save, readConfiguration, resolveAssignment, validateAssignments, validateCatalog } from "../extensions/models/store.mjs";
 import { profilesPanel } from "../extensions/models/panel.mjs";
 import { publicModel } from "../extensions/subagent/bridge.mjs";
 import { BatchController } from "../extensions/subagent/controller.mjs";
@@ -31,6 +31,51 @@ test("atomic profile updates reject stale and concurrent snapshots without losin
 	const attempts = await Promise.allSettled([save(current, { ...current.data, winner: 1 }), save(current, { ...current.data, winner: 2 })]);
 	assert.equal(attempts.filter(result => result.status === "fulfilled").length, 1);
 	assert.equal((await snapshot(path)).data.unrelated, true);
+});
+
+test("a lock left by a writer that died mid-save expires while a live lock still blocks", async t => {
+	const cwd = await createWorkspace(t), path = join(cwd, "config.json"), lock = `${path}.lock`;
+	await writeFile(lock, "");
+	await assert.rejects(save(await snapshot(path), { early: true }), /being changed/);
+	const abandoned = new Date(Date.now() - 60_000);
+	await utimes(lock, abandoned, abandoned);
+	await save(await snapshot(path), { recovered: true });
+	assert.deepEqual((await snapshot(path)).data, { recovered: true });
+	await assert.rejects(stat(lock), { code: "ENOENT" });
+	for (let round = 0; round < 20; round++) {
+		const current = await snapshot(path);
+		const attempts = await Promise.allSettled([save(current, { round, writer: 1 }), save(current, { round, writer: 2 })]);
+		const saved = attempts.filter(result => result.status === "fulfilled");
+		assert.equal(saved.length, 1, `round ${round}: exactly one concurrent save succeeds`);
+		assert.deepEqual((await snapshot(path)).data, saved[0].value.data);
+	}
+});
+
+test("null assignments load as empty and subagent_run still resolves the parent model", async t => {
+	const cwd = await realpath(await createWorkspace(t)), temporary = join(cwd, "agent"), files = paths(isolatedAgentDir, cwd);
+	await mkdir(dirname(files.personal), { recursive: true });
+	await writeFile(files.personal, JSON.stringify({ assignments: null }));
+	t.after(() => rm(dirname(files.personal), { recursive: true, force: true }));
+	assert.deepEqual((await readConfiguration(files)).personal.data.assignments, {});
+	const modelRuntime = await pi.ModelRuntime.create({ authPath: join(temporary, "auth.json"), modelsPath: null, refreshOnCreate: false });
+	let parentCalls = 0;
+	modelRuntime.registerProvider(model.provider, { api: model.api, baseUrl: "https://example.invalid", apiKey: "fixture", models: [model],
+		streamSimple(_model, context) {
+			if (JSON.stringify(context.messages[0]).includes("bounded child worker")) return streamResponse("fixture child result");
+			return parentCalls++ === 0 ? streamResponse([{ type: "toolCall", id: "launch", name: "subagent_run", arguments: { tasks: [{ role: "explore", instruction: "inspect" }] } }], "toolUse") : streamResponse("parent verified");
+		} });
+	const settingsManager = pi.SettingsManager.inMemory({ retry: { enabled: false }, compaction: { enabled: false } });
+	const resourceLoader = new pi.DefaultResourceLoader({ cwd, agentDir: temporary, settingsManager, noExtensions: true, additionalExtensionPaths: [join(packageRoot, "extensions/subagents.ts")], noSkills: true, noPromptTemplates: true, noThemes: true, noContextFiles: true });
+	await resourceLoader.reload();
+	const { session } = await pi.createAgentSession({ cwd, agentDir: temporary, settingsManager, resourceLoader, modelRuntime, model: (await modelRuntime.getAvailable())[0],
+		tools: ["read", "subagent_run"], sessionManager: pi.SessionManager.inMemory(cwd) });
+	t.after(() => session.dispose());
+	await session.bindExtensions({ mode: "print", onError: error => assert.fail(String(error)) });
+	await session.prompt("Delegate the fixture");
+	const launch = session.sessionManager.getEntries().find(entry => entry.type === "message" && entry.message.toolCallId === "launch").message;
+	assert.equal(launch.isError, false, launch.content[0].text);
+	assert.equal(launch.details.results[0].status, "completed");
+	assert.equal(launch.details.results[0].model, `${model.provider}/${model.id}`);
 });
 
 async function panelFixture(t, selects, inputs = [], confirms = []) {

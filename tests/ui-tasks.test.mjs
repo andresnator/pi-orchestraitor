@@ -228,6 +228,36 @@ test("shouldAbortOrRejectChangedSessionWithoutCommittingWhenPlanVerificationIsPe
 	assert.deepEqual(ctx.sessionManager.getBranch(), []);
 });
 
+test("shouldReplayOnlyAppendedReceiptsAndStillRejectLeafMovesWhenTaskToolRuns", async (t) => {
+	// Given
+	const { createTaskTool, replayTasks } = await taskModule(t);
+	const cwd = await createWorkspace(t);
+	const manager = pi.SessionManager.inMemory(cwd);
+	const ctx = { cwd, sessionManager: manager };
+	const tool = createTaskTool(() => 0);
+	const run = (id, params) => tool.execute(id, params, undefined, undefined, ctx);
+	const commit = async (id, params) => { manager.appendMessage({ role: "toolResult", toolName: tool.name, toolCallId: id, isError: false, timestamp: Date.now(), ...await run(id, params) }); };
+	await commit("seed", { operation: "add", expectedRevision: 0, tasks: [pending("one"), pending("two")] });
+	const seeded = manager.getLeafId();
+	let branchReads = 0;
+	const branch = manager.getBranch.bind(manager);
+	manager.getBranch = (...args) => { branchReads++; return branch(...args); };
+	// When
+	await commit("start", { operation: "update", expectedRevision: 1, id: "one", changes: { status: "in_progress" } });
+	await run("appended", { operation: "list" });
+	const appendedReads = branchReads;
+	manager.branch(seeded);
+	await commit("other", { operation: "update", expectedRevision: 1, id: "two", changes: { status: "in_progress" } });
+	const listed = await run("switched", { operation: "list" });
+	const moving = run("moving", { operation: "update", expectedRevision: 2, id: "one", changes: { status: "in_progress" } });
+	manager.appendMessage({ role: "user", content: "meanwhile", timestamp: Date.now() });
+	// Then
+	assert.deepEqual({ appendedReads, switchedReads: branchReads }, { appendedReads: 0, switchedReads: 1 });
+	assert.deepEqual(listed.details.state, replayTasks(branch()));
+	assert.deepEqual(listed.details.state.tasks.map(({ status }) => status), ["pending", "in_progress"]);
+	await assert.rejects(moving, /session changed/i);
+});
+
 test("shouldBoundCollapsedAndExpandedHeaderWhenTerminalIsNarrowOrShort", async (t) => {
 	// Given
 	const { taskHeader } = await loadUiModule(t, "extensions/ui/task-view.ts");

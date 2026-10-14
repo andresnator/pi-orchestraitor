@@ -1,6 +1,11 @@
 import { validateBatch } from "./policy.mjs";
 import { BatchController } from "./controller.mjs";
 
+const DIAGNOSTIC_SUMMARY = 200;
+// Status never repeats handoffs or writes: collection delivers each result once.
+const brief = (result) => result?.diagnostic ? { diagnostic: result.diagnostic.slice(0, DIAGNOSTIC_SUMMARY) } : {};
+export const receiptStatus = (receipt) => ({ id: receipt.id, role: receipt.role ?? receipt.result?.role, state: receipt.state, status: receipt.result?.status, ...brief(receipt.result) });
+
 /** Pending readers retain their capacity until collected, including completed readers. */
 export class BackgroundTasks {
 	jobs = new Map();
@@ -47,7 +52,7 @@ export class BackgroundTasks {
 			return { results, pending };
 		} finally { this.foreground = false; }
 	}
-	status() { return [...this.jobs.values()].map(job => ({ id: job.id, role: job.manifest.role, status: job.result?.status ?? "running", usagePending: true, ...(job.persistenceError ? { persistenceError: job.persistenceError } : {}) })); }
+	status() { return [...this.jobs.values()].map(job => ({ id: job.id, role: job.manifest.role, status: job.result?.status ?? "running", usagePending: true, ...brief(job.result), ...(job.persistenceError ? { persistenceError: job.persistenceError } : {}) })); }
 	async wait(ids = [...this.jobs.keys()]) { await Promise.all(ids.map(id => this.jobs.get(id)?.done)); }
 	collect(ids = [...this.jobs.keys()]) {
 		const results = [];

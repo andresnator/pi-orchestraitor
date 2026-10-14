@@ -1,6 +1,6 @@
 import { parentBridge } from "./bridge.mjs";
 import { spawn } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -15,7 +15,8 @@ const RECORD_HEAD = 128;
 // oversized record, including every assistant message, fails closed.
 const SKIPPABLE_RECORD = /^\{"type":"(agent_end|turn_end|message_update|tool_execution_(?:start|update|end)|message_(?:start|end)(?=","message":\{"role":"(?:user|toolResult)"))"/;
 const MAX_DIAGNOSTIC = 8192;
-const MAX_RESPONSE = 128 * 1024;
+// Two readers' heads (48 KiB) fit Pi's own 50 KB tool-output cap (DEFAULT_MAX_BYTES).
+const MAX_RESPONSE = 24 * 1024;
 const PROGRESS_LABEL_LIMIT = 200;
 const PROGRESS_DETAIL_LIMIT = 1000;
 const STOP_GRACE_MS = 1000;
@@ -177,11 +178,12 @@ export async function runTask(manifest, prompt, options = {}) {
 			if (!["stop", "length", "toolUse"].includes(event.message.stopReason)) incompleteUsage("assistant response was not successful");
 		}
 	};
-	const fail = (error) => {
+	// Only the harness deadlines below time out; a child error that mentions a timeout is an ordinary failure.
+	const fail = (error, deadline = false) => {
 		if (!accepting || failure) return;
 		failure = error instanceof Error ? error : new Error(String(error));
 		rejectReady(failure); rejectSettled(failure);
-		if (/timeout/i.test(failure.message)) { timedOut = true; options.onTimeout?.(); }
+		if (deadline) { timedOut = true; options.onTimeout?.(); }
 	};
 	const send = (command) => {
 		if (!child?.stdin.writable || exited) return;
@@ -189,8 +191,8 @@ export async function runTask(manifest, prompt, options = {}) {
 	};
 	const cancel = () => fail(new Error("Task cancelled"));
 	signal?.addEventListener("abort", cancel, { once: true });
-	const startTimer = setTimeout(() => fail(new Error("Guard/RPC startup timeout")), startTimeout);
-	const taskTimer = setTimeout(() => fail(new Error("Task timeout")), taskTimeout);
+	const startTimer = setTimeout(() => fail(new Error("Guard/RPC startup timeout"), true), startTimeout);
+	const taskTimer = setTimeout(() => fail(new Error("Task timeout"), true), taskTimeout);
 	try {
 		directory = await mkdtemp(join(tmpdir(), "pi-subagent-"));
 		const raw = JSON.stringify(manifest);
@@ -280,7 +282,7 @@ export async function runTask(manifest, prompt, options = {}) {
 		if (!finalMessage || !["stop", "length"].includes(finalMessage.stopReason)) throw new Error(`Child response failed: ${finalMessage?.errorMessage ?? finalMessage?.stopReason ?? "missing final response"}`);
 		const text = finalMessage.content?.filter((block) => block.type === "text").map((block) => block.text).join("\n").trim();
 		if (!text) throw new Error("Child returned an empty final response");
-		result.finalResponse = text.length > MAX_RESPONSE ? `${text.slice(0, MAX_RESPONSE)}\n[Response truncated]` : text;
+		Object.assign(result, await capResponse(text, diagnose));
 		result.status = "completed";
 	} catch (error) {
 		result.status = timedOut ? "timed_out" : signal?.aborted ? "cancelled" : "failed";
@@ -333,6 +335,24 @@ export async function runTask(manifest, prompt, options = {}) {
 		diagnostic: result.diagnostic.slice(0, PROGRESS_DETAIL_LIMIT),
 		finalResponse: result.finalResponse.slice(0, PROGRESS_DETAIL_LIMIT) });
 	return result;
+}
+
+/** Pi's pattern for truncated tool output (`utils/output-files.js`, not exported): keep whole
+ * leading lines within the cap and save the full text to a new owner-only file in the OS temp directory. */
+async function capResponse(text, diagnose) {
+	if (Buffer.byteLength(text) <= MAX_RESPONSE) return { finalResponse: text };
+	const { read } = new TextEncoder().encodeInto(text, new Uint8Array(MAX_RESPONSE));
+	const newline = text.lastIndexOf("\n", read);
+	const head = text.slice(0, newline > 0 ? newline : read);
+	const marker = `\n\n[Response truncated at ${MAX_RESPONSE / 1024}KB.`;
+	const path = join(tmpdir(), `pi-subagent-response-${randomBytes(8).toString("hex")}.md`);
+	try { await writeFile(path, text, { mode: 0o600, flag: "wx" }); }
+	catch (error) {
+		diagnose(`Full response could not be saved: ${String(error)}\n`);
+		return { finalResponse: `${head}${marker} The full response could not be saved.]` };
+	}
+	const next = newline > 0 ? head.split("\n").length + 1 : 1;
+	return { finalResponse: `${head}${marker} Full response: ${path}; continue with read offset=${next}.]`, fullResponsePath: path };
 }
 
 async function waitForExit(exited, timeout) {

@@ -84,6 +84,17 @@ test("shouldFollowAcceptedControllerBatchWhenPreparationOrderReverses", async (t
 		{ live: ["accepted-child"], recent: [{ phase: "failed", diagnostic: "A subagent batch is already active" }] });
 });
 
+test("shouldRecordUnavailableOutcomeWhenFinishedResultContentIsNotAnArray", async (t) => {
+	// Given
+	const { createAgentsProjection } = await loadUiModule(t, "extensions/ui/agents.ts");
+	const view = createAgentsProjection();
+	view.start("call/1", [{ role: "explore", instruction: "inspect" }]);
+	// When
+	view.finish("call/1", { content: "Provider failed" }, true);
+	// Then
+	assert.deepEqual(view.snapshot().recent.map(({ phase, diagnostic }) => ({ phase, diagnostic })), [{ phase: "failed", diagnostic: "Outcome unavailable" }]);
+});
+
 test("shouldReplayNativeLaunchFailureWithoutInventingChildEvidenceWhenReceiptIsAnError", async (t) => {
 	// Given
 	const { createAgentsProjection } = await loadUiModule(t, "extensions/ui/agents.ts");

@@ -16,7 +16,8 @@ const finish = (message) => output({ type: "message_end", message });
 // Exceeds the controller's 1 MiB RPC record limit once serialized.
 const pad = "x".repeat(1024 * 1024 + 1);
 if (mode === "premature") process.exit(0);
-if (mode !== "no-guard" && mode !== "startup-hang") process.send(mode === "bad-guard" ? { ...ready, digest: "wrong" } : ready);
+if (mode === "startup-error") process.send({ type: "startup_error", message: "Provider login timeout" }, () => process.exit(1));
+else if (mode !== "no-guard" && mode !== "startup-hang") process.send(mode === "bad-guard" ? { ...ready, digest: "wrong" } : ready);
 if (mode === "ignore-term") process.on("SIGTERM", () => {});
 const input = createInterface({ input: process.stdin });
 input.on("line", async (line) => {

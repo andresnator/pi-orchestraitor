@@ -19,6 +19,14 @@ describe("exports", () => {
 		assert.equal(selectTranscript(turns), "Third");
 	});
 
+	it("shouldKeepTheLatestAnswerNoteWhenItWasTruncated", () => {
+		// Given
+		const truncated = [...turns, { question: "Four", answer: "Partial", note: "Response truncated" }];
+		// When / Then
+		assert.equal(selectTranscript(truncated), "Partial\n\n> Response truncated");
+		assert.ok(selectTranscript(truncated, "4-4").endsWith("## Answer\nPartial\n\n> Response truncated"));
+	});
+
 	it("shouldExportAnInclusiveRangeOrQuestionSuffixWhenRequested", () => {
 		// Given
 		const selected = "## Question 2\nTwo\n\n## Answer\nSecond\n\n---\n\n## Question 3\nThree\n\n## Answer\nThird";

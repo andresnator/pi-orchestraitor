@@ -6,6 +6,8 @@ export const ROLES = ["explore", "review", "implement"];
 export const FIELDS = ["model", "reasoning", "mode"];
 export const LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
 const hash = text => createHash("sha256").update(text).digest("hex");
+// Saves finish in milliseconds; Pi's own auth lock treats 30 s as abandoned.
+const STALE_LOCK_MS = 30_000;
 export function paths(agentDir, cwd) {
 	return { profiles: join(agentDir, "orchestraitor", "profiles.json"), personal: join(agentDir, "orchestraitor", "config.json"), project: join(cwd, ".pi", "orchestraitor.json") };
 }
@@ -21,14 +23,23 @@ export async function snapshot(path) {
 	if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Configuration must be a JSON object");
 	return { path, revision: hash(raw ?? ""), data };
 }
+/** Exclusive lock; one left by a writer that died mid-save is removed once it is stale. */
+async function acquire(lock, stale = true) {
+	try { return await open(lock, "wx", 0o600); }
+	catch (error) {
+		if (error.code !== "EEXIST") throw error;
+		const age = await lstat(lock).then(stat => Date.now() - stat.mtimeMs, error => { if (error.code === "ENOENT") return Infinity; throw error; });
+		if (!stale || age < STALE_LOCK_MS) throw new Error("Configuration is being changed; reopen the panel");
+		await rm(lock, { force: true });
+		return acquire(lock, false);
+	}
+}
 /** Cooperative lock plus revision check; never overwrite a changed snapshot. */
 export async function save(snapshotBefore, data) {
 	const { path, revision } = snapshotBefore;
 	await mkdir(dirname(path), { recursive: true });
 	const lock = `${path}.lock`, temporary = `${path}.${randomUUID()}.tmp`;
-	let handle;
-	try { handle = await open(lock, "wx", 0o600); }
-	catch (error) { if (error.code === "EEXIST") throw new Error("Configuration is being changed; reopen the panel"); throw error; }
+	const handle = await acquire(lock);
 	try {
 		if ((await snapshot(path)).revision !== revision) throw new Error("Configuration changed concurrently; reopen the panel");
 		const file = await open(temporary, "wx", 0o600);
@@ -70,7 +81,8 @@ export async function readConfiguration(files, { projectTrusted = false } = {}) 
 	// nor make personal configuration unusable with malformed project JSON.
 	const [personal, project] = await Promise.all([snapshot(files.personal), projectTrusted ? snapshot(files.project) :
 		Promise.resolve({ path: files.project, revision: null, data: {}, ignored: true })]);
-	validateAssignments(personal.data.assignments ?? {}); validateAssignments(project.data.assignments ?? {});
+	// A null field means no assignments, like a missing one.
+	for (const { data } of [personal, project]) data.assignments = validateAssignments(data.assignments ?? {});
 	return { personal, project };
 }
 export function validateCatalog(assignments, catalog, supported, parent, personal = {}, project = {}) {

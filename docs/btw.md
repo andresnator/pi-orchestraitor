@@ -6,7 +6,7 @@
 
 ## Use
 
-1. Reload Pi after updating the package.
+1. Restart Pi after updating the package.
 2. Open `/btw` and ask questions. Follow-ups retain the side conversation only while the panel is open.
 3. Press **Ctrl+Q** to close and discard, or submit **`/bring` inside BTW** to explicitly import a selection and close.
 
@@ -64,7 +64,7 @@ Nothing is imported automatically. Submit one of these commands **inside the BTW
 
 | Command | Imported content |
 | --- | --- |
-| `/bring` or `/bring latest` | Latest answer containing text |
+| `/bring` or `/bring latest` | Latest answer containing text, with its note (such as truncation) |
 | `/bring 3+` | Questions 3 onward, with their answers |
 | `/bring 2-4` | Questions and answers 2 through 4 |
 | `/bring all` | Entire currently open side conversation |

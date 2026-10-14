@@ -81,7 +81,8 @@ export function createSkillRegistry(sdk) {
 		});
 	}
 	function status() {
-		return { pending: state?.pending ?? true, registered: catalog?.length ?? 0,
+		// Only the startup snapshot is pending; snapshots from the captured native catalog are not.
+		return { pending: !state || state.pending === true, registered: catalog?.length ?? 0,
 			available: state?.entries.filter(({ status }) => status === "available").length ?? 0,
 			manualOnly: state?.entries.filter(({ status }) => status === "manual-only").length ?? 0,
 			unavailable: state?.entries.filter(({ status }) => status === "unavailable").length ?? 0,

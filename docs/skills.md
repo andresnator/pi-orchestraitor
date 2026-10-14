@@ -4,7 +4,7 @@ The package ships 57 unique native skills: 54 automatically selectable and three
 
 ## Names and upgrades
 
-Directory basenames and frontmatter names match. Use the new identifiers in `/skill:<name>`, `skill_registry`, child selections and plan `Skills:` fields. This is a breaking rename without old-name aliases. Run native `/reload` after upgrading; refresh alone cannot authorize the new names. Update any explicit skill paths or package resource filters in your own configuration. Existing plans and historical reports are not rewritten automatically. Prompt commands (`/plan`, `/absorb`, `/review`, `/orchestraitor`) are unchanged. The later domain-default change below is separate from the namespace rename and never relocates existing artifacts.
+Directory basenames and frontmatter names match. Use the new identifiers in `/skill:<name>`, `skill_registry`, child selections and plan `Skills:` fields. This is a breaking rename without old-name aliases. Restart Pi after upgrading (`/reload` keeps the cached `.mjs` modules); refresh alone cannot authorize the new names. Update any explicit skill paths or package resource filters in your own configuration. Existing plans and historical reports are not rewritten automatically. Prompt commands (`/plan`, `/absorb`, `/review`, `/orchestraitor`) are unchanged. The later domain-default change below is separate from the namespace rename and never relocates existing artifacts.
 
 ## Adapted workflows
 

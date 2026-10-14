@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, realpath, readFile, rm } from "node:fs/promises";
+import { access, mkdir, readdir, realpath, readFile, rm, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
@@ -61,6 +61,47 @@ for (const [mode, responses, expected, status] of [
 		if (!expected) assert.equal(Object.hasOwn(result, "usage"), false);
 	});
 }
+
+/** Response files go to the OS temp directory, as Pi's own output files do; isolate it per test. */
+async function isolatedTmpdir(t, cwd) {
+	const directory = join(cwd, "tmp");
+	await mkdir(directory);
+	const previous = process.env.TMPDIR;
+	process.env.TMPDIR = directory;
+	t.after(() => { if (previous === undefined) delete process.env.TMPDIR; else process.env.TMPDIR = previous; });
+	return directory;
+}
+const responseFiles = async (directory) => (await readdir(directory)).filter((name) => name.startsWith("pi-subagent-response-"));
+
+test("shouldReturnWholeLeadingLinesAndSaveFullResponseWhenResponseExceedsCap", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const directory = await isolatedTmpdir(t, cwd);
+	const full = Array.from({ length: 4000 }, (_, index) => `line ${index + 1} 你好 🧪`).join("\n");
+	// When
+	const [result] = await new BatchController(options).run([{ ...task(cwd, "long", "usage"), responses: [{ usage: usage(1), content: [{ type: "text", text: full }] }] }], () => "work");
+	// Then
+	const marker = /\n\n\[Response truncated at 24KB\. Full response: (\S+); continue with read offset=(\d+)\.\]$/.exec(result.finalResponse);
+	assert.ok(marker, result.finalResponse.slice(-300));
+	const head = result.finalResponse.slice(0, marker.index);
+	assert.ok(Buffer.byteLength(head) <= 24 * 1024 && full.startsWith(`${head}\n`), "the head keeps whole leading lines within the cap");
+	assert.deepEqual({ status: result.status, path: result.fullResponsePath, directory: dirname(marker[1]), offset: Number(marker[2]), files: await responseFiles(directory) },
+		{ status: "completed", path: marker[1], directory, offset: head.split("\n").length + 1, files: [marker[1].slice(directory.length + 1)] });
+	assert.equal(await readFile(marker[1], "utf8"), full);
+	assert.equal((await stat(marker[1])).mode & 0o777, 0o600);
+});
+
+test("shouldReturnResponseUnchangedWithoutFileWhenResponseFitsCap", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const directory = await isolatedTmpdir(t, cwd);
+	const full = "🧪".repeat(6 * 1024);
+	// When
+	const [result] = await new BatchController(options).run([{ ...task(cwd, "fits", "usage"), responses: [{ usage: usage(1), content: [{ type: "text", text: full }] }] }], () => "work");
+	// Then
+	assert.deepEqual({ status: result.status, response: result.finalResponse, path: Object.hasOwn(result, "fullResponsePath"), files: await responseFiles(directory) },
+		{ status: "completed", response: full, path: false, files: [] });
+});
 
 for (const trigger of ["cancellation", "timeout"]) {
 	test(`shouldRetainFinalizedUsageDuringTeardownWhen${trigger}StopsChild`, async (t) => {
@@ -367,6 +408,17 @@ test("shouldCancelOtherReaderWhenStartupDeadlineExpires", async (t) => {
 	assert.deepEqual(results.map(({ status, terminated }) => ({ status, terminated })), [{ status: "timed_out", terminated: true }, { status: "cancelled", terminated: true }]);
 });
 
+
+test("shouldFailOnlyTheChildWhenItsOwnErrorMentionsTimeout", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const controller = new BatchController(options);
+	// When
+	const results = await controller.run([task(cwd, "broken", "startup-error"), task(cwd, "running")], () => "work");
+	// Then
+	assert.deepEqual(results.map(({ status, diagnostic }) => ({ status, timeout: /Provider login timeout/.test(diagnostic ?? "") })),
+		[{ status: "failed", timeout: true }, { status: "completed", timeout: false }]);
+});
 
 test("shouldRetainObservedUsageWhenTemporaryCleanupFails", async (t) => {
 	// Given

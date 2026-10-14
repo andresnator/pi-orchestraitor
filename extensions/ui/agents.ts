@@ -101,9 +101,11 @@ export function createAgentsProjection() {
 			launchBlocked ||= progress.launchBlocked === true || call.rows.some((row) => row.phase === "termination_failed");
 			return true;
 		},
-		finish(callId: string, result: any, isError = false) {
+		/** `blocked` is the controller's lock as the call ends; error text can quote anything. */
+		finish(callId: string, result: any, isError = false, blocked = false) {
 			const call = calls.get(callId);
 			if (!call) return;
+			launchBlocked ||= blocked;
 			const results = result?.details?.results;
 			if (Array.isArray(results) && results.length <= 2) {
 				retain(results.map((row, index) => {
@@ -111,9 +113,9 @@ export function createAgentsProjection() {
 					return boundedRow({ ...row, effectiveModel: observation?.effectiveModel ?? row.effectiveModel }, callId, observation?.label);
 				}));
 			} else {
-				const diagnostic = result?.content?.filter((block: any) => block.type === "text").map((block: any) => block.text).join("\n") ?? "Outcome unavailable";
+				const diagnostic = Array.isArray(result?.content) ? result.content.filter((block: any) => block?.type === "text")
+					.map((block: any) => block.text).join("\n") : "Outcome unavailable";
 				retain(call.rows.map((row) => boundedRow({ ...row, phase: isError ? "failed" : "unavailable", diagnostic }, callId)));
-				launchBlocked ||= /launches blocked.*termination/i.test(diagnostic);
 			}
 			if (call.parent) nestedHistoryUnavailable = true;
 			if (Array.isArray(result?.details?.pending) && result.details.pending.length) {
