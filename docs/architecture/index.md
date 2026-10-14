@@ -62,7 +62,7 @@ flowchart TB
 | E | [package.json](../../package.json): extension, skill and prompt resource declarations. |
 | F | [prompts/plan.md:5–8](../../prompts/plan.md), [prompts/orchestraitor.md:5–6](../../prompts/orchestraitor.md), [prompts/review.md:5–8](../../prompts/review.md), [prompts/absorb.md:5–7](../../prompts/absorb.md). |
 | G | [README.md](../../README.md), [skills/jag-routing/SKILL.md:20–28](../../skills/jag-routing/SKILL.md): catalog selection, then body loading. |
-| H | [extensions/instructions.ts:4–26](../../extensions/instructions.ts): adds sections without replacing Pi/project context; only Pi's docs reading rule is narrowed, in place. |
+| H | [extensions/instructions.ts](../../extensions/instructions.ts): adds only owned sections without replacing Pi/project context; [instructions/core.md](../../instructions/core.md) narrows Pi Markdown reads without copying the native docs section. |
 | I | [extensions/compact-tools.ts](../../extensions/compact-tools.ts): presentation, not a scheduler; yields read/bash to existing extension owners. The installer separately registers [pi-pretty](../pi-pretty.md); [extensions/pretty-theme.ts](../../extensions/pretty-theme.ts) only maps Pi's built-in themes to its [highlight theme](../pi-pretty.md#highlight-theme). |
 | J | [extensions/mcp.ts:8–28](../../extensions/mcp.ts). |
 | K | [extensions/subagents.ts](../../extensions/subagents.ts), [instructions/orchestraitor.md](../../instructions/orchestraitor.md). |

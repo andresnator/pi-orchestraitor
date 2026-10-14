@@ -11,6 +11,8 @@
 
 For local code and installed packages, Pi included, search installed docs, types and source; they match the running version. Use Context7 only for libraries not installed here: resolve the exact library, query version-compatible docs, and disclose when unavailable. Locate, then read relevant ranges and filter before printing; never concatenate whole files. Read truncated output from its full-output file with offset/limit instead of rerunning.
 
+For Pi Markdown documentation, this overrides whole-file reading guidance: list headings first, read the relevant sections completely, and follow related documentation links.
+
 Use Engram for relevant prior decisions after resolving this project's identity; never silently search other projects or use a fixed package-wide identity, and verify potentially stale memories. Save only useful, verified findings within authorized scope, few and sent with other tool calls; exclude secrets, credentials, personal data, transcripts and sensitive source. Never infer permission for sync, export, deletion or cross-project access. Missing memory must not block coding; report failed saves honestly.
 
 ## Limits
