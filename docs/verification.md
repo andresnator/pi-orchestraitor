@@ -10,6 +10,16 @@ The current deterministic baseline is Pi 1.2.0, Node 22.19+, and pnpm 12.9.1. En
 | `pnpm run install:pi --dry-run` | Complete lexical discovery inventory, including aliases hidden by native deduplication, and proposed standalone-skill moves, without migration or registration. |
 | `pnpm pack --dry-run --ignore-scripts` | Distributed resource inventory and exclusion of tests, local reports, and personal data. |
 
+## Pretty theme pin — 2026-10-14
+
+Pretty resolves its Shiki theme from `PRETTY_THEME`, then `pi-pretty.json`, then `$HOME/.pi/agent/settings.json`. Pi's built-in `dark` and `light` themes are not Shiki themes, so each session printed `theme "dark" from ~/.pi/agent/settings.json is not a bundled Shiki theme; falling back to "github-dark"` when Pretty first highlighted code. `install:pi` now pins `github-dark` or `github-light` in `pi-pretty.json` when the file has no `theme` and Pi selects a built-in theme. Rollback removes the pin only while it still has the installer's value. Both names were checked against the `bundledThemes` of Shiki 4.0.2, as installed with Pretty 0.6.30.
+
+Fresh checks, Node 24.20.0 / pnpm 12.9.1 / locked Pi 1.2.0:
+
+- `node --test tests/pretty-config.test.mjs` against the preceding `pretty-config.mjs`: RED, 41/45 passed; the four failures were the expected pins, while the two unchanged-theme cases already passed.
+- The same file with the change: GREEN, 45/45; together with `tests/install-pi.test.mjs`, which now isolates `HOME` from personal Pi settings, 47/47.
+- `node --test tests/*.test.mjs`: GREEN, 767/767 after rebasing onto #12. An earlier full run failed only `shouldKeepObservedPoisonedControllerLockWhenNativeUiReloads`, which does not involve Pretty configuration; `tests/ui-extension.test.mjs` passed 27/27 in three isolated reruns.
+
 ## Productivity frontmatter follow-up — 2026-10-13
 
 At the user's request, `jag-grill` and `jag-wait-what` now keep only `name`, `description` and `license` in frontmatter, plus `disable-model-invocation: true` for `jag-wait-what`. Optional compatibility and metadata blocks are removed. Both instruction bodies are byte-identical to the preceding commit; authorship, source lineage, notices and refreshed resource fingerprints remain in the existing centralized records. This overrides the local skill-authoring template's metadata recommendations for these two skills only.
