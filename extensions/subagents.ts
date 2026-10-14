@@ -197,7 +197,8 @@ export default function subagents(pi: ExtensionAPI) {
 				models.set(manifest.id, model);
 			}
 			const sessionId = ctx.sessionManager?.getSessionId();
-			controller.options = { sdkRoot: getPackageDir(), credentialDir: getAgentDir(), registry: ctx.modelRegistry, modelFor: (manifest) => models.get(manifest.id),
+			// Per call: parallel subagent_run calls share the controller, so only its lock is global.
+			const launch = { sdkRoot: getPackageDir(), credentialDir: getAgentDir(), registry: ctx.modelRegistry, modelFor: (manifest) => models.get(manifest.id),
 				providerSessionFor: (manifest) => providerSession(sessionId, manifest.id) };
 			const combinedSignal = signal && ctx.signal ? AbortSignal.any([signal, ctx.signal]) : signal ?? ctx.signal;
 			let sequence = 0;
@@ -247,12 +248,12 @@ export default function subagents(pi: ExtensionAPI) {
 			if (manifests.some(manifest => manifest.mode === "background") || background.jobs.size) {
 				if (manifests.some(manifest => manifest.mode === "background") && !active.includes("subagent_collect")) throw new Error("Background readers require subagent_collect to be enabled");
 				if (controller.active || controller.blocked) throw new Error("Subagent launches blocked");
-				const batch = await background.run(manifests, manifest => prompts.get(manifest.id), combinedSignal, publish, controller.options, persist);
+				const batch = await background.run(manifests, manifest => prompts.get(manifest.id), combinedSignal, publish, launch, persist);
 				detached = true;
 				publish();
 				return pack(batch.results, batch.pending);
 			}
-			const results = await controller.run(manifests, (manifest) => prompts.get(manifest.id), combinedSignal, publish);
+			const results = await controller.run(manifests, (manifest) => prompts.get(manifest.id), combinedSignal, publish, launch);
 			publish();
 			const usage = mergeUsage(results.map((result) => result.usage));
 			const handoffs = results.map(({ id, status, finalResponse, writes, diagnostic, terminated, usageComplete }) =>

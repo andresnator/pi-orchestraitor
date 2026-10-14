@@ -7,7 +7,7 @@ import { PassThrough } from "node:stream";
 import { stripVTControlCharacters } from "node:util";
 import { BatchController } from "../extensions/subagent/controller.mjs";
 import test from "node:test";
-import { createUISession, createWorkspace, fakeUIContext, loadExtensions, loadUiModule, packageRoot } from "./helpers/ui-harness.mjs";
+import { createPackageUISession, createUISession, createWorkspace, fakeUIContext, loadExtensions, loadUiModule, packageRoot } from "./helpers/ui-harness.mjs";
 
 const header = ({ widgets, ctx }) => widgets.get("orchestraitor:work")?.({ terminal: { rows: 24 } }, ctx.ui.theme).render(100).join("\n") ?? "";
 
@@ -318,3 +318,28 @@ test("shouldIgnoreTaskRefreshFromReplacedContextAndAfterShutdown", async (t) => 
 	await emit("turn_end", old.ctx);
 	assert.equal(current.widgets.has("orchestraitor:work"), false);
 });
+
+// Pi persists rejected tool arguments verbatim, and any tool result can carry arbitrary details.
+for (const [scenario, tasks, results] of [["String", "[{\"role\":\"explore\"}]"], ["Object", { role: "explore", instruction: "inspect" }], ["NullEntry", [null]],
+	["NonArrayResults", [{ role: "explore", instruction: "inspect" }], { id: "not-a-list" }]]) {
+	test(`shouldActivateUiAndAskAfterReloadWhenPersistedSubagentDataIs${scenario}`, async (t) => {
+		// Given
+		const { session, dialogs, errors } = await createPackageUISession(t, "tui");
+		const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
+		session.sessionManager.appendMessage({ role: "assistant", api: "openai-completions", provider: "fixture", model: "model", usage, stopReason: "toolUse",
+			content: [{ type: "toolCall", id: "malformed", name: "subagent_run", arguments: { tasks } }], timestamp: Date.now() });
+		session.sessionManager.appendMessage(results ? { role: "toolResult", toolName: "subagent_collect", toolCallId: "malformed", content: [], details: { results }, isError: false, timestamp: Date.now() }
+			: { role: "toolResult", toolName: "subagent_run", toolCallId: "malformed", content: [{ type: "text", text: "Validation failed for tool \"subagent_run\"" }], isError: true, timestamp: Date.now() });
+		// When
+		await session.extensionRunner.emit({ type: "session_shutdown", reason: "reload" });
+		await session.extensionRunner.emit({ type: "session_start", reason: "reload" });
+		const question = { id: "after-reload", prompt: "Pick a marker", selection: "single", options: [{ label: "Alpha", value: "alpha" }, { label: "Beta", value: "beta" }] };
+		const asked = session.getToolDefinition("orchestraitor_ask").execute("ask", { questions: [question] }, undefined, undefined, session.extensionRunner.createContext());
+		await Promise.resolve();
+		for (const key of ["\r", "\r"]) dialogs.at(-1)?.component.handleInput(key); // Choose Alpha, then submit from review.
+		const answer = await asked;
+		// Then
+		assert.deepEqual({ errors: errors.map(({ event, error }) => `${event}: ${error}`), answer: answer.details },
+			{ errors: [], answer: { version: 1, status: "answered", answers: [{ id: "after-reload", values: ["alpha"] }] } });
+	});
+}

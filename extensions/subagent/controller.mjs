@@ -9,6 +9,11 @@ import { StringDecoder } from "node:string_decoder";
 import { START_TIMEOUT_MS, TASK_TIMEOUT_MS, validateBatch, concreteFile } from "./policy.mjs";
 
 const MAX_RECORD = 1024 * 1024;
+const RECORD_HEAD = 128;
+// Pi serializes `type`, then `message.role`, first. Oversized records the controller
+// never reads, such as transcripts and tool payloads, may be skipped; any other
+// oversized record, including every assistant message, fails closed.
+const SKIPPABLE_RECORD = /^\{"type":"(agent_end|turn_end|message_update|tool_execution_(?:start|update|end)|message_(?:start|end)(?=","message":\{"role":"(?:user|toolResult)"))"/;
 const MAX_DIAGNOSTIC = 8192;
 const MAX_RESPONSE = 128 * 1024;
 const PROGRESS_LABEL_LIMIT = 200;
@@ -49,13 +54,14 @@ function observeProgress(observer, manifest, phase, evidence = {}) {
 	} catch { /* Presentation errors cannot change child execution. */ }
 }
 
-/** One manager per parent session; poison survives lifecycle cancellation. */
+/** One manager per parent session; poison survives lifecycle cancellation.
+ * Launch options belong to each run; constructor options are only defaults. */
 export class BatchController {
 	active;
 	blocked = false;
 	orphans = new Set();
 	constructor(options = {}) { this.options = options; }
-	async run(manifests, promptFor, signal, observer) {
+	async run(manifests, promptFor, signal, observer, options) {
 		validateBatch(manifests);
 		if (this.blocked) throw new Error("Subagent launches blocked: child termination was not confirmed");
 		if (this.active) throw new Error("A subagent batch is already active");
@@ -69,7 +75,7 @@ export class BatchController {
 		batch.done = Promise.all(manifests.map(async (manifest) => {
 			let child, exited = false;
 			try {
-				return await runTask(manifest, promptFor(manifest), { ...this.options, signal: abort.signal,
+				return await runTask(manifest, promptFor(manifest), { ...this.options, ...options, signal: abort.signal,
 					onSpawn: (process) => { child = process; }, onExit: () => { exited = true; },
 					onUnterminated: (process) => this.orphans.add(process), onTimeout: cancel, observer });
 			} catch (error) {
@@ -99,20 +105,26 @@ export class BatchController {
 	}
 }
 
-/** Bounded JSONL decoder; oversized/malformed records fail closed rather than losing events. */
+const oversized = () => { throw new Error("RPC record exceeded limit; truncated"); };
+/** Bounded JSONL decoder. Malformed records fail closed. An oversized record is
+ * passed by its leading characters to `skip`, which throws to fail closed or
+ * returns to discard the record through its newline. */
 export class RpcDecoder {
 	buffer = "";
 	decoder = new StringDecoder("utf8");
-	push(chunk, receive) {
+	skipping = false;
+	push(chunk, receive, skip = oversized) {
 		this.buffer += typeof chunk === "string" ? chunk : this.decoder.write(chunk);
 		let newline;
 		while ((newline = this.buffer.indexOf("\n")) !== -1) {
 			const line = this.buffer.slice(0, newline);
 			this.buffer = this.buffer.slice(newline + 1);
-			if (line.length > MAX_RECORD) throw new Error("RPC record exceeded limit; truncated");
-			if (line.trim()) receive(JSON.parse(line));
+			if (this.skipping) this.skipping = false;
+			else if (line.length > MAX_RECORD) skip(line.slice(0, RECORD_HEAD));
+			else if (line.trim()) receive(JSON.parse(line));
 		}
-		if (this.buffer.length > MAX_RECORD) throw new Error("RPC record exceeded limit; truncated");
+		if (!this.skipping && this.buffer.length > MAX_RECORD) { skip(this.buffer.slice(0, RECORD_HEAD)); this.skipping = true; }
+		if (this.skipping) this.buffer = "";
 	}
 }
 
@@ -247,6 +259,10 @@ export async function runTask(manifest, prompt, options = {}) {
 				if (!prompted || settled) return;
 				if (event.type === "message_end" && event.message?.role === "assistant") finalMessage = event.message;
 				if (event.type === "agent_settled") { settled = true; resolveSettled(); }
+			}, (head) => {
+				const type = SKIPPABLE_RECORD.exec(head)?.[1];
+				if (!type) oversized();
+				diagnose(`Skipped oversized ${type} RPC record.\n`);
 			}); } catch (error) { incompleteUsage("malformed or oversized RPC record"); fail(error); }
 		});
 		if (signal?.aborted) cancel();

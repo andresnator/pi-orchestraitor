@@ -246,3 +246,24 @@ test("replaying a partial mixed receipt does not assign another task's instructi
 	]);
 	assert.equal(view.snapshot().recent[0].label, "Assignment unavailable");
 });
+
+// Pi persists rejected arguments verbatim and reports raw arguments before validating them.
+for (const [scenario, tasks, role, liveLabel = "Assignment unavailable"] of [["String", "explore", "unavailable"], ["Object", { role: "explore", instruction: "inspect" }, "unavailable", "inspect"],
+	["NullEntry", [null], "unavailable"], ["NonStringInstruction", [{ role: "explore", instruction: { text: "inspect" } }], "explore"]]) {
+	test(`shouldReplayRejectedLaunchAsFailedRowWhenPersistedTasksAre${scenario}`, async (t) => {
+		// Given
+		const { createAgentsProjection } = await loadUiModule(t, "extensions/ui/agents.ts");
+		const view = createAgentsProjection();
+		const branch = [
+			{ type: "message", message: { role: "assistant", content: [{ type: "toolCall", id: "rejected", name: "subagent_run", arguments: { tasks } }] } },
+			{ type: "message", message: { role: "toolResult", toolName: "subagent_run", toolCallId: "rejected", isError: true, content: [{ type: "text", text: "Validation failed" }] } },
+		];
+		// When
+		view.replay(branch, "session", false);
+		view.start("live", Array.isArray(tasks) ? tasks : [tasks]);
+		// Then
+		const { recent, live } = view.snapshot();
+		assert.deepEqual({ rows: recent.map(({ phase, role, label, diagnostic }) => ({ phase, role, label, diagnostic })), live: live.map(({ phase, label }) => ({ phase, label })) },
+			{ rows: [{ phase: "failed", role, label: "Assignment unavailable", diagnostic: "Validation failed" }], live: [{ phase: "preparing", label: liveLabel }] });
+	});
+}

@@ -13,6 +13,8 @@ const zeroUsage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalToken
 const assistant = (usage = zeroUsage, stopReason = "stop") => ({ role: "assistant", timestamp: 1, stopReason, usage, content: [{ type: "text", text: "same response" }] });
 const start = () => output({ type: "message_start", message: { role: "assistant", stopReason: "pending", content: [] } });
 const finish = (message) => output({ type: "message_end", message });
+// Exceeds the controller's 1 MiB RPC record limit once serialized.
+const pad = "x".repeat(1024 * 1024 + 1);
 if (mode === "premature") process.exit(0);
 if (mode !== "no-guard" && mode !== "startup-hang") process.send(mode === "bad-guard" ? { ...ready, digest: "wrong" } : ready);
 if (mode === "ignore-term") process.on("SIGTERM", () => {});
@@ -29,13 +31,19 @@ input.on("line", async (line) => {
 		if (mode.startsWith("usage")) {
 			for (const response of manifest.responses) {
 				if (!response.unpaired) start();
-				const message = { ...assistant(), ...response };
+				const message = { ...assistant(), ...response, ...(response.padded ? { content: [{ type: "text", text: pad }] } : {}) };
 				if (response.missingUsage) delete message.usage;
 				output({ type: "message_update", message: { ...message, usage: manifest.streamingUsage } });
 				finish(message);
 				if (manifest.duplicates) finish(message);
-				output({ type: "turn_end", message });
-				output({ type: "agent_end", messages: [message] });
+				if (response.toolResult) {
+					const result = { role: "toolResult", toolCallId: "read", toolName: "read", content: [{ type: "text", text: pad }], isError: false, timestamp: 1 };
+					output({ type: "tool_execution_end", toolCallId: "read", toolName: "read", result: { content: result.content }, isError: false });
+					output({ type: "message_start", message: result });
+					output({ type: "message_end", message: result });
+				}
+				output({ type: "turn_end", message, toolResults: manifest.padEnd ? [pad] : [] });
+				output({ type: "agent_end", messages: [message], ...(manifest.padEnd ? { padding: pad } : {}) });
 			}
 			if (mode === "usage-hang" || mode === "usage-unfinished") start();
 			if (mode === "usage-hang") { process.send({ type: "usage_ready" }); return; }

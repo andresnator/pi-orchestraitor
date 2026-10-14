@@ -170,9 +170,12 @@ export default function statusUI(pi: ExtensionAPI) {
 		visible = true;
 		tasks = emptyTasks(); activity = new Map();
 		taskManager = undefined; taskLeaf = undefined; bindingCheck = undefined;
-		agents.replay(ctx.sessionManager.getBranch(), ctx.sessionManager.getSessionId(), subagentLaunchesBlocked());
-		owner.activate(ctx);
-		await refreshTasks(ctx);
+		// Agent history is display-only: a replay failure must not leave tasks and questions without a UI owner.
+		try { agents.replay(ctx.sessionManager.getBranch(), ctx.sessionManager.getSessionId(), subagentLaunchesBlocked()); }
+		finally {
+			owner.activate(ctx);
+			await refreshTasks(ctx);
+		}
 	};
 	pi.registerTool(compactTool(createTaskTool(() => owner.generation)));
 	pi.registerTool(compactTool(createQuestionTool(owner)));

@@ -4,8 +4,8 @@ export const MAX_BRIDGE_CONTEXT = 8 * 1024 * 1024;
 const MAX_STREAM_BYTES = 32 * 1024 * 1024;
 const CANCEL_GRACE_MS = 1000;
 const bytes = value => Buffer.byteLength(JSON.stringify(value));
-// Pi delta events still contain the whole partial message. Transport only the
-// changed span, retaining at most one bounded serialized snapshot on each side.
+// Consecutive wire events share their framing. Transport only the changed span,
+// retaining at most one bounded serialized event on each side.
 function encodeRecord(previous, current) {
 	let prefix = 0, suffix = 0;
 	while (prefix < previous.length && prefix < current.length && previous[prefix] === current[prefix]) prefix++;
@@ -19,6 +19,41 @@ function decodeRecord(previous, record) {
 	const current = previous.slice(0, record.prefix) + record.text + (record.suffix ? previous.slice(-record.suffix) : "");
 	if (Buffer.byteLength(current) > MAX_BRIDGE_RECORD) throw new Error("Provider bridge stream limit exceeded");
 	return current;
+}
+// Every Pi event carries the provider's whole shared partial message, often
+// already mutated past the event itself. Like Pi's proxy protocol, send each
+// block once with its streamed fields empty, then only deltas. Terminal events
+// stay whole because their message is authoritative.
+const STREAMED = { text: { text: "" }, thinking: { thinking: "" }, toolCall: { arguments: {} } };
+function wireEvent(event) {
+	if (!event?.partial || event.type === "done" || event.type === "error") return event;
+	const { partial, ...rest } = event;
+	if (event.type === "start") return { ...rest, partial: { ...partial, content: [] } };
+	if (!event.type.endsWith("_start")) return rest;
+	const { partialJson: _json, partialArgs: _args, ...block } = partial.content?.[event.contentIndex] ?? {};
+	return { ...rest, block: { ...block, ...STREAMED[block.type] } };
+}
+// Rebuild one shared partial in the child for Pi's agent loop and extensions.
+// Unknown or misplaced blocks are skipped; *_end events restore exact content.
+function partialBuilder(parseJson) {
+	let partial;
+	const json = new Map();
+	return event => {
+		if (event.type === "start") { partial = Array.isArray(event.partial?.content) ? event.partial : undefined; return event; }
+		if (!partial || event.type === "done" || event.type === "error") return event;
+		const { block, ...rest } = event, index = event.contentIndex, content = partial.content;
+		const [kind, phase] = event.type.split("_"), type = kind === "toolcall" ? "toolCall" : kind, target = content[index];
+		if (phase === "start") {
+			if (block?.type === type && Number.isSafeInteger(index) && index >= 0 && index <= content.length) { content[index] = block; json.delete(index); }
+		} else if (target?.type === type && phase === "delta" && typeof event.delta === "string") {
+			if (type !== "toolCall") target[type] = String(target[type] ?? "") + event.delta;
+			else { json.set(index, (json.get(index) ?? "") + event.delta); if (parseJson) target.arguments = parseJson(json.get(index)) ?? {}; }
+		} else if (target?.type === type && phase === "end") {
+			if (type !== "toolCall") { if (typeof event.content === "string") target[type] = event.content; }
+			else { if (event.toolCall?.type === "toolCall") content[index] = event.toolCall; json.delete(index); }
+		}
+		return { ...rest, partial };
+	};
 }
 export function publicModel(model) {
 	return Object.fromEntries(["id", "provider", "name", "api", "reasoning", "thinkingLevelMap", "input", "cost", "contextWindow", "maxTokens", "samplingParams", "samplingParamsByThinkingLevel"].filter(key => model[key] !== undefined).map(key => [key, model[key]]));
@@ -53,7 +88,7 @@ export function parentBridge(child, registry, model, signal, fail, session) {
 				for await (const event of registry.streamSimple(model, message.context, options)) {
 					const terminal = event.type === "done" || event.type === "error";
 					if (request.abort.signal.aborted && !terminal) continue;
-					const current = JSON.stringify(event);
+					const current = JSON.stringify(wireEvent(event));
 					if (Buffer.byteLength(current) > MAX_BRIDGE_RECORD) throw new Error("Provider bridge stream limit exceeded");
 					const packet = { type: "model_event", id: request.id, sequence: ++request.sequence, record: encodeRecord(previous, current) };
 					const size = bytes(packet); total += size;
@@ -85,10 +120,12 @@ export function parentBridge(child, registry, model, signal, fail, session) {
 	dispose.cancel = cancel;
 	return dispose;
 }
-export function childBridge(channel, createStream, model) {
+// parseJson is pi-ai's parseStreamingJson; without it, streamed tool arguments
+// stay empty until toolcall_end.
+export function childBridge(channel, createStream, model, parseJson) {
 	let sequence = 0;
 	return (_model, context, options = {}) => {
-		const stream = createStream(), id = String(++sequence);
+		const stream = createStream(), id = String(++sequence), rebuild = partialBuilder(parseJson);
 		let ended = false, total = 0, previous = "", cancelTimer, received = 0, pendingSnapshots = 0;
 		const send = message => { if (channel.connected) channel.send(message); };
 		const credits = new WeakMap(), iterate = stream[Symbol.asyncIterator].bind(stream);
@@ -126,7 +163,7 @@ export function childBridge(channel, createStream, model) {
 				if (size > MAX_BRIDGE_RECORD || total > MAX_STREAM_BYTES) throw new Error("Provider bridge stream limit exceeded");
 				if (message.sequence !== received + 1) throw new Error("Invalid provider bridge sequence");
 				previous = decodeRecord(previous, message.record);
-				const event = JSON.parse(previous);
+				const event = rebuild(JSON.parse(previous));
 				received++;
 				if (event.type !== "done" && event.type !== "error") {
 					if (pendingSnapshots) throw new Error("Provider bridge snapshot window exceeded");

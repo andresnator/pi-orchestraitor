@@ -120,6 +120,20 @@ for (const drainConfirmed of [true, false]) {
 	});
 }
 
+test("shouldLaunchWithPerCallOptionsAndRejectAnOverlappingCallWhenBatchIsActive", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const { spawn } = await import("node:child_process");
+	const controller = new BatchController(options), spawned = [];
+	const launch = (name) => ({ spawnProcess: (...args) => { spawned.push(name); return spawn(...args); } });
+	// When
+	const running = controller.run([{ ...task(cwd, "first"), delay: 100 }], () => "work", undefined, undefined, launch("first"));
+	await assert.rejects(controller.run([task(cwd, "second")], () => "work", undefined, undefined, launch("second")), /already active/);
+	const [result] = await running;
+	// Then
+	assert.deepEqual({ status: result.status, spawned }, { status: "completed", spawned: ["first"] });
+});
+
 test("shouldReturnOrderedReadersAndRejectOverlappingWriterWhenBatchIsActive", async (t) => {
 	// Given
 	const cwd = await realpath(await createWorkspace(t));
@@ -164,13 +178,40 @@ for (const mode of ["startup-hang", "hang", "ignore-term"]) {
 	});
 }
 
-test("shouldRejectOversizedAndMalformedRecordsWhenDecodingRpc", () => {
+test("shouldSkipOversizedRecordsInBoundedMemoryAndRejectMalformedRecordsWhenDecodingRpc", () => {
 	// Given
-	const decoder = new RpcDecoder();
-	// When / Then
-	assert.throws(() => decoder.push("x".repeat(1024 * 1024 + 1), () => {}), /limit/);
-	assert.throws(() => new RpcDecoder().push("{broken}\n", () => {}));
+	const decoder = new RpcDecoder(), received = [], skipped = [];
+	const receive = (event) => received.push(event.type), skip = (head) => skipped.push(head);
+	let buffered = 0;
+	// When
+	decoder.push('{"type":"agent_end","messages":"', receive, skip);
+	for (let count = 0; count < 48; count++) { decoder.push("x".repeat(64 * 1024), receive, skip); buffered = Math.max(buffered, decoder.buffer.length); }
+	decoder.push('"}\n{"type":"agent_settled"}\n', receive, skip);
+	decoder.push(`{"type":"turn_end","toolResults":"${"y".repeat(1024 * 1024)}"}\n{"type":"agent_settled"}\n`, receive, skip);
+	// Then
+	assert.deepEqual({ received, skipped: skipped.map((head) => head.slice(0, 19)), buffer: decoder.buffer },
+		{ received: ["agent_settled", "agent_settled"], skipped: ['{"type":"agent_end"', '{"type":"turn_end",'], buffer: "" });
+	assert.ok(buffered <= 1024 * 1024 && skipped.every((head) => head.length <= 128), `buffered ${buffered}`);
+	// Without a skip decision, oversized records still fail closed; malformed records always do.
+	assert.throws(() => new RpcDecoder().push("x".repeat(1024 * 1024 + 1), () => {}), /limit/);
+	assert.throws(() => new RpcDecoder().push("{broken}\n", () => {}, skip));
 });
+
+for (const [label, fields, status, expected] of [
+	["AgentEndFollowsFinalMessage", { padEnd: true, responses: [{ usage: usage(1) }] }, "completed", usage(1)],
+	["ToolResultArrivesMidRun", { responses: [{ usage: usage(1), stopReason: "toolUse", toolResult: true }, { usage: usage(2) }] }, "completed", usage(3)],
+	["AssistantMessageIsRequired", { responses: [{ usage: usage(1), padded: true }] }, "failed", undefined],
+]) {
+	test(`shouldOnlySkipUnusedOversizedRecordsWhen${label}`, async (t) => {
+		// Given
+		const cwd = await realpath(await createWorkspace(t));
+		// When
+		const [result] = await new BatchController(options).run([{ ...task(cwd, "oversized", "usage"), ...fields }], () => "work");
+		// Then
+		assert.deepEqual({ status: result.status, usage: result.usage, complete: result.usageComplete }, { status, usage: expected, complete: status === "completed" }, result.diagnostic);
+		assert.match(result.diagnostic, status === "completed" ? /Skipped oversized (agent_end|tool_execution_end) RPC record/ : /RPC record exceeded limit/);
+	});
+}
 
 test("shouldTimeOutRunningTaskAndRetainObservedWritesWhenStopping", async (t) => {
 	// Given

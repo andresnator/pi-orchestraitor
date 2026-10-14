@@ -63,7 +63,8 @@ export function collectedIds(entries) {
 	const delivered = new Set();
 	for (const entry of entries) {
 		if (entry.type !== "message" || entry.message?.role !== "toolResult") continue;
-		for (const result of entry.message.details?.results ?? []) if (typeof result?.id === "string") delivered.add(result.id);
+		const results = entry.message.details?.results;
+		if (Array.isArray(results)) for (const result of results) if (typeof result?.id === "string") delivered.add(result.id);
 	}
 	return delivered;
 }

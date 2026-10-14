@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
-import { mkdir, realpath, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
 import { childBridge, parentBridge, publicModel, MAX_BRIDGE_RECORD } from "../extensions/subagent/bridge.mjs";
 import { BatchController } from "../extensions/subagent/controller.mjs";
 import { createWorkspace, hostRoot, importHost } from "./helpers/pi-host.mjs";
 
-const { createAssistantMessageEventStream } = await importHost("node_modules/@earendil-works/pi-ai/dist/index.js");
+const { createAssistantMessageEventStream, parseStreamingJson } = await importHost("node_modules/@earendil-works/pi-ai/dist/index.js");
 const model = { provider: "bridge-regression", id: "fixture", api: "openai-completions", name: "Fixture", reasoning: true,
 	input: ["text"], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 128000, maxTokens: 32768 };
 const usage = n => ({ input: n / 3, output: n * 2 / 3, cacheRead: 0, cacheWrite: 0, totalTokens: n,
@@ -69,6 +69,102 @@ test("bridge delta transport preserves long Pi cumulative text and thinking snap
 	} finally { dispose(); }
 });
 
+// Varying chunk sizes defeat prefix and suffix reuse between consecutive deltas.
+const chunks = text => {
+	const parts = [];
+	for (let at = 0, size = 5; at < text.length; at += size, size = size * 7 % 37 + 1) parts.push(text.slice(at, at + size));
+	return parts;
+};
+const lines = (label, count) => Array.from({ length: count }, (_, index) => `${label} ${index}: ${"x".repeat(index % 23)}\n`).join("");
+const writeArguments = { path: "target.txt", content: lines("line", 2400) };
+// Like Pi providers, mutate one shared partial message and finish with a tool call.
+async function* writeStream(output) {
+	yield { type: "start", partial: output };
+	for (const [type, key, value] of [["thinking", "thinking", lines("think", 900)], ["text", "text", lines("say", 900)]]) {
+		const contentIndex = output.content.push({ type, [key]: "" }) - 1;
+		yield { type: `${type}_start`, contentIndex, partial: output };
+		for (const delta of chunks(value)) {
+			output.content[contentIndex][key] += delta;
+			yield { type: `${type}_delta`, contentIndex, delta, partial: output };
+		}
+		yield { type: `${type}_end`, contentIndex, content: value, partial: output };
+	}
+	const contentIndex = output.content.push({ type: "toolCall", id: "write", name: "write", arguments: {}, partialJson: "" }) - 1, block = output.content[contentIndex];
+	yield { type: "toolcall_start", contentIndex, partial: output };
+	for (const delta of chunks(JSON.stringify(writeArguments))) {
+		block.partialJson += delta; block.arguments = parseStreamingJson(block.partialJson);
+		yield { type: "toolcall_delta", contentIndex, delta, partial: output };
+	}
+	delete block.partialJson;
+	yield { type: "toolcall_end", contentIndex, toolCall: block, partial: output };
+	Object.assign(output, { stopReason: "toolUse", usage: usage(90) });
+	yield { type: "done", reason: "toolUse", message: output };
+}
+// Compare partial content as of each event. Provider scratch fields such as
+// partialJson are not part of Pi's event contract, and mid-stream partial usage
+// is never accounted: the terminal message stays authoritative.
+const fingerprint = ({ partial, ...event }) => JSON.stringify({ ...event,
+	content: partial?.content.map(({ partialJson: _scratch, ...block }) => block) });
+
+// Providers keep mutating the shared partial while earlier events wait for transport.
+for (const ahead of [false, true]) test(`bridge keeps wire size linear for varying text, thinking and tool-call deltas${ahead ? " produced ahead of transport" : ""}`, { timeout: 20000 }, async () => {
+	const { parent, child, wireBytes } = channels();
+	const output = assistant([], 0), sent = [], received = [];
+	const registry = { async *streamSimple() {
+		const queued = [];
+		for await (const event of writeStream(output)) { sent.push(fingerprint(event)); if (ahead) queued.push(event); else yield event; }
+		yield* queued;
+	} };
+	const dispose = parentBridge(parent, registry, model, undefined, assert.fail);
+	try {
+		const stream = childBridge(child, createAssistantMessageEventStream, model, parseStreamingJson)(model, { messages: [] });
+		for await (const event of stream) {
+			assert.notEqual(event.type, "error", event.error?.errorMessage);
+			received.push(fingerprint(event));
+		}
+		assert.equal(received.length, sent.length);
+		for (const [index, event] of received.entries()) assert.equal(event, sent[index], `event ${index} differs`);
+		assert.deepEqual(await stream.result(), output);
+		const size = Buffer.byteLength(JSON.stringify(output));
+		assert.ok(JSON.stringify(writeArguments).length > 50 * 1024);
+		// About 160 framing bytes per small delta; cumulative snapshots exceeded the 32 MiB stream budget.
+		assert.ok(wireBytes() < 10 * size, `transport used ${wireBytes()} bytes for a ${size}-byte message`);
+		assert.equal(child.listenerCount("message"), 0);
+	} finally { dispose(); }
+});
+
+test("native implementer writes a 50 KB file streamed through varying tool-call deltas", { timeout: 20000 }, async t => {
+	const cwd = await realpath(await createWorkspace(t));
+	await writeFile(join(cwd, "target.txt"), "fixture");
+	let calls = 0;
+	// Pull-paced like a network provider: each event is serialized before the next mutation.
+	const registry = { streamSimple: () => calls++ ? finalStream(assistant([{ type: "text", text: "done" }])) : writeStream(assistant([], 0)) };
+	const writer = { ...manifest(cwd), role: "implement", instruction: "write", files: ["target.txt"], tools: ["read", "search", "list", "edit", "write"] };
+	const [result] = await new BatchController({ sdkRoot: hostRoot, registry, modelFor: () => model, stopGrace: 100 }).run([writer], () => "write");
+	assert.equal(result.status, "completed", result.diagnostic);
+	assert.equal(result.finalResponse, "done");
+	assert.equal(await readFile(join(cwd, "target.txt"), "utf8"), writeArguments.content);
+	assert.deepEqual(result.usage, usage(120));
+	assert.equal(result.usageComplete, true);
+});
+
+test("native implementer completes when its final transcript exceeds the RPC record limit", { timeout: 20000 }, async t => {
+	const cwd = await realpath(await createWorkspace(t));
+	const files = ["a.txt", "b.txt"], content = "z".repeat(600 * 1024);
+	let calls = 0;
+	const registry = { streamSimple: () => {
+		const path = files[calls++];
+		return finalStream(path ? assistant([{ type: "toolCall", id: path, name: "write", arguments: { path, content } }], 30, "toolUse") : assistant([{ type: "text", text: "done" }]));
+	} };
+	const writer = { ...manifest(cwd), role: "implement", instruction: "write", files, tools: ["read", "search", "list", "edit", "write"] };
+	const [result] = await new BatchController({ sdkRoot: hostRoot, registry, modelFor: () => model, stopGrace: 100 }).run([writer], () => "write");
+	assert.equal(result.status, "completed", result.diagnostic);
+	assert.deepEqual(await Promise.all(files.map(file => readFile(join(cwd, file), "utf8"))), [content, content]);
+	assert.match(result.diagnostic, /Skipped oversized agent_end RPC record/);
+	assert.deepEqual(result.usage, usage(90));
+	assert.equal(result.usageComplete, true);
+});
+
 test("native child completes a stream of four-byte deltas beyond the previous 16264-byte failure", { timeout: 20000 }, async t => {
 	const cwd = await realpath(await createWorkspace(t));
 	const message = assistant([{ type: "text", text: "" }]);
@@ -112,6 +208,55 @@ for (const earlierResponse of [false, true]) test(`native child drains 300 abort
 	assert.equal(result.usageComplete, false);
 	assert.deepEqual(result.usage, usage(earlierResponse ? 330 : 300));
 	assert.equal(cancellations, 1);
+});
+
+const errorStream = errorMessage => {
+	const message = { ...assistant([], 30, "error"), errorMessage }, stream = createAssistantMessageEventStream();
+	stream.push({ type: "error", reason: "error", error: message }); stream.end(message); return stream;
+};
+for (const failure of ["error event", "exception"]) test(`native child retries a transient provider ${failure} and completes`, { timeout: 20000 }, async t => {
+	const cwd = await realpath(await createWorkspace(t));
+	let calls = 0;
+	const registry = { streamSimple() {
+		if (calls++) return finalStream(assistant([{ type: "text", text: "recovered" }]));
+		if (failure === "exception") throw new Error("fetch failed");
+		return errorStream("503 Service Unavailable: overloaded");
+	} };
+	const [result] = await new BatchController({ sdkRoot: hostRoot, registry, modelFor: () => model, stopGrace: 100 }).run([manifest(cwd)], () => "inspect");
+	// The failed attempt is counted once; its reported usage may be partial.
+	assert.deepEqual({ status: result.status, finalResponse: result.finalResponse, calls, usage: result.usage, usageComplete: result.usageComplete },
+		{ status: "completed", finalResponse: "recovered", calls: 2, usage: usage(failure === "exception" ? 30 : 60), usageComplete: false }, result.diagnostic);
+	assert.match(result.diagnostic, /assistant response was not successful/);
+});
+
+test("native child fails fast on a non-retryable provider error", { timeout: 20000 }, async t => {
+	const cwd = await realpath(await createWorkspace(t));
+	let calls = 0;
+	const registry = { streamSimple() { calls++; return errorStream("429 insufficient_quota: You exceeded your current quota"); } };
+	const [result] = await new BatchController({ sdkRoot: hostRoot, registry, modelFor: () => model, stopGrace: 100 }).run([manifest(cwd)], () => "inspect");
+	assert.deepEqual({ status: result.status, calls }, { status: "failed", calls: 1 }, result.diagnostic);
+	assert.match(result.diagnostic, /Child response failed: 429 insufficient_quota/);
+});
+
+test("cancellation during retry backoff stops the native child before another provider call", { timeout: 20000 }, async t => {
+	const cwd = await realpath(await createWorkspace(t));
+	const { spawn } = await import("node:child_process");
+	const abort = new AbortController();
+	let calls = 0, output = "", backoff;
+	const registry = { streamSimple() { calls++; return errorStream("503 Service Unavailable: overloaded"); } };
+	// Cancel as soon as the child reports Pi's retry backoff.
+	const spawnProcess = (...args) => {
+		const child = spawn(...args);
+		child.stdout.on("data", chunk => {
+			output += chunk;
+			if (!backoff && output.includes('"type":"auto_retry_start"')) { backoff = Date.now(); abort.abort(); }
+		});
+		return child;
+	};
+	const [result] = await new BatchController({ sdkRoot: hostRoot, registry, modelFor: () => model, stopGrace: 100, spawnProcess }).run([manifest(cwd)], () => "inspect", abort.signal);
+	assert.deepEqual({ status: result.status, terminated: result.terminated, calls, usage: result.usage, usageComplete: result.usageComplete },
+		{ status: "cancelled", terminated: true, calls: 1, usage: usage(30), usageComplete: false }, result.diagnostic);
+	assert.ok(Date.now() - backoff < 2000, "cancellation waited out the retry backoff");
 });
 
 test("child bridge cancellation remains bounded when a provider never finalizes", { timeout: 2500 }, async () => {
