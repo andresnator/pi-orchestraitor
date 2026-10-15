@@ -79,9 +79,12 @@ test("shouldPreviewAndInstallViaPnpmWhenSdkOverrideIsAbsent", { timeout: 20_000 
 	const cwd = join(root, "consumer"), agent = join(root, "agent"), home = join(root, "home");
 	await mkdir(join(cwd, ".git"), { recursive: true });
 	await mkdir(agent); await mkdir(home);
-	await writeFile(join(agent, "settings.json"), '{"packages":[]}');
+	// Companions install through a fake npm: the real one downloaded the bridge's SDK, about 120 MB
+	// with an empty cache, on every run, and timed out on slow CI runners.
+	const npmLog = join(root, "npm.log");
+	await writeFile(join(agent, "settings.json"), JSON.stringify({ packages: [], npmCommand: [process.execPath, join(packageRoot, "tests/fixtures/fake-npm.mjs")] }));
 	const env = withoutHostOverride({ ...process.env, HOME: home, PI_CODING_AGENT_DIR: agent,
-		PRETTY_CONFIG_DIR: agent, PRETTY_DISABLE_TOOLS: "", PI_OFFLINE: "1", PI_TELEMETRY: "0" });
+		PRETTY_CONFIG_DIR: agent, PRETTY_DISABLE_TOOLS: "", PI_OFFLINE: "1", PI_TELEMETRY: "0", FAKE_NPM_LOG: npmLog });
 	const run = (...args) => execFileSync("pnpm", ["--silent", "run", "install:pi", "--local", "--cwd", cwd, ...args], {
 		cwd: packageRoot, env, encoding: "utf8", timeout: 15_000,
 	});
@@ -98,4 +101,7 @@ test("shouldPreviewAndInstallViaPnpmWhenSdkOverrideIsAbsent", { timeout: 20_000 
 	assert.deepEqual({ verified: receipt.verifiedSkills, companions: receipt.companionPackages }, { verified: 57, companions: ["npm:pi-claude-bridge@0.9.2"] });
 	assert.ok(settings.packages.some((entry) => resolve(cwd, ".pi", typeof entry === "string" ? entry : entry.source) === resolve(packageRoot)));
 	assert.equal(preview.prettyConfig.path, join(agent, "pi-pretty.json"));
+	assert.deepEqual((await readFile(npmLog, "utf8")).trim().split("\n").map((line) => JSON.parse(line)),
+		[["install", "pi-claude-bridge@0.9.2", "--prefix", join(cwd, ".pi/npm"), "--legacy-peer-deps"]]);
+	assert.ok(settings.packages.includes("npm:pi-claude-bridge@0.9.2"));
 });
