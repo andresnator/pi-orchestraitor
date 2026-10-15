@@ -1,7 +1,7 @@
 import { cleanupSessionResources, getSupportedThinkingLevels, clampThinkingLevel, StringEnum } from "@earendil-works/pi-ai/compat";
 import { paths, readConfiguration, resolveAssignment } from "./models/store.mjs";
 import { profilesPanel } from "./models/panel.mjs";
-import { selectProfileOption } from "./models/selector.ts";
+import { pickProfileAssignment, selectProfileOption } from "./models/selector.ts";
 import { BackgroundTasks, RECEIPT, recoverReceipts, collectedIds, receiptStatus } from "./subagent/background.mjs";
 import { publicModel } from "./subagent/bridge.mjs";
 import { createHash, randomUUID } from "node:crypto";
@@ -55,7 +55,16 @@ export default function subagents(pi: ExtensionAPI) {
 		const current = generation;
 		try { await profilesPanel(ctx, paths(getAgentDir(), ctx.cwd), getSupportedThinkingLevels,
 			{ model: ctx.model && `${ctx.model.provider}/${ctx.model.id}`, reasoning: pi.getThinkingLevel(), mode: "sync" }, () => generation === current,
-			(title, options, searchText) => selectProfileOption(ctx, title, options, searchText)); }
+			{ select: (title, options, searchText) => selectProfileOption(ctx, title, options, searchText),
+				pickAssignment: ctx.mode === "tui" ? request => pickProfileAssignment(ctx, request) : undefined,
+				async applySession(session) {
+					if (session.model) {
+						const model = ctx.modelRegistry.getAvailable().find(model => `${model.provider}/${model.id}` === session.model);
+						if (!model) throw new Error(`Model unavailable: ${session.model}`);
+						if (!await pi.setModel(model)) throw new Error(`No credentials configured for ${session.model}`);
+					}
+					if (session.reasoning) pi.setThinkingLevel(session.reasoning);
+				} }); }
 		catch (error) { ctx.ui.notify(String(error), "error"); }
 	} });
 	let captured: { cwd: string; skills: any[]; contextFiles: { path: string; content: string }[] } | undefined;

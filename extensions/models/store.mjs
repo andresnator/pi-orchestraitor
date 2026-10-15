@@ -118,6 +118,17 @@ export function validateCatalog(assignments, catalog, supported, parent, persona
 		if (sources.reasoning !== "parent" && values.reasoning !== undefined && !supported(model).includes(values.reasoning)) throw new Error(`Unsupported effort for ${role}: ${values.reasoning} (${values.model})`);
 	}
 }
+/** A profile's main-session model; null fields keep the session's current value. */
+export function validateSession(session, catalog, supported, parent = {}) {
+	if (session === undefined) return;
+	if (!session || typeof session !== "object" || Array.isArray(session) || Object.keys(session).some(field => !["model", "reasoning"].includes(field))) throw new Error("Invalid session assignment");
+	if (session.model != null && (typeof session.model !== "string" || !session.model.includes("/"))) throw new Error("Invalid model ID");
+	if (session.reasoning != null && !LEVELS.includes(session.reasoning)) throw new Error("Invalid reasoning level");
+	const id = session.model ?? parent.model;
+	const model = catalog.find(model => `${model.provider}/${model.id}` === id);
+	if (session.model != null && !model) throw new Error(`Model unavailable for session: ${session.model}`);
+	if (session.reasoning != null && model && !supported(model).includes(session.reasoning)) throw new Error(`Unsupported effort for session: ${session.reasoning} (${id})`);
+}
 export function profileName(name) {
 	if (typeof name !== "string" || !name.trim() || name.length > 80 || /[\x00-\x1f]/u.test(name)) throw new Error("Profile names require 1–80 printable characters");
 	return name.trim();

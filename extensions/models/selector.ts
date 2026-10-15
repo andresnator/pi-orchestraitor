@@ -1,5 +1,5 @@
 import type { ExtensionContext, KeybindingsManager, Theme } from "@earendil-works/pi-coding-agent";
-import { fuzzyFilter, Input, ScrollView, SelectList, Text, truncateToWidth, type TUI } from "@earendil-works/pi-tui";
+import { fuzzyFilter, Input, ScrollView, SelectList, Text, truncateToWidth, visibleWidth, type TUI } from "@earendil-works/pi-tui";
 
 /** RPC retains its native dialogs; terminal menus share Pi's native fuzzy search. */
 export async function selectProfileOption(ctx: ExtensionContext, title: string, options: string[], searchText?: Record<string, string>) {
@@ -79,6 +79,132 @@ export function createSearchableSelector(title: string, options: string[], tui: 
 			const choices = filtered.length ? list.render(width) : [theme.fg("warning", "No matches")];
 			return [...titleLines.slice(headingScroll.scrollTop, headingScroll.scrollTop + titleHeight), ...spacer,
 				...input.render(width), ...spacer, ...choices, ...spacer, theme.fg("dim", help)].map(line => truncateToWidth(line, width));
+		},
+	};
+}
+
+export interface AssignmentValue { model: string | null; reasoning: string | null; mode?: string | null }
+export interface AssignmentRequest {
+	role: string; current: AssignmentValue; inherited: { model?: string; reasoning?: string; mode?: string };
+	catalog: { provider: string; id: string; name?: string }[]; supported: (model: any) => string[]; modes: string[];
+}
+
+/** Model, effort and mode chosen together, so a role takes one step instead of one menu per field. */
+export function pickProfileAssignment(ctx: ExtensionContext, request: AssignmentRequest) {
+	return ctx.ui.custom<AssignmentValue | undefined>((tui, theme, keys, done) => createAssignmentPicker(request, tui, theme, keys, done));
+}
+
+type Column = "model" | "effort" | "mode";
+export function createAssignmentPicker(request: AssignmentRequest, tui: TUI, theme: Theme, keys: KeybindingsManager,
+	done: (value: AssignmentValue | undefined) => void) {
+	const { role, current, inherited, catalog, supported, modes } = request;
+	const keep = role === "session" ? "keep current" : "inherit";
+	const id = (model: { provider: string; id: string }) => `${model.provider}/${model.id}`;
+	const providers = ["all", ...new Set(catalog.map(model => model.provider))];
+	const columns: Column[] = modes.length > 1 ? ["model", "effort", "mode"] : ["model", "effort"];
+	const input = new Input();
+	const selected: AssignmentValue = { model: current.model ?? null, reasoning: current.reasoning ?? null, mode: current.mode ?? null };
+	let focus = 0, provider = 0, focused = false, finished = false;
+	const offsets: number[] = [];
+	const finish = (value: AssignmentValue | undefined) => {
+		if (finished) return;
+		finished = true; input.focused = false;
+		done(value);
+	};
+	const modelItems = () => {
+		const query = input.getValue();
+		const shown = catalog.filter(model => provider === 0 || model.provider === providers[provider]);
+		const matched = query ? fuzzyFilter(shown, query, model => `${model.provider} ${id(model)} ${model.id} ${model.name ?? ""}`) : shown;
+		return [...(query ? [] : [null]), ...matched.map(id)];
+	};
+	const effortItems = () => {
+		const model = catalog.find(item => id(item) === (selected.model ?? inherited.model));
+		return [null, ...(model ? supported(model) : [])];
+	};
+	const items = (column: Column): (string | null)[] => column === "model" ? modelItems() : column === "effort" ? effortItems() : [null, ...modes];
+	// An effort the newly chosen model lacks moves to its nearest supported level instead of failing at apply.
+	const fitEffort = () => {
+		const levels = effortItems().filter((level): level is string => level !== null);
+		if (selected.reasoning === null || levels.includes(selected.reasoning)) return;
+		const order = ["off", "minimal", "low", "medium", "high", "xhigh", "max"], wanted = order.indexOf(selected.reasoning);
+		selected.reasoning = levels.reduce<string | null>((best, level) => best === null || Math.abs(order.indexOf(level) - wanted) < Math.abs(order.indexOf(best) - wanted) ? level : best, null);
+	};
+	const move = (delta: number) => {
+		const column = columns[focus], list = items(column);
+		if (!list.length) return;
+		const index = list.indexOf(selected[column === "effort" ? "reasoning" : column] ?? null);
+		const next = list[((index < 0 ? 0 : index + delta) % list.length + list.length) % list.length];
+		if (column === "model") { selected.model = next; fitEffort(); }
+		else if (column === "effort") selected.reasoning = next;
+		else selected.mode = next;
+	};
+	const filter = () => {
+		const list = modelItems();
+		if (!list.includes(selected.model)) { selected.model = list.find(item => item !== null) ?? null; fitEffort(); }
+	};
+	const label = (column: Column, value: string | null) => {
+		if (value !== null) return value;
+		const fallback = column === "model" ? inherited.model : column === "effort" ? inherited.reasoning : inherited.mode;
+		return `${keep}${fallback ? ` (${fallback})` : ""}`;
+	};
+	const summary = () => [label("model", selected.model), label("effort", selected.reasoning), ...(modes.length > 1 ? [label("mode", selected.mode ?? null)] : modes.length ? [`mode ${modes[0]} (required)`] : [])].join(" · ");
+	return {
+		get focused() { return focused; },
+		set focused(value: boolean) { focused = value; input.focused = value && !finished && columns[focus] === "model"; },
+		dispose() { finished = true; input.focused = false; },
+		invalidate() { input.invalidate(); },
+		handleInput(data: string) {
+			if (finished) return;
+			if (keys.matches(data, "tui.select.cancel") || keys.matches(data, "app.interrupt")) finish(undefined);
+			else if (keys.matches(data, "tui.select.confirm")) finish({ model: selected.model, reasoning: selected.reasoning, ...(modes.length > 1 ? { mode: selected.mode } : {}) });
+			else if (keys.matches(data, "tui.select.up")) move(-1);
+			else if (keys.matches(data, "tui.select.down")) move(1);
+			else if (keys.matches(data, "tui.editor.cursorLeft")) focus = Math.max(0, focus - 1);
+			else if (keys.matches(data, "tui.editor.cursorRight")) focus = Math.min(columns.length - 1, focus + 1);
+			else if (keys.matches(data, "tui.input.tab")) { provider = (provider + 1) % providers.length; filter(); }
+			else {
+				// Typing anywhere searches models, as in Pi's /model selector.
+				focus = 0;
+				const previous = input.getValue();
+				input.handleInput(data);
+				if (input.getValue() !== previous) filter();
+			}
+			input.focused = focused && !finished && columns[focus] === "model";
+			tui.requestRender();
+		},
+		render(width: number) {
+			const budget = Math.max(8, tui.terminal.rows - 6);
+			const title = theme.bold(theme.fg("accent", `${role === "session" ? "★ session" : role} · ${columns.join(" + ")}`));
+			const chips = providers.map((name, i) => i === provider ? theme.fg("accent", `[${name}]`) : theme.fg("muted", name)).join(" ");
+			const head = (column: Column, i: number) => i === focus ? theme.bold(theme.fg("accent", `${i + 1} ${column.toUpperCase()}`)) : theme.fg("dim", `${i + 1} ${column.toUpperCase()}`);
+			const row = (column: Column, value: string | null, i: number) => {
+				const on = value === (selected[column === "effort" ? "reasoning" : column] ?? null);
+				const text = `${on ? (i === focus ? "› " : "● ") : "  "}${label(column, value)}`;
+				return on && i === focus ? theme.fg("accent", text) : on ? text : theme.fg(value === null ? "dim" : "muted", text);
+			};
+			const compact = budget < 14;
+			const listHeight = Math.max(1, budget - (compact ? 6 : 8));
+			const side = width >= 72;
+			const sideWidth = side ? Math.min(26, Math.floor(width / 4)) : width;
+			const modelWidth = side ? width - (sideWidth + 2) * (columns.length - 1) : width;
+			const pad = (text: string, size: number) => { const cut = truncateToWidth(text, size); return cut + " ".repeat(Math.max(0, size - visibleWidth(cut))); };
+			// Each column scrolls on its own so its selected value stays visible.
+			const visible = (column: Column, i: number) => {
+				const list = items(column), cursor = Math.max(0, list.indexOf(selected[column === "effort" ? "reasoning" : column] ?? null));
+				offsets[i] = Math.min(Math.max(offsets[i] ?? 0, cursor - listHeight + 1), cursor, Math.max(0, list.length - listHeight));
+				const lines = list.slice(offsets[i], offsets[i] + listHeight).map(value => row(column, value, i));
+				return column === "model" && !list.length ? [theme.fg("warning", "No matches")] : lines;
+			};
+			const body: string[] = [];
+			if (side) {
+				const blocks = columns.map((column, i) => [head(column, i), ...visible(column, i)]);
+				const height = Math.max(...blocks.map(lines => lines.length));
+				for (let line = 0; line < height; line++) body.push(blocks.map((lines, i) => pad(lines[line] ?? "", i === 0 ? modelWidth : sideWidth)).join("  "));
+			} else body.push(columns.map(head).join("  "), ...visible(columns[focus], focus));
+			const spacer = compact ? [] : [""];
+			const help = `type search · ↑↓ option · ←→ column · tab provider · ${keys.getKeys("tui.select.confirm").join("/") || "enter"} confirm · ${keys.getKeys("tui.select.cancel").join("/") || "esc"} cancel`;
+			return [title, theme.fg("muted", "provider ") + chips, ...input.render(width), ...spacer, ...body, ...spacer,
+				theme.fg("muted", "result ") + summary(), theme.fg("dim", help)].map(line => truncateToWidth(line, width));
 		},
 	};
 }
