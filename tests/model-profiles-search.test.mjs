@@ -180,6 +180,19 @@ test("typing in any picker column always searches models", async t => {
 	}
 });
 
+test("a search without matches keeps the chosen model and cannot confirm", async t => {
+	const { createAssignmentPicker } = await loadUiModule(t, "extensions/models/selector.ts");
+	const { component, outcomes, frame } = picker(createAssignmentPicker, { current: { model: "openai-codex/gpt-6.1-sol", reasoning: "low", mode: null } });
+	component.handleInput("zzz");
+	assert.match(frame(), /No matches/);
+	component.handleInput(enter);
+	assert.deepEqual(outcomes, [], "nothing visible to confirm");
+	for (let i = 0; i < 3; i++) component.handleInput(backspace);
+	assert.match(frame(), /result openai-codex\/gpt-6\.1-sol · low/);
+	component.handleInput(enter);
+	assert.deepEqual(outcomes, [{ model: "openai-codex/gpt-6.1-sol", reasoning: "low", mode: null }]);
+});
+
 test("the combined picker fits narrow and short terminals", async t => {
 	const { createAssignmentPicker } = await loadUiModule(t, "extensions/models/selector.ts");
 	const screen = terminal();

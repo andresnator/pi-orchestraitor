@@ -140,7 +140,8 @@ export function createAssignmentPicker(request: AssignmentRequest, tui: TUI, the
 	};
 	const filter = () => {
 		const list = modelItems();
-		if (!list.includes(selected.model)) { selected.model = list.find(item => item !== null) ?? null; fitEffort(); }
+		// A search with no matches keeps the previous choice, so clearing it cannot silently become inherit.
+		if (list.length && !list.includes(selected.model)) { selected.model = list[0]; fitEffort(); }
 	};
 	const label = (column: Column, value: string | null) => {
 		if (value !== null) return value;
@@ -156,7 +157,7 @@ export function createAssignmentPicker(request: AssignmentRequest, tui: TUI, the
 		handleInput(data: string) {
 			if (finished) return;
 			if (keys.matches(data, "tui.select.cancel") || keys.matches(data, "app.interrupt")) finish(undefined);
-			else if (keys.matches(data, "tui.select.confirm")) finish({ model: selected.model, reasoning: selected.reasoning, ...(modes.length > 1 ? { mode: selected.mode } : {}) });
+			else if (keys.matches(data, "tui.select.confirm")) { if (modelItems().length) finish({ model: selected.model, reasoning: selected.reasoning, ...(modes.length > 1 ? { mode: selected.mode } : {}) }); }
 			else if (keys.matches(data, "tui.select.up")) move(-1);
 			else if (keys.matches(data, "tui.select.down")) move(1);
 			else if (keys.matches(data, "tui.editor.cursorLeft")) focus = Math.max(0, focus - 1);
