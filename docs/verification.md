@@ -79,7 +79,7 @@ Fresh local checks on Pi 1.0.4 and Node 24.20.0:
 - `npm pack --dry-run --ignore-scripts` includes 247 files, including `docs/usage.md`, and excludes tests, `.ai`, and `.github`.
 - `git diff --check` passed. Changes remain unstaged; no commit, push, publication, or personal Pi registration was performed.
 
-`.github/workflows/ci.yml` runs deterministic tests and package inventory checks on Ubuntu with Node 22.19.0 and 24.20.0, using pinned Pi 1.0.4. Live MCP, Pretty, real-model personality checks, and visible terminal acceptance are not CI gates. At this initial preparation checkpoint, GitHub-hosted execution and the Node 22/Linux matrix had not yet run; local success was not remote CI evidence. Historical failed-fixture receipts below remain unchanged.
+`.github/workflows/ci.yml` runs deterministic tests and package inventory checks on pull requests and on pushes to `main` and `develop`, on Ubuntu with Node 22.19.0 and 24.20.0, using pinned Pi 1.0.4. Live MCP, Pretty, real-model personality checks, and visible terminal acceptance are not CI gates. At this initial preparation checkpoint, GitHub-hosted execution and the Node 22/Linux matrix had not yet run; local success was not remote CI evidence. Historical failed-fixture receipts below remain unchanged.
 
 Official packaging reference: [Pi packages](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md). Installed Pi 1.0.4 documentation was the version-specific authority; Context7's indexed Pi versions did not include 1.0.4.
 

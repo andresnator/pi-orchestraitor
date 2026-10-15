@@ -46,6 +46,8 @@ test("shouldUseFrozenLocalHostAndPinnedActionsWhenCiRuns", async () => {
 	assert.equal(workflow.jobs.test["runs-on"], "ubuntu-24.04");
 	assert.deepEqual(workflow.jobs.test.strategy.matrix.node, ["22.19.0", "24.20.0"]);
 	assert.deepEqual(workflow.permissions, { contents: "read" });
+	// Each pull request commit runs once; pushes run only on long-lived branches.
+	assert.deepEqual(workflow.on, { push: { branches: ["main", "develop"] }, pull_request: null, workflow_dispatch: null });
 	assert.equal(actions.length, 3);
 	assert.ok(actions.every(({ uses }) => /@[a-f0-9]{40}$/.test(uses)));
 	assert.deepEqual(actions[0].with, { "persist-credentials": false, "fetch-depth": 2 });
