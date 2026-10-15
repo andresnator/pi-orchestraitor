@@ -4,11 +4,13 @@ import nativePaths from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const TASK_TIMEOUT_MS = 10 * 60 * 1000;
+/** Children per batch, and pending background readers per parent; profiles set lower limits per role. */
+export const MAX_TASKS = 10;
 export const START_TIMEOUT_MS = 30 * 1000;
 export const READ_TOOLS = ["read", "search", "list"];
 export const WRITE_TOOLS = [...READ_TOOLS, "edit", "write"];
 export const THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
-const PROTECTED_PARTS = new Set([".git", ".pi", ".codex", ".agents", "node_modules"]);
+export const PROTECTED_PARTS = new Set([".git", ".pi", ".codex", ".agents", "node_modules"]);
 // Pi context files (resource-loader.js loadContextFileFromDir) and system prompt overrides.
 const PROTECTED_FILES = new Set(["agents.override.md", "agents.md", "claude.md", "system.md", "append_system.md"]);
 const PROJECT_SKILL_HOSTS = new Set([".pi", ".agents", ".codex"]);
@@ -68,18 +70,29 @@ function readableSkillDirectory(parts) {
 }
 
 export function validateBatch(tasks) {
-	if (!Array.isArray(tasks) || tasks.length < 1 || tasks.length > 2) throw new Error("Use one or two readers, or one implementer");
-	for (const task of tasks) {
+	if (!Array.isArray(tasks) || tasks.length < 1 || tasks.length > MAX_TASKS) throw new Error(`Use one to ${MAX_TASKS} readers, or one to ${MAX_TASKS} implementers`);
+	const implementers = tasks.filter((task) => task?.role === "implement").length;
+	if (implementers && implementers !== tasks.length) throw new Error("Readers and implementers cannot share a batch");
+	// Parallel implementers share one working tree: each file has exactly one writer.
+	const owners = new Map();
+	for (const [index, task] of tasks.entries()) {
 		if (!["explore", "review", "implement"].includes(task.role) || typeof task.instruction !== "string" || !task.instruction.trim()) throw new Error("Each task needs a role and instruction");
 		if (task.reasoning !== undefined && !THINKING_LEVELS.includes(task.reasoning)) throw new Error("Unsupported reasoning level");
 		if (task.mode !== undefined && !["sync", "background"].includes(task.mode)) throw new Error("Unsupported execution mode");
 		if (task.role === "implement") {
 			if (task.mode === "background") throw new Error("Implementation must be synchronous");
-			if (tasks.length !== 1 || !Array.isArray(task.files) || !task.files.length) throw new Error("An implementer requires exclusive execution and assigned files");
-			task.files.forEach((file) => concreteFile(file));
+			if (!Array.isArray(task.files) || !task.files.length) throw new Error("An implementer requires assigned files");
+			for (const file of task.files) {
+				const key = fold(concreteFile(file));
+				if ((owners.get(key) ?? index) !== index) throw new Error(`Implementers' editable files must not overlap: ${file}`);
+				owners.set(key, index);
+			}
 		} else if (task.files?.length) throw new Error("Readers cannot have editable files; name the paths to inspect in instruction or context");
 	}
 }
+
+/** A profile deadline in milliseconds: whole minutes, or "off" for none. */
+export const timeoutMs = (minutes) => minutes === "off" ? Infinity : minutes * 60 * 1000;
 
 export function selectModel(requested, inherited, available) {
 	const key = requested ?? (inherited && `${inherited.provider}/${inherited.id}`);

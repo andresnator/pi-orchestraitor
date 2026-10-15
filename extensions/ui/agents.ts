@@ -1,5 +1,6 @@
 import type { KeybindingsManager, Theme } from "@earendil-works/pi-coding-agent";
 import { matchesKey, ScrollView, Text, truncateToWidth, type TUI } from "@earendil-works/pi-tui";
+import { MAX_TASKS } from "../subagent/policy.mjs";
 import { sanitizeDisplay } from "./display.ts";
 
 export const AGENT_HISTORY_LIMIT = 20;
@@ -74,7 +75,7 @@ export function createAgentsProjection() {
 	};
 	return {
 		start(callId: string, tasks: any[], parent?: string) {
-			if (calls.has(callId) || !Array.isArray(tasks) || tasks.length < 1 || tasks.length > 2) return;
+			if (calls.has(callId) || !Array.isArray(tasks) || tasks.length < 1 || tasks.length > MAX_TASKS) return;
 			if (calls.size >= PENDING_CALL_LIMIT) { historyLimited = true; return; }
 			// Pi reports raw arguments before validating them, so entries may be malformed.
 			calls.set(callId, { callId, parent, sequence: 0, rows: tasks.map((task) =>
@@ -107,7 +108,7 @@ export function createAgentsProjection() {
 			if (!call) return;
 			launchBlocked ||= blocked;
 			const results = result?.details?.results;
-			if (Array.isArray(results) && results.length <= 2) {
+			if (Array.isArray(results) && results.length <= MAX_TASKS) {
 				retain(results.map((row, index) => {
 					const observation = matchingRow(row, call.rows, index, results.length);
 					return boundedRow({ ...row, effectiveModel: observation?.effectiveModel ?? row.effectiveModel }, callId, observation?.label);
@@ -161,7 +162,7 @@ export function createAgentsProjection() {
 					}
 				}
 				if (message.role !== "toolResult" || !["subagent_run", "subagent_collect"].includes(message.toolName)) continue;
-				if (!message.isError && Array.isArray(message.details?.results) && message.details.results.length <= 2) {
+				if (!message.isError && Array.isArray(message.details?.results) && message.details.results.length <= MAX_TASKS) {
 					retain(message.details.results.filter((row: any) => row && ROLES.includes(row.role) && FINAL_PHASES.includes(row.status))
 						.map((row: any, index: number) => {
 							const tasks = assignments.get(message.toolCallId);
@@ -171,7 +172,7 @@ export function createAgentsProjection() {
 				} else if (message.isError) {
 					const diagnostic = Array.isArray(message.content) ? message.content.filter((block: any) => block?.type === "text")
 						.map((block: any) => block.text).join("\n") : "Launch failed; diagnostic unavailable";
-					const tasks = assignments.get(message.toolCallId)?.slice(0, 2) ?? [{ role: "unavailable" }];
+					const tasks = assignments.get(message.toolCallId)?.slice(0, MAX_TASKS) ?? [{ role: "unavailable" }];
 					retain(tasks.map((task) => boundedRow({ role: task?.role, phase: "failed", diagnostic },
 						message.toolCallId, instruction(task))));
 				}

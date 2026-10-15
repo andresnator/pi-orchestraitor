@@ -3,7 +3,7 @@ import { mkdir, writeFile, symlink, link, realpath, stat } from "node:fs/promise
 import { basename, dirname, join, win32 } from "node:path";
 import test from "node:test";
 import { createWorkspace, packageRoot, pi } from "./helpers/pi-host.mjs";
-import { validateBatch, validatePath, selectModel, concreteFile, protectedPath, projectRelativePath } from "../extensions/subagent/policy.mjs";
+import { validateBatch, validatePath, selectModel, concreteFile, protectedPath, projectRelativePath, timeoutMs } from "../extensions/subagent/policy.mjs";
 
 test("shouldRejectMixedAndUnboundedTasksWhenValidatingBatch", () => {
 	// Given
@@ -12,9 +12,28 @@ test("shouldRejectMixedAndUnboundedTasksWhenValidatingBatch", () => {
 	// When / Then
 	assert.doesNotThrow(() => validateBatch([reader, reader]));
 	assert.doesNotThrow(() => validateBatch([writer]));
-	for (const tasks of [[], [reader, reader, reader], [reader, writer], [writer, writer], [{ ...writer, files: [] }], [{ ...writer, files: ["../a"] }], [{ ...writer, files: [".git/config"] }]]) {
+	for (const tasks of [[], Array(11).fill(reader), [reader, writer], [writer, writer], [{ ...writer, files: [] }], [{ ...writer, files: ["../a"] }], [{ ...writer, files: [".git/config"] }]]) {
 		assert.throws(() => validateBatch(tasks));
 	}
+});
+
+test("shouldAcceptUpToTenReadersOrImplementersWhenImplementersOwnDisjointFiles", () => {
+	// Given
+	const reader = { role: "review", instruction: "inspect" };
+	const writers = [..."abcdefghij"].map((name) => ({ role: "implement", instruction: "fix", files: [`src/${name}.ts`, `src/${name}.ts`] }));
+	// When / Then
+	assert.doesNotThrow(() => validateBatch(Array(10).fill(reader)));
+	assert.doesNotThrow(() => validateBatch(writers));
+	assert.throws(() => validateBatch([...writers, { role: "implement", instruction: "fix", files: ["src/k.ts"] }]), /one to 10/);
+	assert.throws(() => validateBatch([writers[0], reader]), /cannot share a batch/);
+	// Case aliases name the same file on case-insensitive volumes.
+	assert.throws(() => validateBatch([writers[0], { ...writers[1], files: ["SRC/A.ts"] }]), /must not overlap: SRC\/A\.ts/);
+	assert.throws(() => validateBatch([{ ...writers[0], mode: "background" }, writers[1]]), /synchronous/);
+});
+
+test("shouldConvertProfileDeadlinesWhenTheyAreMinutesOrOff", () => {
+	// Given / When / Then
+	assert.deepEqual([timeoutMs(1), timeoutMs(60), timeoutMs("off")], [60_000, 3_600_000, Infinity]);
 });
 
 test("shouldPointReadersToInstructionOrContextWhenTheyAssignFiles", () => {

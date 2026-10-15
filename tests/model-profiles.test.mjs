@@ -16,11 +16,25 @@ const usage = { input: 2, output: 3, cacheRead: 0, cacheWrite: 0, totalTokens: 5
 test("field precedence preserves explicit off and inheritance", () => {
 	const personal = { defaults: { model: "a/b", reasoning: "high", mode: "background" }, explore: { reasoning: "low" } };
 	const project = { defaults: { reasoning: "medium" }, explore: { reasoning: null, mode: "sync" } };
-	assert.deepEqual(resolveAssignment("explore", { reasoning: "off" }, project, personal).values, { model: "a/b", reasoning: "off", mode: "sync" });
+	assert.deepEqual(resolveAssignment("explore", { reasoning: "off" }, project, personal).values, { model: "a/b", reasoning: "off", mode: "sync", timeout: 10, parallel: 5 });
 	assert.equal(resolveAssignment("explore", {}, project, personal).values.reasoning, "medium");
 	assert.throws(() => resolveAssignment("implement", {}, {}, personal), /synchronous/);
 	assert.throws(() => validateAssignments({ review: { reasoning: "unknown" } }), /reasoning/);
 	assert.throws(() => validateCatalog({}, [], () => [], { model: "a/b" }), /unavailable/);
+});
+
+test("profiles set each role's deadline and parallelism, which tasks and the parent cannot override", () => {
+	const personal = { defaults: { timeout: 20, parallel: 3 }, implement: { timeout: "off", parallel: 1 } };
+	const project = { review: { timeout: 5 } };
+	const resolved = role => resolveAssignment(role, { timeout: 1, parallel: 10 }, project, personal, { model: "a/b", timeout: 1, parallel: 10 });
+	assert.deepEqual(["explore", "review", "implement"].map(role => [resolved(role).values.timeout, resolved(role).values.parallel]), [[20, 3], [5, 3], ["off", 1]]);
+	assert.deepEqual(resolved("review").sources, { model: "parent", reasoning: "default", mode: "default", timeout: "project:role", parallel: "personal:defaults" });
+	assert.deepEqual(resolveAssignment("explore").values, { model: undefined, reasoning: undefined, mode: "sync", timeout: 10, parallel: 5 });
+	assert.doesNotThrow(() => validateAssignments({ defaults: { timeout: 60, parallel: 10 }, explore: { timeout: "off", parallel: 1 }, review: { timeout: null, parallel: null } }));
+	for (const [values, error] of [[{ timeout: 0 }, /Invalid timeout/], [{ timeout: 61 }, /Invalid timeout/], [{ timeout: 1.5 }, /Invalid timeout/], [{ timeout: "10" }, /Invalid timeout/],
+		[{ parallel: 0 }, /Invalid parallel limit: use 1 to 10/], [{ parallel: 11 }, /Invalid parallel/], [{ parallel: "2" }, /Invalid parallel/]]) {
+		assert.throws(() => validateAssignments({ explore: values }), error, JSON.stringify(values));
+	}
 });
 
 test("atomic profile updates reject stale and concurrent snapshots without losing unrelated fields", async t => {
@@ -155,9 +169,9 @@ const scopeToggle = (_title, options) => options.find(option => option.startsWit
 
 test("native panel creates, applies, duplicates, renames and deletes without deleting applied assignments", async t => {
 	const pick = (_title, options) => options[0];
-	const f = await panelFixture(t, ["Create profile", row("explore"), "inherit", "off", "inherit", "Save and apply", pick, "Duplicate", "Save and apply", pick, "Rename", "Save and apply", pick, "Delete", "Close"], ["First", "Second", "Renamed"], [true, true, true, true]);
+	const f = await panelFixture(t, ["Create profile", row("explore"), "inherit", "off", "inherit", "no limit", "max 2", "Save and apply", pick, "Duplicate", "Save and apply", pick, "Rename", "Save and apply", pick, "Delete", "Close"], ["First", "Second", "Renamed"], [true, true, true, true]);
 	await f.run();
-	assert.deepEqual((await snapshot(f.files.personal)).data.assignments, { explore: { reasoning: "off" } });
+	assert.deepEqual((await snapshot(f.files.personal)).data.assignments, { explore: { reasoning: "off", timeout: "off", parallel: 2 } });
 	assert.equal((await snapshot(f.files.profiles)).data.profiles.length, 1);
 	assert.equal(f.notifications.length, 3);
 });
@@ -198,7 +212,7 @@ test("background capacity includes completed uncollected readers and receipts ac
 	const batch = await pool.run([first], () => "inspect", undefined, undefined, options, data => receipts.push({ type: "custom", customType: RECEIPT, data }));
 	assert.deepEqual(batch.pending, ["one"]); assert.deepEqual(batch.results, []);
 	await pool.wait();
-	await assert.rejects(pool.run([manifest(cwd, "two"), manifest(cwd, "three")], () => "", undefined, undefined, options, () => {}), /two pending/);
+	await assert.rejects(pool.run(Array.from({ length: 10 }, (_, index) => manifest(cwd, `next-${index}`)), () => "", undefined, undefined, options, () => {}), /At most 10 pending/);
 	await assert.rejects(pool.run([{ ...manifest(cwd, "writer"), role: "implement", files: ["target"] }], () => "", undefined, undefined, options, () => {}), /Collect pending/);
 	const results = pool.collect(); assert.equal(results[0].status, "completed", results[0].diagnostic);
 	assert.deepEqual(pool.collect(), []); assert.equal(recoverReceipts(receipts).size, 1);
@@ -319,7 +333,7 @@ test("project profile writes require native trust and revalidate it before savin
 
 test("a profile stores the main session model and applies it with its roles", async t => {
 	const other = { ...model, id: "fixture-2" }, sessions = [];
-	const f = await panelFixture(t, ["Create profile", row("session"), `${other.provider}/${other.id}`, "low", row("review"), "inherit", "inherit", "background", "Save and apply", "Close"], ["Deep work"], [true],
+	const f = await panelFixture(t, ["Create profile", row("session"), `${other.provider}/${other.id}`, "low", row("review"), "inherit", "inherit", "background", "inherit", "inherit", "Save and apply", "Close"], ["Deep work"], [true],
 		{ async applySession(session) { sessions.push(session); } });
 	f.ctx.modelRegistry.getAvailable = () => [model, other];
 	await f.run();
@@ -338,7 +352,7 @@ test("a profile stores the main session model and applies it with its roles", as
 test("the editor shows unsaved changes and keeping the session model leaves it untouched", async t => {
 	const titles = [];
 	const sessions = [];
-	const f = await panelFixture(t, ["Create profile", row("explore"), "inherit", "low", "inherit", (title, options) => { titles.push(title); return "Save and apply"; }, "Close"], ["Readers"], [true],
+	const f = await panelFixture(t, ["Create profile", row("explore"), "inherit", "low", "inherit", "inherit", "inherit", (title, options) => { titles.push(title); return "Save and apply"; }, "Close"], ["Readers"], [true],
 		{ async applySession(session) { sessions.push(session); } });
 	await f.run();
 	assert.match(titles[0], /Profile: Readers · personal · 2 unsaved changes/);

@@ -1,5 +1,5 @@
-import { validateBatch } from "./policy.mjs";
-import { BatchController } from "./controller.mjs";
+import { MAX_TASKS, validateBatch } from "./policy.mjs";
+import { BatchController, handoffCap } from "./controller.mjs";
 
 const DIAGNOSTIC_SUMMARY = 200;
 // Status never repeats handoffs or writes: collection delivers each result once.
@@ -11,15 +11,18 @@ export class BackgroundTasks {
 	jobs = new Map();
 	blocked = false;
 	foreground = false;
-	async run(manifests, promptFor, signal, observer, options, persist) {
+	/** `notify` receives each background result once it is stored, before collection. */
+	async run(manifests, promptFor, signal, observer, options, persist, notify) {
 		validateBatch(manifests);
 		if (this.blocked || this.foreground) throw new Error("Subagent launches blocked");
 		if (manifests.some(task => task.role === "implement") && this.jobs.size) throw new Error("Collect pending readers before implementation");
-		if (this.jobs.size + manifests.length > 2) throw new Error("At most two pending readers are allowed");
+		if (this.jobs.size + manifests.length > MAX_TASKS) throw new Error(`At most ${MAX_TASKS} pending readers are allowed`);
 		const foreground = [], pending = [];
+		// Results collected together share the handoff budget, pending readers included.
+		const launch = { ...options, maxHandoff: handoffCap(this.jobs.size + manifests.length) };
 		// Reserve the complete batch before starting any child.
 		for (const manifest of manifests) {
-			const controller = new BatchController(options);
+			const controller = new BatchController(launch);
 			const job = { id: manifest.id, manifest, controller, result: undefined, done: undefined, collected: false };
 			this.jobs.set(job.id, job);
 		}
@@ -39,6 +42,7 @@ export class BackgroundTasks {
 				if (manifest.mode === "background") {
 					try { persist({ id: job.id, state: "result", result: job.result }); }
 					catch (error) { job.persistenceError = String(error); }
+					try { notify?.(job.result); } catch { /* A notice never changes the result. */ }
 				}
 				return job.result;
 			});

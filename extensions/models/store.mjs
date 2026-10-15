@@ -1,10 +1,20 @@
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile, open, rename, rm, lstat, link } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { MAX_TASKS, TASK_TIMEOUT_MS } from "../subagent/policy.mjs";
 
 export const ROLES = ["explore", "review", "implement"];
-export const FIELDS = ["model", "reasoning", "mode"];
+export const FIELDS = ["model", "reasoning", "mode", "timeout", "parallel"];
 export const LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
+/** Fields a task or the parent session can supply; deadlines and parallelism come only from profiles. */
+const TASK_FIELDS = ["model", "reasoning", "mode"];
+/** Task deadline in whole minutes, or "off" for none; preset choices for the profile editor. */
+export const TIMEOUTS = ["off", 5, 10, 15, 20, 30, 45, 60];
+const MAX_TIMEOUT_MINUTES = 60;
+/** Children of one role at once in a batch, pending background readers included. */
+export const PARALLEL = Array.from({ length: MAX_TASKS }, (_, index) => index + 1);
+// Without a profile, five children per role; a profile may allow up to MAX_TASKS.
+const DEFAULTS = { mode: "sync", timeout: TASK_TIMEOUT_MS / 60_000, parallel: 5 };
 const hash = text => createHash("sha256").update(text).digest("hex");
 // Saves finish in milliseconds; Pi's own auth lock treats 30 s as abandoned.
 const STALE_LOCK_MS = 30_000;
@@ -74,6 +84,8 @@ export function validateAssignments(assignments) {
 			if (field === "model" && (typeof value !== "string" || !value.includes("/"))) throw new Error("Invalid model ID");
 			if (field === "reasoning" && !LEVELS.includes(value)) throw new Error("Invalid reasoning level");
 			if (field === "mode" && !["sync", "background"].includes(value)) throw new Error("Invalid execution mode");
+			if (field === "timeout" && value !== "off" && !(Number.isInteger(value) && value >= 1 && value <= MAX_TIMEOUT_MINUTES)) throw new Error(`Invalid timeout: use "off" or whole minutes from 1 to ${MAX_TIMEOUT_MINUTES}`);
+			if (field === "parallel" && !(Number.isInteger(value) && value >= 1 && value <= MAX_TASKS)) throw new Error(`Invalid parallel limit: use 1 to ${MAX_TASKS}`);
 			if (role === "implement" && field === "mode" && value === "background") throw new Error("Implementation must be synchronous");
 		}
 	}
@@ -82,10 +94,11 @@ export function validateAssignments(assignments) {
 export function resolveAssignment(role, task = {}, project = {}, personal = {}, parent = {}) {
 	const values = {}, sources = {};
 	for (const field of FIELDS) {
-		const candidates = [[task, "task"], [project[role], "project:role"], [project.defaults, "project:defaults"],
-			[personal[role], "personal:role"], [personal.defaults, "personal:defaults"], [parent, "parent"]];
+		const own = TASK_FIELDS.includes(field);
+		const candidates = [...(own ? [[task, "task"]] : []), [project[role], "project:role"], [project.defaults, "project:defaults"],
+			[personal[role], "personal:role"], [personal.defaults, "personal:defaults"], ...(own ? [[parent, "parent"]] : [])];
 		const found = candidates.find(([entry]) => entry?.[field] !== undefined && entry[field] !== null);
-		values[field] = found?.[0][field] ?? (field === "mode" ? "sync" : undefined);
+		values[field] = found?.[0][field] ?? DEFAULTS[field];
 		sources[field] = found?.[1] ?? "default";
 	}
 	if (role === "implement" && values.mode !== "sync") throw new Error("Implementation must be synchronous");

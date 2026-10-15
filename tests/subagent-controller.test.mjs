@@ -113,6 +113,24 @@ test("shouldKeepTwoSerializedHandoffsWithinPiOutputCapWhenResponsesEscapeAndDiag
 	}
 });
 
+test("shouldSplitTheHandoffBudgetWhenFiveReadersReturnTogether", async (t) => {
+	// Given: five readers whose responses each fit 24 KiB alone
+	const cwd = await realpath(await createWorkspace(t));
+	const directory = await isolatedTmpdir(t, cwd);
+	const full = Array.from({ length: 1500 }, (_, index) => `line ${index + 1}`).join("\n");
+	const reader = (id) => ({ ...task(cwd, id, "usage"), responses: [{ usage: usage(1), content: [{ type: "text", text: full }] }] });
+	// When
+	const results = await new BatchController(options).run(["a", "b", "c", "d", "e"].map(reader), () => "work");
+	// Then
+	const serialized = JSON.stringify(results.map(({ id, status, finalResponse, writes, diagnostic, terminated, usageComplete }) => ({ id, status, finalResponse, writes, diagnostic, terminated, usageComplete })));
+	assert.ok(Buffer.byteLength(full) < 24 * 1024 && Buffer.byteLength(serialized) <= 50 * 1024, `serialized ${Buffer.byteLength(serialized)} bytes`);
+	for (const result of results) {
+		const marker = /\n\n\[Response truncated at 9\.6KB\. Full response: (\S+); continue with read offset=(\d+)\.\]$/.exec(result.finalResponse);
+		assert.ok(marker, result.finalResponse.slice(-300));
+		assert.deepEqual({ status: result.status, directory: dirname(marker[1]), saved: await readFile(marker[1], "utf8") }, { status: "completed", directory, saved: full });
+	}
+});
+
 test("shouldReturnResponseUnchangedWithoutFileWhenHandoffFitsCap", async (t) => {
 	// Given: the cap covers the serialized handoff, so the response leaves room for its id, status and other fields
 	const cwd = await realpath(await createWorkspace(t));
@@ -140,7 +158,9 @@ for (const trigger of ["cancellation", "timeout"]) {
 		const [result] = await controller.run([{ ...task(cwd, "partial", "usage-hang"), responses: [{ usage: usage(1) }], abortUsage: usage(2) }], () => "work", abort.signal);
 		// Then
 		assert.deepEqual({ status: result.status, usage: result.usage, complete: result.usageComplete, terminated: result.terminated, response: result.finalResponse },
-			{ status: trigger === "cancellation" ? "cancelled" : "timed_out", usage: usage(3), complete: false, terminated: true, response: "" }, result.diagnostic);
+			// A deadline returns the latest assistant text as a partial result; cancellation returns none.
+			{ status: trigger === "cancellation" ? "cancelled" : "timed_out", usage: usage(3), complete: false, terminated: true,
+				response: trigger === "cancellation" ? "" : "[Partial: task timed out]\n\nsame response" }, result.diagnostic);
 	});
 }
 
@@ -420,14 +440,39 @@ for (const [mode, expected] of [["bad-guard", "failed"], ["no-guard", "timed_out
 	});
 }
 
-test("shouldCancelOtherReaderWhenStartupDeadlineExpires", async (t) => {
+test("shouldLetOtherReaderFinishWhenOneDeadlineExpires", async (t) => {
 	// Given
 	const cwd = await realpath(await createWorkspace(t));
 	const controller = new BatchController({ ...options, startTimeout: 150 });
 	// When
-	const results = await controller.run([task(cwd, "missing", "no-guard"), task(cwd, "running", "hang")], () => "work");
+	const results = await controller.run([task(cwd, "missing", "no-guard"), task(cwd, "running", "normal")], () => "work");
 	// Then
-	assert.deepEqual(results.map(({ status, terminated }) => ({ status, terminated })), [{ status: "timed_out", terminated: true }, { status: "cancelled", terminated: true }]);
+	assert.deepEqual(results.map(({ status, terminated }) => ({ status, terminated })), [{ status: "timed_out", terminated: true }, { status: "completed", terminated: true }]);
+});
+
+test("shouldWaitForCancellationWhenTheProfileTurnsTheDeadlineOff", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const abort = new AbortController();
+	const controller = new BatchController({ ...options, taskTimeout: 100, taskTimeoutFor: () => Infinity });
+	// When
+	const pending = controller.run([task(cwd, "unbounded", "hang")], () => "work", abort.signal);
+	setTimeout(() => abort.abort(), 400);
+	const [result] = await pending;
+	// Then
+	assert.equal(result.status, "cancelled", result.diagnostic);
+});
+
+test("shouldApplyEachRolesTaskDeadlineWhenTimeoutsDifferByRole", async (t) => {
+	// Given
+	const cwd = await realpath(await createWorkspace(t));
+	const controller = new BatchController({ ...options, taskTimeoutFor: (manifest) => manifest.role === "review" ? 200 : 5000 });
+	// When
+	const started = Date.now();
+	const results = await controller.run([{ ...task(cwd, "short", "hang"), role: "review" }, task(cwd, "long", "normal")], () => "work");
+	// Then
+	assert.deepEqual(results.map(({ status }) => status), ["timed_out", "completed"]);
+	assert.ok(Date.now() - started < 4000);
 });
 
 

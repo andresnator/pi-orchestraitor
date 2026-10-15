@@ -1,11 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { ROLES, FIELDS, snapshot, save, readConfiguration, resolveAssignment, validateCatalog, validateSession, profileName } from "./store.mjs";
+import { ROLES, FIELDS, TIMEOUTS, PARALLEL, snapshot, save, readConfiguration, resolveAssignment, validateCatalog, validateSession, profileName } from "./store.mjs";
 
 export const SESSION = "session";
 const INHERIT = "inherit", KEEP = "keep current";
 const modelKey = model => `${model.provider}/${model.id}`;
 /** Execution modes a role may choose; none for the session, and implementers are always synchronous. */
 export const modesFor = role => role === SESSION ? [] : role === "implement" ? ["sync"] : ["sync", "background"];
+/** Deadlines read as minutes or "no limit", parallelism as a count, as in the combined picker. */
+export const showField = (field, value) => value == null ? "none" : field === "timeout" ? (value === "off" ? "no limit" : `${value}m`) : field === "parallel" ? `max ${value}` : String(value);
 
 /** Asks one dialog per field; RPC clients have no combined terminal picker. */
 async function pickSequentially(choose, { role, current, inherited, catalog, supported }) {
@@ -25,6 +27,13 @@ async function pickSequentially(choose, { role, current, inherited, catalog, sup
 		if (mode === undefined) return;
 		result.mode = mode === keep ? null : mode;
 	} else if (modes.length) result.mode = current.mode ?? null;
+	if (role === SESSION) return result;
+	for (const [field, choices] of [["timeout", TIMEOUTS], ["parallel", PARALLEL]]) {
+		const labels = choices.map(value => showField(field, value));
+		const picked = await choose(`${role} · ${field === "timeout" ? "time limit" : "parallel subagents"} (${keep}: ${showField(field, inherited[field])})`, [keep, ...labels]);
+		if (picked === undefined) return;
+		result[field] = picked === keep ? null : choices[labels.indexOf(picked)];
+	}
 	return result;
 }
 
@@ -71,21 +80,21 @@ export async function profilesPanel(ctx, files, supported, parent, isCurrent = (
 				if (role === SESSION) return `★ ${SESSION.padEnd(10)} ${profile.session?.model || profile.session?.reasoning ? describe(profile.session, parent) : `${KEEP} (${describe(parent)})`}`;
 				const { values } = resolveAssignment(role, {}, projectLayer, personalLayer, sessionAfter(profile.session));
 				const own = profile.assignments[role] ?? {};
-				const shown = FIELDS.map(field => own[field] == null ? `↳ ${values[field] ?? "none"}` : values[field]);
+				const shown = FIELDS.map(field => own[field] == null ? `↳ ${showField(field, values[field])}` : showField(field, values[field]));
 				if (role === "implement") shown[2] = "sync";
 				return `  ${role.padEnd(10)} ${shown.join(" · ")}`;
 			});
 			const commands = ["Save and apply", "Save profile", ...(saved ? ["Apply"] : []), "Rename", "Duplicate", ...(saved ? ["Delete"] : []), "Cancel"];
-			const title = `Profile: ${profile.name} · ${scope}${pending ? ` · ${pending} unsaved change${pending === 1 ? "" : "s"}` : ""}\n↵ on a row edits model, effort and mode together · ↳ inherited`;
+			const title = `Profile: ${profile.name} · ${scope}${pending ? ` · ${pending} unsaved change${pending === 1 ? "" : "s"}` : ""}\n↵ on a row edits model, effort, mode, time limit and parallel subagents together · ↳ inherited`;
 			const command = await choose(title, [...rows, ...commands]);
 			if (!command || command === "Cancel") break;
 			const row = rows.indexOf(command);
 			if (row >= 0) {
 				const role = [SESSION, ...ROLES][row];
 				const current = role === SESSION ? { model: profile.session?.model ?? null, reasoning: profile.session?.reasoning ?? null }
-					: { model: null, reasoning: null, mode: null, ...profile.assignments[role] };
+					: { model: null, reasoning: null, mode: null, timeout: null, parallel: null, ...profile.assignments[role] };
 				const inherited = role === SESSION ? parent : resolveAssignment(role, {}, ...layers({ ...profile.assignments, [role]: {} }), sessionAfter(profile.session)).values;
-				const value = await pick({ role, current, inherited, catalog, supported, modes: modesFor(role) });
+				const value = await pick({ role, current, inherited, catalog, supported, modes: modesFor(role), ...(role === SESSION ? {} : { timeouts: TIMEOUTS, limits: PARALLEL }) });
 				if (value === undefined) continue;
 				if (role === SESSION) {
 					if (value.model == null && value.reasoning == null) delete profile.session;
@@ -174,7 +183,7 @@ function difference(configuration, [project, personal], parent, after, includeSe
 	for (const role of ROLES) {
 		const before = resolveAssignment(role, {}, configuration.project.data.assignments, configuration.personal.data.assignments, parent).values;
 		const next = resolveAssignment(role, {}, project, personal, after).values;
-		const changed = FIELDS.filter(field => before[field] !== next[field]).map(field => `${field}: ${before[field]} → ${next[field]}`);
+		const changed = FIELDS.filter(field => before[field] !== next[field]).map(field => `${field}: ${showField(field, before[field])} → ${showField(field, next[field])}`);
 		if (changed.length) lines.push(`${role} ${changed.join(", ")}`);
 	}
 	if (includeSession && lines.some(line => line.startsWith("★"))) lines.push("", "The session model changes now; roles affect new subtasks only.");
