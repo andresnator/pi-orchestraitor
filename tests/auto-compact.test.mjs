@@ -132,7 +132,32 @@ test("shouldReportCurrentNativeThresholdWithoutWritingWhenArgumentIsEmpty", asyn
 	assert.match(notifications.at(-1).message, /fixture\/model.*disabled.*400000 tokens/);
 });
 
-for (const argument of ["0", "-1", "400kk", "400k extra", "abc", "NaN", "Infinity", "1.5", "0.0001k", "9007199254740992", "1m", "2m", "20k"]) {
+test("shouldWarnWhenTheCurrentReserveIsBelowPisDefault", async (t) => {
+	// Given
+	const initial = { compaction: { enabled: true, modelOverrides: { [MODEL_KEY]: { reserveTokens: 2000 } } } };
+	const { path, run, notifications, actions } = await fixture(t, initial);
+	const before = await readFile(path, "utf8");
+	// When
+	await run("");
+	// Then
+	assert.deepEqual({ text: await readFile(path, "utf8"), actions, type: notifications.at(-1).type }, { text: before, actions: [], type: "warning" });
+	assert.match(notifications.at(-1).message, /threshold > 998000 tokens.*2000-token reserve is below Pi's default 16384.*\/auto-compact default.*at most 983616/);
+});
+
+test("shouldKeepPisDefaultReserveWhenTheThresholdApproachesTheWindow", async (t) => {
+	// Given
+	const { path, run, notifications } = await fixture(t, { theme: "light" });
+	// When
+	await run("983617");
+	const rejected = notifications.at(-1);
+	await run("983616");
+	// Then
+	assert.deepEqual({ type: rejected.type }, { type: "error" });
+	assert.match(rejected.message, /at most 983616, keeping Pi's default 16384-token reserve/);
+	assert.equal(JSON.parse(await readFile(path, "utf8")).compaction.modelOverrides[MODEL_KEY].reserveTokens, 16384);
+});
+
+for (const argument of ["0", "-1", "400kk", "400k extra", "abc", "NaN", "Infinity", "1.5", "0.0001k", "9007199254740992", "1m", "2m", "20k", "990k"]) {
 	test(`shouldLeaveSettingsUntouchedWhenThresholdIsInvalid${argument}`, async (t) => {
 		// Given
 		const { path, run, notifications, actions } = await fixture(t, { theme: "light" });

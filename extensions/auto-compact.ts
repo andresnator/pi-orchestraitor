@@ -7,6 +7,9 @@ const RESET = "default";
 const UTF8_BOM = "\uFEFF";
 const TOKEN_PLACES: Record<string, number> = { "": 0, k: 3, m: 6 };
 const USAGE = "Usage: /auto-compact <tokens|default> (e.g. 150k, 0.5m, 300000); no argument shows the current threshold.";
+// Pi's default reserve. Pi also uses the reserve as response room for providers that send a token limit
+// and as the compaction summary budget (0.8x), so a smaller one cuts responses and summaries short.
+const MIN_RESERVE_TOKENS = 16384;
 
 /** Configure Pi's own threshold, rather than starting a second compaction loop. */
 export default function autoCompact(pi: ExtensionAPI) {
@@ -25,12 +28,15 @@ export default function autoCompact(pi: ExtensionAPI) {
 				}
 				const key = `${model.provider}/${model.id}`;
 				const settings = SettingsManager.inMemory(pi.getSettings()).getCompactionSettings(model);
+				const maximum = model.contextWindow - MIN_RESERVE_TOKENS;
 				if (!argument) {
-					ctx.ui.notify(`Auto-compaction for ${key}: ${settings.enabled ? "enabled" : "disabled"}; threshold > ${model.contextWindow - settings.reserveTokens} tokens (context window ${model.contextWindow}).`, "info");
+					const low = settings.reserveTokens < MIN_RESERVE_TOKENS;
+					ctx.ui.notify(`Auto-compaction for ${key}: ${settings.enabled ? "enabled" : "disabled"}; threshold > ${model.contextWindow - settings.reserveTokens} tokens (context window ${model.contextWindow}).${low
+						? ` Warning: its ${settings.reserveTokens}-token reserve is below Pi's default ${MIN_RESERVE_TOKENS}, which can cut responses and compaction summaries short; run /auto-compact default or choose a threshold of at most ${maximum}.` : ""}`, low ? "warning" : "info");
 					return;
 				}
-				if (threshold !== undefined && (threshold >= model.contextWindow || threshold <= settings.keepRecentTokens)) {
-					throw new Error(`Threshold must be greater than keepRecentTokens (${settings.keepRecentTokens}) and less than the model's context window (${model.contextWindow}).`);
+				if (threshold !== undefined && (threshold > maximum || threshold <= settings.keepRecentTokens)) {
+					throw new Error(`Threshold must be greater than keepRecentTokens (${settings.keepRecentTokens}) and at most ${maximum}, keeping Pi's default ${MIN_RESERVE_TOKENS}-token reserve below the model's context window (${model.contextWindow}).`);
 				}
 				// Pi 1.2.0 exposes no reserveTokens setter. Use its installed storage and lock protocol,
 				// then the command-only reload API to refresh the live SettingsManager.
