@@ -13,7 +13,7 @@ const manifest = JSON.parse(await readFile(join(prettyRoot, "package.json"), "ut
 	throw new Error("Install pi-pretty with install:pi, or set PI_PRETTY_PACKAGE_DIR to its installed package directory.");
 }));
 assert.equal(manifest.name, PRETTY_NAME);
-assert.equal(manifest.version, "0.6.30");
+assert.equal(manifest.version, "0.7.0");
 const prettyExtension = join(prettyRoot, "src/index.ts");
 const compactExtension = join(packageRoot, "extensions/compact-tools.ts");
 assert.equal(process.env.PI_PRETTY_ISOLATED_HOME, "1", "Run through npm run test:pretty to isolate upstream HOME-based storage");

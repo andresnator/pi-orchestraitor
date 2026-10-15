@@ -16,7 +16,7 @@ pnpm run install:pi --dry-run
 pnpm run install:pi
 ```
 
-Review the preview before installing: the installer moves conflicting standalone skills into a recoverable backup and installs the pinned Pi Pretty and `pi-claude-bridge@0.9.2` companions. Shared `~/.agents/skills` entries may also be used by other agents. Use `--without-pretty` to omit Pretty only; Claude Bridge remains included.
+Review the preview before installing: the installer moves conflicting standalone skills into a recoverable backup and installs the pinned Pi Pretty and `pi-claude-bridge@0.9.3` companions. Shared `~/.agents/skills` entries may also be used by other agents. Use `--without-pretty` to omit Pretty only; Claude Bridge remains included.
 
 Keep the checkout available, then restart Pi; `/reload` is enough only if the running Pi never loaded this package. Use `pnpm exec pi` to start the local CLI. The installer registers this directory without replacing your global Pi installation. If an original standalone `compact-tools` or `btw` extension is enabled, disable that copy through `pi config` first; keep its files for recovery.
 

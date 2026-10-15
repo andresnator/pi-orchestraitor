@@ -1,6 +1,6 @@
 # pi-pretty companion
 
-The supported companion is [`@heyhuynhgiabuu/pi-pretty`](https://github.com/heyhuynhgiabuu/pi-pretty), pinned to **0.6.30** in `package.json` under `config.piPretty`. Pi installs and discovers the upstream package separately; the harness does not copy or fork its source. Its dependencies are managed in Pi's npm directory, so this repository still needs no local `npm install`.
+The supported companion is [`@heyhuynhgiabuu/pi-pretty`](https://github.com/heyhuynhgiabuu/pi-pretty), pinned to **0.7.0** in `package.json` under `config.piPretty`. Pi installs and discovers the upstream package separately; the harness does not copy or fork its source. Its dependencies are managed in Pi's npm directory, so this repository still needs no local `npm install`.
 
 ## Installation and recovery
 
@@ -8,7 +8,7 @@ The supported companion is [`@heyhuynhgiabuu/pi-pretty`](https://github.com/heyh
 
 A registration or skill-verification failure restores both selected declarations, the Pretty adjustment and moved skills, including the original source text, version, filters and package order. npm identity trims the text after `npm:` like Pi, including whitespace-padded declarations. If there are no unrelated edits, settings/configuration files are restored exactly (or removed when newly created). Concurrent unrelated settings, package additions and Pretty preferences are retained; Pretty rollback removes only the installer-added `bash` exclusion. Downloaded npm cache files are not removed by configuration rollback. `--restore` restores a skill backup, not package declarations or Pretty configuration. Remove pretty separately with `pi remove npm:@heyhuynhgiabuu/pi-pretty` (add `--local` for a project declaration). Reload or restart Pi after installation/removal; after an update, restart it, because `/reload` keeps the harness's cached `.mjs` modules.
 
-Installing the harness directly with `pi install /path/to/pi-orchestraitor` loads only its own resources. To add the companion in that workflow, run `pi install npm:@heyhuynhgiabuu/pi-pretty@0.6.30` in the same scope and add `"bash"` to the existing `disableTools` array in Pretty's configuration before reloading:
+Installing the harness directly with `pi install /path/to/pi-orchestraitor` loads only its own resources. To add the companion in that workflow, run `pi install npm:@heyhuynhgiabuu/pi-pretty@0.7.0` in the same scope and add `"bash"` to the existing `disableTools` array in Pretty's configuration before reloading:
 
 ```json
 { "disableTools": ["bash"] }
