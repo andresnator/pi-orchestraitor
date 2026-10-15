@@ -4,7 +4,7 @@ import { createRequire, syncBuiltinESMExports } from "node:module";
 import { dirname, join } from "node:path";
 import { mkdir, readFile, realpath, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { createWorkspace, importHost, isolatedAgentDir, pi, hostRoot, packageRoot } from "./helpers/pi-host.mjs";
-import { paths, snapshot, save, readConfiguration, resolveAssignment, validateAssignments, validateCatalog } from "../extensions/models/store.mjs";
+import { paths, snapshot, save, readConfiguration, resolveAssignment, validateAssignments, validateCatalog, validateSession } from "../extensions/models/store.mjs";
 import { profilesPanel } from "../extensions/models/panel.mjs";
 import { publicModel } from "../extensions/subagent/bridge.mjs";
 import { BatchController } from "../extensions/subagent/controller.mjs";
@@ -142,17 +142,20 @@ test("null assignments load as empty and subagent_run still resolves the parent 
 	assert.equal(launch.details.results[0].model, `${model.provider}/${model.id}`);
 });
 
-async function panelFixture(t, selects, inputs = [], confirms = []) {
-	const cwd = await createWorkspace(t), files = paths(join(cwd, "personal"), cwd), notifications = [];
+async function panelFixture(t, selects, inputs = [], confirms = [], ui = {}) {
+	const cwd = await createWorkspace(t), files = paths(join(cwd, "personal"), cwd), notifications = [], confirmations = [];
 	const ctx = { hasUI: true, isProjectTrusted: () => true, modelRegistry: { getAvailable: () => [model], async refresh() {} }, ui: {
 		async select(title, options) { const next = selects.shift(); return typeof next === "function" ? next(title, options) : next; },
-		async input() { return inputs.shift(); }, async confirm() { return confirms.shift(); }, notify(...args) { notifications.push(args); } } };
-	return { files, ctx, notifications, run: () => profilesPanel(ctx, files, ai.getSupportedThinkingLevels, { model: `${model.provider}/${model.id}`, reasoning: "high", mode: "sync" }) };
+		async input() { return inputs.shift(); }, async confirm(title, message) { confirmations.push([title, message]); return confirms.shift(); }, notify(...args) { notifications.push(args); } } };
+	return { files, ctx, notifications, confirmations, run: () => profilesPanel(ctx, files, ai.getSupportedThinkingLevels, { model: `${model.provider}/${model.id}`, reasoning: "high", mode: "sync" }, undefined, ui) };
 }
+/** Selects the editor row of a role, whose label carries its current values. */
+const row = role => (_title, options) => options.find(option => option.replace("★", "").trim().startsWith(role)) ?? assert.fail(`No ${role} row`);
+const scopeToggle = (_title, options) => options.find(option => option.startsWith("Scope:")) ?? assert.fail("No scope toggle");
 
 test("native panel creates, applies, duplicates, renames and deletes without deleting applied assignments", async t => {
 	const pick = (_title, options) => options[0];
-	const f = await panelFixture(t, ["personal", "Create profile", "explore", "reasoning", "off", "Save and apply", pick, "Duplicate", "Save and apply", pick, "Rename", "Save and apply", pick, "Delete", "Close"], ["First", "Second", "Renamed"], [true, true, true, true]);
+	const f = await panelFixture(t, ["Create profile", row("explore"), "inherit", "off", "inherit", "Save and apply", pick, "Duplicate", "Save and apply", pick, "Rename", "Save and apply", pick, "Delete", "Close"], ["First", "Second", "Renamed"], [true, true, true, true]);
 	await f.run();
 	assert.deepEqual((await snapshot(f.files.personal)).data.assignments, { explore: { reasoning: "off" } });
 	assert.equal((await snapshot(f.files.profiles)).data.profiles.length, 1);
@@ -160,10 +163,10 @@ test("native panel creates, applies, duplicates, renames and deletes without del
 });
 
 test("cancel leaves disk unchanged and session changes invalidate editor", async t => {
-	const f = await panelFixture(t, ["project", "Create profile", "Cancel", "Close"], ["Discard"]);
+	const f = await panelFixture(t, [scopeToggle, "Create profile", "Cancel", "Close"], ["Discard"]);
 	await f.run(); assert.deepEqual((await snapshot(f.files.profiles)).data, {});
 	let calls = 0;
-	await profilesPanel(f.ctx, f.files, ai.getSupportedThinkingLevels, {}, () => ++calls < 2);
+	await assert.rejects(profilesPanel(f.ctx, f.files, ai.getSupportedThinkingLevels, {}, () => ++calls < 2), /Session changed/);
 	assert.deepEqual((await snapshot(f.files.project)).data, {});
 });
 
@@ -228,17 +231,17 @@ test("catalog refresh exposes new models and incompatible explicit efforts are r
 	assert.throws(() => validateCatalog({ review: { reasoning: "high" } }, [noThinking], supported, { model: `${model.provider}/${model.id}`, reasoning: "off" }, { review: { reasoning: "high" } }), /Unsupported/);
 	const maxModel = { ...model, thinkingLevelMap: { off: "none", high: "high", max: "max" } };
 	assert.ok(supported(maxModel).includes("max"));
-	const f = await panelFixture(t, ["personal", "Refresh catalog", "Create profile", "explore", "model", (_title, options) => { assert.ok(options.includes("new/provider")); return "new/provider"; }, "Cancel", "Close"], ["New"]);
+	const f = await panelFixture(t, ["Refresh catalog", "Create profile", row("explore"), (_title, options) => { assert.ok(options.includes("new/provider")); return "new/provider"; }, "inherit", "inherit", "Cancel", "Close"], ["New"]);
 	let models = [model]; f.ctx.modelRegistry.getAvailable = () => models;
 	f.ctx.modelRegistry.refresh = async () => { models = [...models, { ...model, provider: "new", id: "provider" }]; };
 	await f.run();
 });
 
 test("profile application removes old overrides and reports partial save failures", async t => {
-	const f = await panelFixture(t, ["personal", "Create profile", "Save and apply", "Close"], ["Inherited"], [true]);
+	const f = await panelFixture(t, ["Create profile", "Save and apply", "Close"], ["Inherited"], [true]);
 	await save(await snapshot(f.files.personal), { assignments: { explore: { reasoning: "low" } }, unrelated: 42 });
 	await f.run(); assert.deepEqual((await snapshot(f.files.personal)).data.assignments, {}); assert.equal((await snapshot(f.files.personal)).data.unrelated, 42);
-	const g = await panelFixture(t, ["personal", "Create profile", "Save and apply"], ["Partial"], [true]);
+	const g = await panelFixture(t, ["Create profile", "Save and apply"], ["Partial"], [true]);
 	g.ctx.ui.confirm = async () => { await writeFile(`${g.files.personal}.lock`, "locked"); return true; };
 	// The personal directory is shared with profiles; prepare it without creating config.
 	await save(await snapshot(g.files.profiles), { profiles: [] });
@@ -288,28 +291,98 @@ test("oversized provider events fail closed and preserve confirmed child termina
 
 
 test("untrusted profile panel exposes only personal scope and ignores malformed project assignments", async t => {
-	const f = await panelFixture(t, ["personal", "Create profile", "Save and apply", "Close"], ["Safe personal"], [true]);
+	const f = await panelFixture(t, ["Create profile", "Save and apply", "Close"], ["Safe personal"], [true]);
 	const { mkdir } = await import("node:fs/promises");
 	await mkdir(dirname(f.files.project), { recursive: true });
 	await writeFile(f.files.project, "INVALID PROJECT JSON");
 	f.ctx.isProjectTrusted = () => false;
 	const select = f.ctx.ui.select;
-	f.ctx.ui.select = async (title, options) => { if (title === "Profile scope") assert.deepEqual(options, ["personal"]); return select(title, options); };
+	f.ctx.ui.select = async (title, options) => { if (title.startsWith("Models profiles")) assert.ok(!options.some(option => option.startsWith("Scope:")), "untrusted projects offer no scope toggle"); return select(title, options); };
 	await f.run();
 	assert.equal((await snapshot(f.files.personal)).data.lastProfile, (await snapshot(f.files.profiles)).data.profiles[0].id);
 	assert.equal(await readFile(f.files.project, "utf8"), "INVALID PROJECT JSON");
 });
 
 test("project profile writes require native trust and revalidate it before saving", async t => {
-	const f = await panelFixture(t, ["project"]);
+	const f = await panelFixture(t, ["Scope: personal → project", "Close"]);
 	f.ctx.isProjectTrusted = () => false;
-	await assert.rejects(f.run(), /native Pi project trust/);
+	await f.run();
 	assert.deepEqual((await snapshot(f.files.project)).data, {});
-	const g = await panelFixture(t, ["project", "Create profile", "Save and apply"], ["Revoked"], [true]);
+	const g = await panelFixture(t, [scopeToggle, "Create profile", "Save and apply"], ["Revoked"], [true]);
 	let trusted = true;
 	g.ctx.isProjectTrusted = () => trusted;
 	g.ctx.ui.confirm = async () => { trusted = false; return true; };
 	await assert.rejects(g.run(), /Project trust changed/);
 	assert.deepEqual((await snapshot(g.files.project)).data, {});
 	assert.deepEqual((await snapshot(g.files.profiles)).data, {});
+});
+
+test("a profile stores the main session model and applies it with its roles", async t => {
+	const other = { ...model, id: "fixture-2" }, sessions = [];
+	const f = await panelFixture(t, ["Create profile", row("session"), `${other.provider}/${other.id}`, "low", row("review"), "inherit", "inherit", "background", "Save and apply", "Close"], ["Deep work"], [true],
+		{ async applySession(session) { sessions.push(session); } });
+	f.ctx.modelRegistry.getAvailable = () => [model, other];
+	await f.run();
+	assert.deepEqual(sessions, [{ model: "registered-extension/fixture-2", reasoning: "low" }]);
+	const [profile] = (await snapshot(f.files.profiles)).data.profiles;
+	assert.deepEqual(profile.session, { model: "registered-extension/fixture-2", reasoning: "low" });
+	assert.deepEqual((await snapshot(f.files.personal)).data.assignments, { review: { mode: "background" } });
+	// The confirmation lists only what changes, session first.
+	assert.match(f.confirmations[0][1], /★ session model: registered-extension\/fixture → registered-extension\/fixture-2/);
+	assert.match(f.confirmations[0][1], /review .*mode: sync → background/);
+	// Roles that inherit the parent follow the new session model.
+	assert.match(f.confirmations[0][1], /explore model: registered-extension\/fixture → registered-extension\/fixture-2/);
+	assert.match(f.notifications.at(-1)[0], /session → registered-extension\/fixture-2 · low/);
+});
+
+test("the editor shows unsaved changes and keeping the session model leaves it untouched", async t => {
+	const titles = [];
+	const sessions = [];
+	const f = await panelFixture(t, ["Create profile", row("explore"), "inherit", "low", "inherit", (title, options) => { titles.push(title); return "Save and apply"; }, "Close"], ["Readers"], [true],
+		{ async applySession(session) { sessions.push(session); } });
+	await f.run();
+	assert.match(titles[0], /Profile: Readers · personal · 2 unsaved changes/);
+	assert.deepEqual(sessions, [], "a profile without a session model keeps the current one");
+	assert.equal((await snapshot(f.files.profiles)).data.profiles[0].session, undefined);
+});
+
+test("session model failures report that roles were applied", async t => {
+	const f = await panelFixture(t, ["Create profile", row("session"), "keep current", "low", "Save and apply"], ["No session"], [true]);
+	await assert.rejects(f.run(), /Subagent roles applied; this client cannot change the session model/);
+	const g = await panelFixture(t, ["Create profile", row("session"), "keep current", "low", "Save and apply"], ["Broken"], [true],
+		{ async applySession() { throw new Error("no credentials"); } });
+	await assert.rejects(g.run(), /session model NOT changed: no credentials/);
+	assert.ok((await snapshot(g.files.personal)).data.lastProfile);
+});
+
+test("session assignments are validated against the catalog", () => {
+	const supported = ai.getSupportedThinkingLevels, id = `${model.provider}/${model.id}`;
+	assert.doesNotThrow(() => validateSession(undefined, [model], supported));
+	assert.doesNotThrow(() => validateSession({ model: id, reasoning: "high" }, [model], supported));
+	assert.throws(() => validateSession({ model: "gone/model" }, [model], supported), /unavailable for session/);
+	assert.throws(() => validateSession({ reasoning: "high" }, [{ ...model, reasoning: false }], supported, { model: id }), /Unsupported effort for session/);
+	assert.throws(() => validateSession({ mode: "background" }, [model], supported), /Invalid session/);
+});
+
+test("applying a profile switches the real session model and thinking level", async t => {
+	const cwd = await realpath(await createWorkspace(t)), temporary = join(cwd, "agent");
+	const other = { ...model, id: "fixture-2", name: "Fixture 2" };
+	const modelRuntime = await pi.ModelRuntime.create({ authPath: join(temporary, "auth.json"), modelsPath: null, refreshOnCreate: false });
+	modelRuntime.registerProvider(model.provider, { api: model.api, baseUrl: "https://example.invalid", apiKey: "fixture", models: [model, other], streamSimple: () => streamResponse("unused") });
+	const settingsManager = pi.SettingsManager.inMemory({ retry: { enabled: false }, compaction: { enabled: false } });
+	const resourceLoader = new pi.DefaultResourceLoader({ cwd, agentDir: temporary, settingsManager, noExtensions: true, additionalExtensionPaths: [join(packageRoot, "extensions/subagents.ts")], noSkills: true, noPromptTemplates: true, noThemes: true, noContextFiles: true });
+	await resourceLoader.reload();
+	const available = await modelRuntime.getAvailable();
+	const { session } = await pi.createAgentSession({ cwd, agentDir: temporary, settingsManager, resourceLoader, modelRuntime, model: available.find(item => item.id === model.id),
+		tools: ["read"], sessionManager: pi.SessionManager.inMemory(cwd) });
+	t.after(() => session.dispose());
+	await session.bindExtensions({ mode: "print", onError: error => assert.fail(String(error)) });
+	const ctx = session.extensionRunner.createCommandContext();
+	const selects = ["Create profile", row("session"), `${other.provider}/${other.id}`, "low", "Save and apply", "Close"], errors = [];
+	await session.extensionRunner.getCommand("models-profiles").handler("", { ...ctx, hasUI: true, isProjectTrusted: () => false, ui: { ...ctx.ui,
+		async select(title, options) { const next = selects.shift(); return typeof next === "function" ? next(title, options) : next; },
+		async input() { return "Switch"; }, async confirm() { return true; }, notify(message, level) { if (level === "error") errors.push(message); } } });
+	assert.deepEqual(errors, []); assert.equal(selects.length, 0);
+	assert.equal(session.model.id, "fixture-2");
+	assert.equal(session.thinkingLevel, "low");
 });
