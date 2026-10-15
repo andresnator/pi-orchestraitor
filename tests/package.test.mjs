@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { copyFile, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
@@ -134,12 +134,17 @@ test("shouldLoadOnlyPackagedResourcesWhennpmTarballIsExtractedElsewhere", async 
 		files: EXPECTED_FILES, errors: [], prompts: EXPECTED_PROMPTS,
 		skills: PROVENANCE.skills.map(({ name }) => name).sort(), skillDiagnostics: [],
 		active: ["read", "bash", "edit", "write", "subagent_collect", "subagent_run", "orchestraitor_tasks", "orchestraitor_ask", "skill_registry"], prefix: "Host instructions",
-		preservedSection: "Project-specific instructions", theme: "system", dependencies: { "beautiful-mermaid": "1.1.3" },
+		preservedSection: "Project-specific instructions", theme: "system", dependencies: { "@vscode/ripgrep": "1.18.0", "beautiful-mermaid": "1.1.3" },
 		peers: { "@earendil-works/pi-ai": "*", "@earendil-works/pi-coding-agent": "*", "@earendil-works/pi-tui": "*", typebox: "*" },
 		nanProvider: "NaN", nanModels: ["deepseek-v4-flash", "glm5.3-flash", "qwen3.8-flash", "mimo-v2.6-flash", "gemma4", "qwen3.6", "glm5.3"],
 	});
 	// Native extensions must work under node_modules, including spaces.
 	assert.ok(packed.files.every(({ path }) => !path.startsWith("herdr/") && !path.includes("workbench")));
+	// The child search resolves the locked ripgrep binary from the extracted package's own dependencies.
+	const { resolveRipgrep } = await import(pathToFileURL(join(extracted, "extensions/subagent/guard.mjs")).href);
+	const rgPath = await resolveRipgrep();
+	assert.ok(rgPath?.startsWith(await realpath(extracted)), rgPath);
+	assert.match(execFileSync(rgPath, ["--version"], { encoding: "utf8" }), /^ripgrep /);
 	// The extracted bootstrap must resolve its sibling guard/runtime files without repo imports.
 	const { BatchController } = await import(pathToFileURL(join(extracted, "extensions/subagent/controller.mjs")).href);
 	const { hostRoot } = await import("./helpers/pi-host.mjs");

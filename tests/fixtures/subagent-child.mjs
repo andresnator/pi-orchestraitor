@@ -48,6 +48,7 @@ input.on("line", async (line) => {
 				output({ type: "agent_end", messages: [message], ...(manifest.padEnd ? { padding: pad } : {}) });
 			}
 			if (mode === "usage-hang" || mode === "usage-unfinished") start();
+			if (manifest.streaming) output({ type: "message_update", message: { ...assistant(), stopReason: "pending", content: manifest.streaming } });
 			if (mode === "usage-hang") { process.send({ type: "usage_ready" }); return; }
 			if (mode === "usage-protocol-error") { process.stdout.write("{broken}\n"); return; }
 			output({ type: "agent_settled" });

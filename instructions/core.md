@@ -9,7 +9,7 @@
 
 ## Documentation and memory
 
-For local code and installed packages, Pi included, search installed docs, types and source; they match the running version. Use Context7 only for libraries not installed here: resolve the exact library, query version-compatible docs, and disclose when unavailable. Locate, then read relevant ranges and filter before printing; never concatenate whole files. Read truncated output from its full-output file with offset/limit instead of rerunning.
+For local code and installed packages, Pi included, search installed docs, types and source; they match the running version. Use Context7 only for libraries not installed here: resolve the exact library, query version-compatible docs, and disclose when unavailable. Locate, then read relevant ranges and filter before printing; never concatenate whole files. If truncated output matters, grep its full-output file or parse it to print only the needed fields; never reprint it whole or rerun.
 
 For Pi Markdown documentation, this overrides whole-file reading guidance: list headings first, read the relevant sections completely, and follow related documentation links.
 

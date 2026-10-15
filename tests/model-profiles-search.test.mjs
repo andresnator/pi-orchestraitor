@@ -75,11 +75,11 @@ test("every models-profiles screen uses searchable terminal components without m
 	const { session, errors } = await createPackageUISession(t, "tui");
 	const command = session.extensionRunner.getCommand("models-profiles");
 	const ctx = session.extensionRunner.createCommandContext();
-	// A pair searches a menu; an object drives the combined model, effort and mode picker.
+	// A pair searches a menu; an object drives the combined model, effort, mode, time limit and parallelism picker.
 	const choices = [
 		["cre", "Create profile"], ["expl", /^ {2}explore /],
-		{ keys: ["DeepSeek V4 Flash", right, down], expected: { model: "nan/deepseek-v4-flash", reasoning: "off", mode: null } },
-		["review", /^ {2}review /], { keys: [right, right, down, down], expected: { model: null, reasoning: null, mode: "background" } },
+		{ keys: ["DeepSeek V4 Flash", right, down], expected: { model: "nan/deepseek-v4-flash", reasoning: "off", mode: null, timeout: null, parallel: null } },
+		["review", /^ {2}review .* · ↳ 10m · ↳ max 5$/], { keys: [right, right, down, down, right, down, right, down, down], expected: { model: null, reasoning: null, mode: "background", timeout: "off", parallel: 2 } },
 		["save apply", "Save and apply"],
 		["demo", "1. ● Search Demo"], ["ren", "Rename"], ["dup", "Duplicate"], ["save profile", "Save profile"],
 		["eff", "Effective assignments"], ["bac", "Back"], ["ref", "Refresh catalog"], ["close", "Close"],
@@ -115,7 +115,7 @@ test("every models-profiles screen uses searchable terminal components without m
 	assert.equal(confirmations.length, 2);
 	assert.ok(notifications.every(([, level]) => level === "info"), JSON.stringify(notifications));
 	const files = paths(isolatedAgentDir, ctx.cwd);
-	assert.deepEqual((await snapshot(files.personal)).data.assignments, { explore: { model: "nan/deepseek-v4-flash", reasoning: "off" }, review: { mode: "background" } });
+	assert.deepEqual((await snapshot(files.personal)).data.assignments, { explore: { model: "nan/deepseek-v4-flash", reasoning: "off" }, review: { mode: "background", timeout: "off", parallel: 2 } });
 	assert.deepEqual((await snapshot(files.profiles)).data.profiles.map(profile => profile.name), ["Search Demo", "Second profile"]);
 	assert.equal(session.sessionManager.getEntries().filter(entry => entry.type === "message").length, 0);
 	// The searched value, not its filtered position or display name, is persisted.
@@ -193,10 +193,29 @@ test("a search without matches keeps the chosen model and cannot confirm", async
 	assert.deepEqual(outcomes, [{ model: "openai-codex/gpt-6.1-sol", reasoning: "low", mode: null }]);
 });
 
+test("roles choose a time limit, including no limit, and how many subagents run at once", async t => {
+	const { createAssignmentPicker } = await loadUiModule(t, "extensions/models/selector.ts");
+	const { component, outcomes, frame } = picker(createAssignmentPicker, { timeouts: ["off", 5, 10], limits: [1, 2, 3], inherited: { model: "nan/deepseek-v4-flash", reasoning: "high", mode: "sync", timeout: 10, parallel: 5 } });
+	assert.match(frame(120), /4 TIMEOUT .*5 MAX/);
+	assert.match(frame(120), /result inherit \(nan\/deepseek-v4-flash\) · inherit \(high\) · inherit \(sync\) · inherit \(10m\) · inherit \(5\)/);
+	// Narrow terminals show one column at a time and wrap the result instead of cutting it.
+	assert.match(frame(80), /result inherit \(nan\/deepseek-v4-flash\) · inherit \(high\) · inherit \(sync\)\n {7}inherit \(10m\) · inherit \(5\)/);
+	for (const key of [right, right, right, down]) component.handleInput(key);
+	assert.match(frame(), /› no limit/);
+	component.handleInput(right); component.handleInput(up);
+	assert.match(frame(120), /· no limit · max 3$/m);
+	component.handleInput(enter);
+	assert.deepEqual(outcomes, [{ model: null, reasoning: null, mode: null, timeout: "off", parallel: 3 }]);
+	const implement = picker(createAssignmentPicker, { role: "implement", modes: ["sync"], timeouts: ["off", 5], limits: [1, 2] });
+	assert.doesNotMatch(implement.frame(120), /\d MODE\b/); assert.match(implement.frame(120), /3 TIMEOUT .*4 MAX/);
+	implement.component.handleInput(enter);
+	assert.deepEqual(implement.outcomes, [{ model: null, reasoning: null, timeout: null, parallel: null }]);
+});
+
 test("the combined picker fits narrow and short terminals", async t => {
 	const { createAssignmentPicker } = await loadUiModule(t, "extensions/models/selector.ts");
 	const screen = terminal();
-	const { frame } = picker(createAssignmentPicker, { catalog: Array.from({ length: 40 }, (_, i) => ({ provider: "nan", id: `model-${i}`, reasoning: true })) }, screen);
+	const { frame } = picker(createAssignmentPicker, { catalog: Array.from({ length: 40 }, (_, i) => ({ provider: "nan", id: `model-${i}`, reasoning: true })), timeouts: ["off", 5, 10, 60], limits: [1, 2, 10] }, screen);
 	for (const rows of [12, 24, 40]) for (const width of [20, 52, 72, 120]) {
 		screen.terminal.rows = rows;
 		const lines = frame(width).split("\n");

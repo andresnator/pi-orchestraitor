@@ -52,6 +52,23 @@ test("shouldReplayOnlyBranchOutcomesAndLimitHistoryWhenSessionChanges", async (t
 		{ previousCount: 20, limited: true, branchIds: ["branch"], live: [], nestedUnavailable: true });
 });
 
+test("shouldKeepEveryChildOutcomeWhenAFullBatchFinishesOrReplays", async (t) => {
+	// Given
+	const { createAgentsProjection } = await loadUiModule(t, "extensions/ui/agents.ts");
+	const view = createAgentsProjection();
+	const ids = Array.from({ length: 10 }, (_, index) => `child-${index}`);
+	const results = ids.map((id) => ({ id, role: "explore", status: "completed", terminated: true }));
+	// When
+	view.start("call/1", ids.map((id) => ({ role: "explore", instruction: id })));
+	view.finish("call/1", { details: { results } });
+	const finished = view.snapshot().recent;
+	view.replay([{ type: "message", message: { role: "toolResult", toolName: "subagent_run", toolCallId: "call/2", details: { results } } }]);
+	const replayed = view.snapshot().recent;
+	// Then
+	assert.deepEqual([finished, replayed].map((rows) => rows.map(({ id, phase }) => `${id}:${phase}`)),
+		[ids.map((id) => `${id}:completed`), ids.map((id) => `${id}:completed`)]);
+});
+
 test("shouldClassifyStoppingAsLiveAndUnconfirmedExitAsFailureWhenProjecting", async (t) => {
 	// Given
 	const { classifyAgent } = await loadUiModule(t, "extensions/ui/agents.ts");

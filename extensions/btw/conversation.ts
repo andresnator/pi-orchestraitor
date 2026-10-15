@@ -14,9 +14,9 @@ export const CANCELLED_RESPONSE_TEXT = "Response cancelled.";
 export const FAILED_RESPONSE_TEXT = "The request could not be completed.";
 export const TOOL_REQUEST_TEXT = "The model asked to run a tool. BTW never runs tools; ask it to answer from the context.";
 export const CHAT_STATUS = { ready: "Ready", responding: "Responding", cancelled: "Cancelled", error: "Error" } as const;
-/** Shift+Tab order. Low keeps side answers fast; inherit follows the parent. */
+/** Shift+Tab order. Inherit follows the parent, whose level providers such as Codex key their prompt cache on; off and low answer faster. */
 export const SIDE_THINKING_LEVELS: readonly SideThinking[] = ["off", "low", "inherit"];
-export const DEFAULT_SIDE_THINKING: SideThinking = "low";
+export const DEFAULT_SIDE_THINKING: SideThinking = "inherit";
 /** Retries after 2 and 4 s, like subagent children; cancelling the panel ends the wait. */
 export const SIDE_RETRY = { maxRetries: 2, baseDelayMs: 2000 };
 

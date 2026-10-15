@@ -89,10 +89,10 @@ describe("open, converse, discard", () => {
 		await running;
 		// Then
 		const firstRequest = streamSimple.mock.calls[0].arguments;
-		// BTW answers with low thinking by default, whatever the parent's level.
+		// BTW inherits the parent's thinking level by default, keeping its provider cache key.
 		assert.partialDeepStrictEqual(firstRequest, [MODEL, {
 			systemPrompt: "Main instructions", messages: [user("Main context"), { role: "user", content: firstQuestion("Private question") }],
-		}, { reasoning: "low" }]);
+		}, { reasoning: "high" }]);
 		assert.deepEqual({ argumentCount: firstRequest.length, tools: firstRequest[1].tools,
 			messageCount: firstRequest[1].messages.length, questionBlocks: firstRequest[1].messages.at(-1).content.length },
 			{ argumentCount: 3, tools: undefined, messageCount: 2, questionBlocks: 2 });
@@ -115,7 +115,7 @@ describe("open, converse, discard", () => {
 		assert.ok(signal instanceof AbortSignal);
 		assert.deepEqual({ ...options, headers: await transformHeaders({ "x-request": "kept" }) }, {
 			timeoutMs: 30000, websocketConnectTimeoutMs: undefined, maxRetries: 4, maxRetryDelayMs: 60000, thinkingBudgets: { low: 1024 },
-			sessionId: session.getSessionId(), transport: "sse", reasoning: "low", headers: { "x-request": "kept" },
+			sessionId: session.getSessionId(), transport: "sse", reasoning: "high", headers: { "x-request": "kept" },
 		});
 	});
 

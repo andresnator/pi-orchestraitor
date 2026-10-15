@@ -121,7 +121,7 @@ Reload Pi, run `/login nan`, and enter a key generated in NAN Cloud's API Keys s
 /auto-compact default
 ```
 
-The argument is variable: `k` means 1,000 tokens and `m` means 1,000,000; suffixes are case-insensitive and exact decimals are accepted. It measures **estimated active-context tokens**, not cumulative session usage. Pi compacts when context **exceeds** the threshold at its normal request boundaries, not immediately when the command is entered. The amount must resolve to a positive safe integer, exceed the effective `keepRecentTokens`, and stay below the current model's context window.
+The argument is variable: `k` means 1,000 tokens and `m` means 1,000,000; suffixes are case-insensitive and exact decimals are accepted. It measures **estimated active-context tokens**, not cumulative session usage. Pi compacts when context **exceeds** the threshold at its normal request boundaries, not immediately when the command is entered. The amount must resolve to a positive safe integer, exceed the effective `keepRecentTokens`, and be at most the current model's context window minus 16,384 tokens, Pi's default reserve. Pi also uses the reserve as response room for providers that send a token limit and as the compaction summary budget, so a smaller one would cut both short. Without an argument, the command warns when an existing reserve is below that default.
 
 The command persists `compaction.modelOverrides["provider/modelId"].reserveTokens = contextWindow - threshold` in Pi's personal `settings.json` (`getAgentDir()`, respecting `PI_CODING_AGENT_DIR`). It preserves retained-history settings and other models' thresholds, and enables Pi's global automatic-compaction flag. Without an argument it reports the effective setting without writing. `default` removes only this model's personal reserve override, restoring inheritance; it does not disable compaction.
 
@@ -178,7 +178,7 @@ This changes only that invocation. Personal and project MCP settings still apply
 
 ## Development security
 
-Use pnpm 12.9.1 with the committed lockfile. Pi 1.2.0 is a development dependency only; runtime peers remain host-provided and neither the host nor `node_modules` is packed. BTW's pinned `beautiful-mermaid@1.1.3` is a separate runtime dependency; local checkouts install it here, while Pi installs it for native Git/npm sources.
+Use pnpm 12.9.1 with the committed lockfile. Pi 1.2.0 is a development dependency only; runtime peers remain host-provided and neither the host nor `node_modules` is packed. BTW's pinned `beautiful-mermaid@1.1.3` is a separate runtime dependency; local checkouts install it here, while Pi installs it for native Git/npm sources. Subagent search's pinned `@vscode/ripgrep@1.18.0` is also a runtime dependency; it runs no install scripts and installs only the current platform's ripgrep binary through optional dependencies.
 
 ```bash
 pnpm install --frozen-lockfile
@@ -222,7 +222,7 @@ See [verification evidence](verification.md) and [attribution](../THIRD_PARTY_NO
 
 ## Subagents and verification
 
-Use `/models-profiles` to configure named profiles per role and scope. Use `subagent_run` for up to two pending readers or one exclusive synchronous implementer, and `subagent_collect` to retrieve background results. Each task gets a fresh process/session; the parent runs commands and checks the result. See [subagent input, isolation and lifecycle](subagents.md) for file restrictions, model selection, cancellation, output fields and pending real-model checks.
+Use `/models-profiles` to configure named profiles per role and scope: model, effort, mode, time limit (5–60 minutes or no limit; ten by default) and how many subagents of that role run at once (1–10; five by default). Use `subagent_run` for up to ten readers (and up to ten pending across calls) or up to ten synchronous implementers that own disjoint files, within the profile's limits, and `subagent_collect` to retrieve background results; a notice tells the parent when background readers finish. Each task gets a fresh process/session; the parent runs commands and checks the result. See [subagent input, isolation and lifecycle](subagents.md) for file restrictions, model selection, cancellation, output fields and pending real-model checks.
 
 Normal tools use one unboxed line. `codemode` shows nested-call counts and the currently running tool, and `subagent_run` shows task counts, roles and completion counts. Script source, nested-call arguments and successful output stay hidden until Pi's configurable `app.tools.expand` action (`Ctrl+O` by default) expands the tool. Expansion restores codemode's native code/result view and the complete subagent response.
 

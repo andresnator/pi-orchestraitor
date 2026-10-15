@@ -1,7 +1,7 @@
 import { parentBridge } from "./bridge.mjs";
 import { spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
-import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,9 +15,14 @@ const RECORD_HEAD = 128;
 // oversized record, including every assistant message, fails closed.
 const SKIPPABLE_RECORD = /^\{"type":"(agent_end|turn_end|message_update|tool_execution_(?:start|update|end)|message_(?:start|end)(?=","message":\{"role":"(?:user|toolResult)"))"/;
 const MAX_DIAGNOSTIC = 8192;
-// Two readers' handoffs, as serialized for the model (48 KiB), fit the 50 KB Pi allows its
-// own tool output (DEFAULT_MAX_BYTES); Pi does not cap extension tool results itself.
+const DIAGNOSTIC_MARK = "[Diagnostics truncated]\n";
+// Handoffs delivered together, as serialized for the model, share 48 KiB so they fit the 50 KB
+// Pi allows its own tool output (DEFAULT_MAX_BYTES); Pi does not cap extension tool results itself.
+// One or two children keep 24 KiB each; larger batches split the budget.
 const MAX_HANDOFF = 24 * 1024;
+const HANDOFF_BUDGET = 48 * 1024;
+export const handoffCap = (children) => Math.min(MAX_HANDOFF, Math.floor(HANDOFF_BUDGET / Math.max(1, children)));
+const PARTIAL_PREFIX = "[Partial: task timed out]";
 const PROGRESS_LABEL_LIMIT = 200;
 const PROGRESS_DETAIL_LIMIT = 1000;
 const STOP_GRACE_MS = 1000;
@@ -79,12 +84,14 @@ export class BatchController {
 		const batch = { abort, done: undefined };
 		this.active = batch;
 		for (const manifest of manifests) observeProgress(observer, manifest, "preparing");
+		// Siblings share the batch's handoff budget; a deadline stops only its own child.
+		const maxHandoff = options?.maxHandoff ?? this.options.maxHandoff ?? handoffCap(manifests.length);
 		batch.done = Promise.all(manifests.map(async (manifest) => {
 			let child, exited = false;
 			try {
-				return await runTask(manifest, promptFor(manifest), { ...this.options, ...options, signal: abort.signal,
+				return await runTask(manifest, promptFor(manifest), { ...this.options, ...options, maxHandoff, signal: abort.signal,
 					onSpawn: (process) => { child = process; }, onExit: () => { exited = true; },
-					onUnterminated: (process) => this.orphans.add(process), onTimeout: cancel, observer });
+					onUnterminated: (process) => this.orphans.add(process), observer });
 			} catch (error) {
 				// Preparation and cleanup failures cannot orphan a process that never started
 				// or whose exit was already observed. Retain the lock only for a live unknown child.
@@ -137,7 +144,8 @@ export class RpcDecoder {
 
 export async function runTask(manifest, prompt, options = {}) {
 	const { signal, sdkRoot, credentialDir, childPath = CHILD_PATH, spawnProcess = spawn,
-		startTimeout = START_TIMEOUT_MS, taskTimeout = TASK_TIMEOUT_MS, stopGrace = STOP_GRACE_MS } = options;
+		startTimeout = START_TIMEOUT_MS, stopGrace = STOP_GRACE_MS, maxHandoff = MAX_HANDOFF } = options;
+	const taskTimeout = options.taskTimeoutFor?.(manifest) ?? options.taskTimeout ?? TASK_TIMEOUT_MS;
 	const result = { id: manifest.id, role: manifest.role, cwd: manifest.cwd, model: manifest.model, reasoning: manifest.reasoning,
 		status: "failed", finalResponse: "", writes: [], diagnostic: "", terminated: false, usageComplete: false };
 	let effectiveModel, disposeBridge, response;
@@ -151,17 +159,14 @@ export async function runTask(manifest, prompt, options = {}) {
 	let directory;
 	let timedOut = false;
 	let child, exited = false, closed = false, ipcClosed = false, exitCode, exitSignal, failure, settled = false, accepting = true, acceptingWrites = true, guardReady = false, prompted = false;
-	let finalMessage, resolveReady, rejectReady, resolveSettled, rejectSettled;
-	let acceptingUsage = true, usageReliable = true, responseOpen = false, lastEnd, stdoutEnded = false;
+	let finalMessage, streaming, resolveReady, rejectReady, resolveSettled, rejectSettled;
+	let acceptingUsage = true, usageReliable = true, responseOpen = false, lastEnd, stdoutEnded = false, stderrEnded = false, acceptingStderr = true;
 	const decoder = new RpcDecoder();
 	const ready = new Promise((resolve, reject) => { resolveReady = resolve; rejectReady = reject; });
 	const completion = new Promise((resolve, reject) => { resolveSettled = resolve; rejectSettled = reject; });
 	// Cancellation may reject completion before startup has finished.
 	ready.catch(() => {}); completion.catch(() => {});
-	const diagnose = (text) => {
-		const combined = result.diagnostic + text;
-		result.diagnostic = combined.length > MAX_DIAGNOSTIC ? `[Diagnostics truncated]\n${combined.slice(-MAX_DIAGNOSTIC)}` : combined;
-	};
+	const diagnose = (text) => { result.diagnostic = appendDiagnostic(result.diagnostic, text); };
 	const incompleteUsage = (reason) => { usageReliable = false; diagnose(`Usage incomplete: ${reason}.\n`); };
 	const observeUsage = (event) => {
 		if (!prompted || event.message?.role !== "assistant") return;
@@ -189,7 +194,7 @@ export async function runTask(manifest, prompt, options = {}) {
 		if (!accepting || failure) return;
 		failure = error instanceof Error ? error : new Error(String(error));
 		rejectReady(failure); rejectSettled(failure);
-		if (deadline) { timedOut = true; options.onTimeout?.(); }
+		if (deadline) timedOut = true;
 	};
 	const send = (command) => {
 		if (!child?.stdin.writable || exited) return;
@@ -198,7 +203,8 @@ export async function runTask(manifest, prompt, options = {}) {
 	const cancel = () => fail(new Error("Task cancelled"));
 	signal?.addEventListener("abort", cancel, { once: true });
 	const startTimer = setTimeout(() => fail(new Error("Guard/RPC startup timeout"), true), startTimeout);
-	const taskTimer = setTimeout(() => fail(new Error("Task timeout"), true), taskTimeout);
+	// A profile can turn the task deadline off; the parent can still cancel.
+	const taskTimer = Number.isFinite(taskTimeout) ? setTimeout(() => fail(new Error("Task timeout"), true), taskTimeout) : undefined;
 	try {
 		directory = await mkdtemp(join(tmpdir(), "pi-subagent-"));
 		const raw = JSON.stringify(manifest);
@@ -230,7 +236,11 @@ export async function runTask(manifest, prompt, options = {}) {
 			fail(error);
 		});
 		child.stdin.on("error", fail);
-		child.stderr.on("data", (chunk) => { if (accepting) diagnose(chunk.toString()); });
+		// The pipes drain independently, so stderr written before settling can arrive after stdout's
+		// agent_settled. A completed task keeps reading it until the pipe ends; a failed one stops at
+		// the failure, so shutdown noise cannot push its error out of the diagnostic.
+		child.stderr.once("end", () => { stderrEnded = true; });
+		child.stderr.on("data", (chunk) => { if (accepting || (acceptingStderr && result.status === "completed")) diagnose(chunk.toString()); });
 		child.on("message", (message) => {
 			if (!message || typeof message !== "object") return;
 			// Cancellation stops control events, but queued write observations must drain
@@ -269,7 +279,9 @@ export async function runTask(manifest, prompt, options = {}) {
 				}
 				if (event.type === "response" && event.id === "work" && !event.success) fail(new Error(`Prompt rejected: ${event.error}`));
 				if (!prompted || settled) return;
-				if (event.type === "message_end" && event.message?.role === "assistant") finalMessage = event.message;
+				// A deadline can expire mid-answer, so the text streamed so far is kept as well.
+				if (event.type === "message_update" && event.message?.role === "assistant") streaming = event.message;
+				if (event.type === "message_end" && event.message?.role === "assistant") { finalMessage = event.message; streaming = undefined; }
 				if (event.type === "agent_settled") { settled = true; resolveSettled(); }
 			}, (head) => {
 				const type = SKIPPABLE_RECORD.exec(head)?.[1];
@@ -286,13 +298,16 @@ export async function runTask(manifest, prompt, options = {}) {
 		send({ id: "work", type: "prompt", message: prompt });
 		await completion;
 		if (!finalMessage || !["stop", "length"].includes(finalMessage.stopReason)) throw new Error(`Child response failed: ${finalMessage?.errorMessage ?? finalMessage?.stopReason ?? "missing final response"}`);
-		const text = finalMessage.content?.filter((block) => block.type === "text").map((block) => block.text).join("\n").trim();
+		const text = responseText(finalMessage);
 		if (!text) throw new Error("Child returned an empty final response");
 		response = text;
 		result.status = "completed";
 	} catch (error) {
 		result.status = timedOut ? "timed_out" : signal?.aborted ? "cancelled" : "failed";
 		diagnose(`${error instanceof Error ? error.message : String(error)}\n`);
+		// A deadline keeps the work so far: the answer being streamed, else the last finished one.
+		const partial = timedOut ? responseText(streaming) || responseText(finalMessage) : "";
+		if (partial) response = `${PARTIAL_PREFIX}\n\n${partial}`;
 	} finally {
 		disposeBridge?.cancel();
 		observe("stopping");
@@ -309,11 +324,12 @@ export async function runTask(manifest, prompt, options = {}) {
 			if (!exited) { child.kill("SIGTERM"); await waitForExit(() => exited, stopGrace); }
 			if (!exited) { child.kill("SIGKILL"); await waitForExit(() => exited, stopGrace); }
 		}
-		if (child && exited && !closed && (!ipcClosed || !stdoutEnded)) {
-			await waitForExit(() => closed || (ipcClosed && stdoutEnded), stopGrace);
+		if (child && exited && !closed && (!ipcClosed || !stdoutEnded || !stderrEnded)) {
+			await waitForExit(() => closed || (ipcClosed && stdoutEnded && stderrEnded), stopGrace);
 			if (!closed && !ipcClosed) diagnose("IPC write-notification drain was not confirmed before the deadline.\n");
 		}
 		acceptingWrites = false;
+		acceptingStderr = false;
 		acceptingUsage = false;
 		disposeBridge?.();
 		if (child && !closed && !stdoutEnded) incompleteUsage("stdout accounting drain was not confirmed before the deadline");
@@ -338,7 +354,7 @@ export async function runTask(manifest, prompt, options = {}) {
 		if (!result.usageComplete) diagnose("Usage accounting is incomplete; observed totals may understate consumption.\n");
 	}
 	// Capped last, so the final diagnostic and status count against the handoff.
-	if (response) Object.assign(result, await capResponse(response, result, diagnose));
+	Object.assign(result, await fitHandoff(result, maxHandoff, response ?? ""));
 	observe(result.status, { terminated: result.terminated,
 		diagnostic: result.diagnostic.slice(0, PROGRESS_DETAIL_LIMIT),
 		finalResponse: result.finalResponse.slice(0, PROGRESS_DETAIL_LIMIT) });
@@ -348,17 +364,62 @@ export async function runTask(manifest, prompt, options = {}) {
 /** Pi's pattern for truncated tool output (`utils/output-files.js`, not exported): keep whole
  * leading lines and save the full text to a new owner-only file in the OS temp directory. The cap
  * covers the handoff as serialized, so JSON escaping, the marker, diagnostic and fields count. */
-async function capResponse(text, result, diagnose) {
-	if (serializedBytes(handoff({ ...result, finalResponse: text })) <= MAX_HANDOFF) return { finalResponse: text };
-	const path = join(tmpdir(), `pi-subagent-response-${randomBytes(8).toString("hex")}.md`);
+async function capResponse(text, result, diagnose, cap = MAX_HANDOFF, savedPath) {
+	if (serializedBytes(handoff({ ...result, finalResponse: text })) <= cap) return { finalResponse: text };
+	const path = savedPath ?? join(tmpdir(), `pi-subagent-response-${randomBytes(8).toString("hex")}.md`);
 	let saved = true;
-	try { await writeFile(path, text, { mode: 0o600, flag: "wx" }); }
-	catch (error) { saved = false; diagnose(`Full response could not be saved: ${String(error)}\n`); }
-	const marker = (next) => `\n\n[Response truncated at ${MAX_HANDOFF / 1024}KB.${saved ? ` Full response: ${path}; continue with read offset=${next}.]` : " The full response could not be saved.]"}`;
+	if (!savedPath) {
+		try { await writeFile(path, text, { mode: 0o600, flag: "wx" }); }
+		catch (error) { saved = false; diagnose(`Full response could not be saved: ${String(error)}\n`); }
+	}
+	const marker = (next) => `\n\n[Response truncated at ${Number((cap / 1024).toFixed(1))}KB.${saved ? ` Full response: ${path}; continue with read offset=${next}.]` : " The full response could not be saved.]"}`;
 	// The widest possible offset reserves room for the marker before the head is known.
-	const { head, whole } = leadingText(text, MAX_HANDOFF - serializedBytes(handoff({ ...result, finalResponse: marker(text.length + 2) })));
+	const { head, whole } = leadingText(text, cap - serializedBytes(handoff({ ...result, finalResponse: marker(text.length + 2) })));
 	return { finalResponse: `${head}${marker(whole ? head.split("\n").length + 1 : 1)}`, ...(saved ? { fullResponsePath: path } : {}) };
 }
+
+const appendDiagnostic = (current, text) => {
+	const combined = current + text;
+	return combined.length > MAX_DIAGNOSTIC ? `${DIAGNOSTIC_MARK}${combined.slice(-MAX_DIAGNOSTIC)}` : combined;
+};
+
+/** Fits one handoff to its share of the budget. Diagnostics keep their tail within half the share,
+ * so ten failed children still fit; the response keeps its leading lines, its full text saved once. */
+async function fitHandoff(result, cap, text, savedPath) {
+	const fitted = { ...result };
+	const half = Math.floor(cap / 2);
+	if (serializedBytes(fitted.diagnostic) > half) {
+		const body = fitted.diagnostic.startsWith(DIAGNOSTIC_MARK) ? fitted.diagnostic.slice(DIAGNOSTIC_MARK.length) : fitted.diagnostic;
+		fitted.diagnostic = `${DIAGNOSTIC_MARK}${trailingText(body, half - serializedBytes(DIAGNOSTIC_MARK))}`;
+	}
+	if (text) Object.assign(fitted, await capResponse(text, fitted, (message) => { fitted.diagnostic = appendDiagnostic(fitted.diagnostic, message); }, cap, savedPath));
+	return fitted;
+}
+
+/** Results delivered together share the budget. One stored under a larger share, from a launch
+ * with fewer pending readers, is cut again from its saved full text. */
+export async function fitDelivered(results) {
+	const cap = handoffCap(results.length);
+	return Promise.all(results.map(async (result) => {
+		if (serializedBytes(handoff(result)) <= cap) return result;
+		let text = result.finalResponse, savedPath;
+		if (result.fullResponsePath) {
+			try { text = await readFile(result.fullResponsePath, "utf8"); savedPath = result.fullResponsePath; }
+			catch { /* A missing full text leaves the stored head to cut again. */ }
+		}
+		return fitHandoff(result, cap, text, savedPath);
+	}));
+}
+
+/** The tail of `text` within `budget` bytes once JSON-escaped; each dropped character frees at least a byte. */
+function trailingText(text, budget) {
+	budget = Math.max(0, budget);
+	let part = text.slice(Math.max(0, text.length - budget));
+	for (let excess; (excess = serializedBytes(part) - 2 - budget) > 0;) part = part.slice(excess);
+	return part;
+}
+
+const responseText = (message) => message?.content?.filter((block) => block.type === "text").map((block) => block.text).join("\n").trim() ?? "";
 
 /** Leading whole lines within `budget` bytes once JSON-escaped; a first line over budget is cut by characters. */
 function leadingText(text, budget) {
