@@ -11,10 +11,10 @@ import { getAgentDir, getPackageDir, SettingsManager, type ExtensionAPI } from "
 import { Type } from "typebox";
 import { compactTool } from "./compact-tools.ts";
 import { providerRequestOptions } from "./provider-options.mjs";
-import { BatchController, handoff, mergeUsage } from "./subagent/controller.mjs";
+import { BatchController, fitDelivered, handoff, mergeUsage } from "./subagent/controller.mjs";
 import { REGISTRY_RESOLVE_EVENT } from "./skills/registry.mjs";
 import type { SkillResolutionRequest } from "./skills/types.ts";
-import { MAX_TASKS, READ_TOOLS, WRITE_TOOLS, THINKING_LEVELS, selectModel, timeoutMs, validateBatch, validatePath, within, concreteFile } from "./subagent/policy.mjs";
+import { MAX_TASKS, READ_TOOLS, WRITE_TOOLS, THINKING_LEVELS, selectModel, timeoutMs, checkRoleLimits, validateBatch, validatePath, within, concreteFile } from "./subagent/policy.mjs";
 
 const CONTROLLER_KEY = Symbol.for("pi-orchestraitor.subagent-controller");
 const PROGRESS_LABEL_LIMIT = 200;
@@ -67,7 +67,9 @@ export default function subagents(pi: ExtensionAPI) {
 		if (!finished.length) queueMicrotask(announce);
 		finished.push(result);
 	};
-	const pack = (results, pending = []) => {
+	const pack = async (delivered, pending = []) => {
+		// Results delivered together share the handoff budget, whenever each was launched.
+		const results = await fitDelivered(delivered);
 		const usage = mergeUsage(results.map(result => result.usage));
 		return { content: [{ type: "text", text: JSON.stringify({ results: results.map(handoff), pending }) }],
 			details: { results, pending, usageComplete: !pending.length && results.every(result => result.usageComplete === true) }, ...(usage ? { usage } : {}) };
@@ -147,7 +149,7 @@ export default function subagents(pi: ExtensionAPI) {
 				for (const id of ids) if (!delivered.has(id) && !results.some(result => result.id === id) && recovered.get(id)?.result) results.push(recovered.get(id).result);
 				const fresh = results.filter(result => !delivered.has(result.id));
 				for (const result of fresh) { delivered.add(result.id); recovered.delete(result.id); }
-				return pack(fresh, [...background.jobs.keys(), ...recovered.keys()]);
+				return await pack(fresh, [...background.jobs.keys(), ...recovered.keys()]);
 			} finally {
 				signal?.removeEventListener("abort", abort);
 				for (const id of covered) waiting.delete(id);
@@ -240,18 +242,12 @@ export default function subagents(pi: ExtensionAPI) {
 				timeouts.set(manifest.id, timeoutMs(resolved.values.timeout));
 				limits.set(task.role, resolved.values.parallel);
 			}
-			// A role's limit covers this batch plus that role's pending background readers.
-			for (const [role, limit] of limits) {
-				const requested = manifests.filter(manifest => manifest.role === role).length;
-				const pending = [...background.jobs.values()].filter(job => job.manifest.role === role).length;
-				if (requested + pending > limit) throw new Error(`The active profile allows ${limit} ${role} subagent${limit === 1 ? "" : "s"} at once; requested ${requested}${pending ? ` with ${pending} pending` : ""}. Use fewer tasks or change the limit in /models-profiles`);
-			}
 			const sessionId = ctx.sessionManager?.getSessionId();
 			// Children's requests carry the provider options Pi gives the parent's, from its current settings.
 			const settings = SettingsManager.inMemory(pi.getSettings());
 			// Per call: parallel subagent_run calls share the controller, so only its lock is global.
 			const launch = { sdkRoot: getPackageDir(), credentialDir: getAgentDir(), registry: ctx.modelRegistry, modelFor: (manifest) => models.get(manifest.id),
-				providerSessionFor: (manifest) => providerSession(sessionId, manifest.id), taskTimeoutFor: (manifest) => timeouts.get(manifest.id),
+				providerSessionFor: (manifest) => providerSession(sessionId, manifest.id), taskTimeoutFor: (manifest) => timeouts.get(manifest.id), roleLimits: limits,
 				requestOptionsFor: (manifest, providerSessionId) => providerRequestOptions(settings, models.get(manifest.id), providerSessionId) };
 			const combinedSignal = signal && ctx.signal ? AbortSignal.any([signal, ctx.signal]) : signal ?? ctx.signal;
 			let sequence = 0;
@@ -304,8 +300,11 @@ export default function subagents(pi: ExtensionAPI) {
 				const batch = await background.run(manifests, manifest => prompts.get(manifest.id), combinedSignal, publish, launch, persist, notifyFor(startedGeneration));
 				detached = true;
 				publish();
-				return pack(batch.results, batch.pending);
+				return await pack(batch.results, batch.pending);
 			}
+			// A role's limit covers this batch plus that role's pending readers; the background path checks
+			// both while reserving. Nothing is pending here, and the controller admits one batch at a time.
+			checkRoleLimits(manifests, limits);
 			const results = await controller.run(manifests, (manifest) => prompts.get(manifest.id), combinedSignal, publish, launch);
 			publish();
 			const usage = mergeUsage(results.map((result) => result.usage));

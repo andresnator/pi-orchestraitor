@@ -1,4 +1,4 @@
-import { MAX_TASKS, validateBatch } from "./policy.mjs";
+import { MAX_TASKS, checkRoleLimits, validateBatch } from "./policy.mjs";
 import { BatchController, handoffCap } from "./controller.mjs";
 
 const DIAGNOSTIC_SUMMARY = 200;
@@ -17,6 +17,8 @@ export class BackgroundTasks {
 		if (this.blocked || this.foreground) throw new Error("Subagent launches blocked");
 		if (manifests.some(task => task.role === "implement") && this.jobs.size) throw new Error("Collect pending readers before implementation");
 		if (this.jobs.size + manifests.length > MAX_TASKS) throw new Error(`At most ${MAX_TASKS} pending readers are allowed`);
+		// Checked with the reservation below, in one synchronous step, so parallel launches cannot both pass.
+		checkRoleLimits(manifests, options?.roleLimits, [...this.jobs.values()].map(job => job.manifest));
 		const foreground = [], pending = [];
 		// Results collected together share the handoff budget, pending readers included.
 		const launch = { ...options, maxHandoff: handoffCap(this.jobs.size + manifests.length) };

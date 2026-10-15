@@ -62,7 +62,8 @@ test("a trusted profile limits each role's parallel subagents, pending readers i
 	const f = await fixture(t, { trusted: true, project: { assignments: { explore: { parallel: 1 } } }, onParent(turn) {
 		if (turn === 0) return call("too-many", "subagent_run", { tasks: [{ role: "explore", instruction: "One" }, { role: "explore", instruction: "Two" }] });
 		if (turn === 1) return call("mixed", "subagent_run", { tasks: [{ role: "explore", instruction: "One" }, { role: "review", instruction: "Two" }] });
-		if (turn === 2) return call("background", "subagent_run", { tasks: [{ role: "explore", instruction: "Three", mode: "background" }] });
+		// Pi runs tool calls of one message in parallel; only one launch may reserve the single slot.
+		if (turn === 2) return ["a", "b"].flatMap(id => call(`background-${id}`, "subagent_run", { tasks: [{ role: "explore", instruction: `Three ${id}`, mode: "background" }] }));
 		if (turn === 3) return call("over-pending", "subagent_run", { tasks: [{ role: "explore", instruction: "Four" }] });
 		if (turn === 4) return call("wait", "subagent_collect", { action: "wait" });
 		return "Parent done";
@@ -73,7 +74,9 @@ test("a trusted profile limits each role's parallel subagents, pending readers i
 	assert.equal(results["too-many"].isError, true);
 	assert.match(JSON.stringify(results["too-many"].content), /allows 1 explore subagent at once; requested 2.*\/models-profiles/);
 	assert.equal(results.mixed.isError, false, JSON.stringify(results.mixed.content));
-	assert.equal(results.background.isError, false, JSON.stringify(results.background.content));
+	const parallel = [results["background-a"], results["background-b"]];
+	assert.deepEqual(parallel.map(result => result.isError).sort(), [false, true], JSON.stringify(parallel.map(result => result.content)));
+	assert.match(JSON.stringify(parallel.find(result => result.isError).content), /allows 1 explore subagent at once; requested 1 with 1 pending/);
 	assert.match(JSON.stringify(results["over-pending"].content), /allows 1 explore subagent at once; requested 1 with 1 pending/);
 	assert.equal(results.wait.isError, false, JSON.stringify(results.wait.content));
 	assert.equal(f.childProviders.length, 3);

@@ -91,6 +91,16 @@ export function validateBatch(tasks) {
 	}
 }
 
+/** Fails when a role would exceed its profile limit, counting that role's `pending` readers.
+ * Callers run it in the same synchronous step that reserves the batch, so parallel calls cannot both pass. */
+export function checkRoleLimits(manifests, limits = new Map(), pending = []) {
+	for (const [role, limit] of limits) {
+		const requested = manifests.filter((manifest) => manifest.role === role).length;
+		const waiting = pending.filter((manifest) => manifest.role === role).length;
+		if (requested && requested + waiting > limit) throw new Error(`The active profile allows ${limit} ${role} subagent${limit === 1 ? "" : "s"} at once; requested ${requested}${waiting ? ` with ${waiting} pending` : ""}. Use fewer tasks or change the limit in /models-profiles`);
+	}
+}
+
 /** A profile deadline in milliseconds: whole minutes, or "off" for none. */
 export const timeoutMs = (minutes) => minutes === "off" ? Infinity : minutes * 60 * 1000;
 

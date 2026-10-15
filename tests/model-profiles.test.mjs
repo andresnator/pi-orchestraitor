@@ -219,6 +219,17 @@ test("background capacity includes completed uncollected readers and receipts ac
 	assert.equal(recoverReceipts([...receipts, { type: "message", message: { role: "toolResult", details: { results } } }]).size, 0);
 });
 
+test("parallel launches cannot both pass a role's profile limit", async t => {
+	const cwd = await createWorkspace(t), pool = new BackgroundTasks();
+	const options = { sdkRoot: hostRoot, registry: { streamSimple: () => streamResponse("done") }, modelFor: () => model, stopGrace: 50, roleLimits: new Map([["explore", 1]]) };
+	// Both launches start before either awaits, as Pi runs one message's tool calls in parallel.
+	const [first, second] = await Promise.allSettled(["one", "two"].map(id => pool.run([{ ...manifest(cwd, id), mode: "background" }], () => "inspect", undefined, undefined, options, () => {})));
+	assert.equal(first.status, "fulfilled", String(first.reason));
+	assert.match(String(second.reason), /allows 1 explore subagent at once; requested 1 with 1 pending/);
+	await pool.wait();
+	assert.deepEqual(pool.collect().map(result => result.id), ["one"]);
+});
+
 test("mixed background and sync readers share capacity and cancellation reaches the parent provider", { timeout: 15000 }, async t => {
 	const cwd = await realpath(await createWorkspace(t)), pool = new BackgroundTasks();
 	let cancelled = 0, started;

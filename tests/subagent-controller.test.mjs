@@ -3,7 +3,7 @@ import { access, mkdir, readdir, realpath, readFile, rm, stat } from "node:fs/pr
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { BatchController, RpcDecoder } from "../extensions/subagent/controller.mjs";
+import { BatchController, RpcDecoder, fitDelivered, handoff, handoffCap } from "../extensions/subagent/controller.mjs";
 import { createWorkspace } from "./helpers/pi-host.mjs";
 
 const childPath = fileURLToPath(new URL("./fixtures/subagent-child.mjs", import.meta.url));
@@ -128,6 +128,44 @@ test("shouldSplitTheHandoffBudgetWhenFiveReadersReturnTogether", async (t) => {
 		const marker = /\n\n\[Response truncated at 9\.6KB\. Full response: (\S+); continue with read offset=(\d+)\.\]$/.exec(result.finalResponse);
 		assert.ok(marker, result.finalResponse.slice(-300));
 		assert.deepEqual({ status: result.status, directory: dirname(marker[1]), saved: await readFile(marker[1], "utf8") }, { status: "completed", directory, saved: full });
+	}
+});
+
+test("shouldCutStoredResultsAgainWhenMoreAreCollectedTogetherThanAtTheirLaunch", async (t) => {
+	// Given: readers launched one at a time keep 24 KiB each; one was already cut at 24 KiB
+	const cwd = await realpath(await createWorkspace(t));
+	const directory = await isolatedTmpdir(t, cwd);
+	const full = Array.from({ length: 1500 }, (_, index) => `line ${index + 1}`).join("\n");
+	const results = await Promise.all(["a", "b", "c", "d", "e"].map((id) =>
+		new BatchController(options).run([{ ...task(cwd, id, "usage"), responses: [{ usage: usage(1), content: [{ type: "text", text: id === "e" ? `${full}\n${full}` : full }] }] }], () => "work").then(([result]) => result)));
+	const earlier = results.map((result) => result.fullResponsePath);
+	assert.deepEqual(earlier.map(Boolean), [false, false, false, false, true], "only the oversized reader was cut at launch");
+	// When
+	const delivered = await fitDelivered(results);
+	// Then: each keeps a 9.6 KiB share, saving a full text once and reusing an earlier one
+	assert.ok(Buffer.byteLength(JSON.stringify(delivered.map(handoff))) <= 48 * 1024 + 16);
+	for (const [index, result] of delivered.entries()) {
+		const marker = /\n\n\[Response truncated at 9\.6KB\. Full response: (\S+); continue with read offset=\d+\.\]$/.exec(result.finalResponse);
+		assert.ok(marker && Buffer.byteLength(JSON.stringify(handoff(result))) <= handoffCap(5), result.finalResponse.slice(-200));
+		assert.equal(await readFile(marker[1], "utf8"), index === 4 ? `${full}\n${full}` : full);
+		if (index === 4) assert.equal(marker[1], earlier[4]);
+	}
+	assert.equal((await responseFiles(directory)).length, 5);
+	assert.deepEqual(await fitDelivered(results.slice(0, 2)), results.slice(0, 2), "two results keep their launch share");
+});
+
+test("shouldKeepTenFailedHandoffsWithinTheBudgetWhenDiagnosticsAreLong", async () => {
+	// Given: ten failed children, each with the full 8 Ki-character diagnostic tail
+	const tail = "\"escaped\" line\n".repeat(600).slice(-8192);
+	const failed = Array.from({ length: 10 }, (_, index) => ({ id: `f${index}`, status: "failed", finalResponse: "", writes: [], diagnostic: `[Diagnostics truncated]\n${tail}`, terminated: true, usageComplete: false }));
+	// When
+	const delivered = await fitDelivered(failed);
+	// Then: diagnostics keep their latest lines within half of each share
+	assert.ok(Buffer.byteLength(JSON.stringify(delivered.map(handoff))) <= 48 * 1024 + 16);
+	for (const result of delivered) {
+		assert.ok(result.diagnostic.startsWith("[Diagnostics truncated]\n") && !result.diagnostic.slice(1).includes("[Diagnostics truncated]"));
+		assert.ok(tail.endsWith(result.diagnostic.slice("[Diagnostics truncated]\n".length)));
+		assert.ok(Buffer.byteLength(JSON.stringify(result.diagnostic)) <= handoffCap(10) / 2);
 	}
 });
 
@@ -450,6 +488,18 @@ test("shouldLetOtherReaderFinishWhenOneDeadlineExpires", async (t) => {
 	assert.deepEqual(results.map(({ status, terminated }) => ({ status, terminated })), [{ status: "timed_out", terminated: true }, { status: "completed", terminated: true }]);
 });
 
+for (const [streamed, expected] of [[[{ type: "text", text: "half of the answer" }], "half of the answer"], [[{ type: "toolCall", id: "read", name: "read", arguments: {} }], "same response"]]) {
+	test(`shouldReturnTheLatestAssistantTextWhenTheDeadlineExpiresWhileStreaming${streamed[0].type}`, async (t) => {
+		// Given: a finished turn, then a second answer still streaming when the deadline expires
+		const cwd = await realpath(await createWorkspace(t));
+		const controller = new BatchController({ ...options, taskTimeout: 300, stopGrace: 100 });
+		// When
+		const [result] = await controller.run([{ ...task(cwd, "streaming", "usage-hang"), responses: [{ usage: usage(1) }], streaming: streamed, abortUsage: usage(2) }], () => "work");
+		// Then: streamed text wins; a turn streaming only a tool call keeps the last finished text
+		assert.deepEqual({ status: result.status, response: result.finalResponse }, { status: "timed_out", response: `[Partial: task timed out]\n\n${expected}` }, result.diagnostic);
+	});
+}
+
 test("shouldWaitForCancellationWhenTheProfileTurnsTheDeadlineOff", async (t) => {
 	// Given
 	const cwd = await realpath(await createWorkspace(t));
@@ -615,7 +665,8 @@ for (const trigger of ["cancellation", "timeout"]) {
 		const cwd = await realpath(await createWorkspace(t));
 		const abort = new AbortController();
 		const manifest = { ...task(cwd, "native-write"), role: "implement", files: ["target"], contextFiles: [], tools: ["read", "search", "list", "edit", "write"], fixtureUsage: [usage(1), usage(2)] };
-		const controller = new BatchController({ childPath: fileURLToPath(new URL("./fixtures/subagent-native-child.mjs", import.meta.url)), sdkRoot: hostRoot, taskTimeout: 1500, stopGrace: 100,
+		// The native child takes over a second to write on slow CI, so the deadline leaves ample margin.
+		const controller = new BatchController({ childPath: fileURLToPath(new URL("./fixtures/subagent-native-child.mjs", import.meta.url)), sdkRoot: hostRoot, taskTimeout: trigger === "timeout" ? 5000 : 30_000, stopGrace: 100,
 			spawnProcess: (...args) => {
 				const child = spawn(...args);
 				child.on("message", (message) => { if (trigger === "cancellation" && message.type === "model_waiting") abort.abort(); });
