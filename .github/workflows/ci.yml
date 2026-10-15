@@ -1,7 +1,10 @@
 name: CI
 
+# Pull requests test the merge result once; pushes are tested only on long-lived branches,
+# so a pull request commit no longer runs twice (push and pull_request).
 on:
   push:
+    branches: [main, develop]
   pull_request:
   workflow_dispatch:
 
