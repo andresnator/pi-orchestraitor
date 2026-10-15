@@ -70,23 +70,22 @@ describe("temporary conversation", () => {
 			[[PARENT_SESSION, "sse"], ["parent-after-switch", "sse"]]);
 	});
 
-	it("shouldUseLowThinkingUntilShiftTabSelectsInheritOrOff", async () => {
+	it("shouldInheritThinkingUntilShiftTabSelectsOffOrLow", async () => {
 		// Given
 		const { conversation, streamSimple, ctx } = fixture();
 		// When
-		await conversation.send("Default");
-		conversation.cycleThinking();
-		ctx.model = OTHER_MODEL;
 		await conversation.send("Inherited");
+		ctx.model = OTHER_MODEL;
 		ctx.thinkingLevel = "medium";
 		await conversation.send("Inherited after a parent change");
 		conversation.cycleThinking();
 		await conversation.send("Off");
 		conversation.cycleThinking();
+		await conversation.send("Low");
 		// Then
 		assert.deepEqual(streamSimple.mock.calls.map(({ arguments: [model, , options] }) => ({ model: model.id, reasoning: options.reasoning })), [
-			{ model: MODEL.id, reasoning: "low" }, { model: OTHER_MODEL.id, reasoning: "high" },
-			{ model: OTHER_MODEL.id, reasoning: "medium" }, { model: OTHER_MODEL.id, reasoning: undefined },
+			{ model: MODEL.id, reasoning: "high" }, { model: OTHER_MODEL.id, reasoning: "medium" },
+			{ model: OTHER_MODEL.id, reasoning: undefined }, { model: OTHER_MODEL.id, reasoning: "low" },
 		]);
 		assert.deepEqual({ thinking: conversation.thinking, parent: ctx.thinkingLevel }, { thinking: "low", parent: "medium" });
 	});

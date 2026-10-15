@@ -14,7 +14,7 @@ BTW snapshots the **current parent branch** on opening, respecting compaction an
 
 ### Thinking and status
 
-BTW answers with **low** thinking by default, so side questions stay fast while the parent works on harder settings. **Shift+Tab** cycles `low` → `inherit` → `off`; `inherit` follows the parent's level when each request starts. The title shows the choice and, when it differs, what the current model allows (`think inherit:high`, `think low→off`).
+BTW **inherits** the parent's thinking level by default: it follows the parent's level when each request starts, so providers that key their prompt cache on the effort, such as OpenAI Codex, can reuse the parent's cache. **Shift+Tab** cycles `inherit` → `off` → `low` for faster answers at the cost of that reuse. The title shows the choice and, when it differs, what the current model allows (`think inherit:high`, `think low→off`).
 
 The title also reports the latest request:
 
@@ -35,7 +35,7 @@ Each finished answer ends with a dim summary of its own request, such as `#2 · 
 BTW replays the parent's system prompt and tool declarations unchanged and sends its own instructions once, with the first side question. The request therefore starts with the parent's exact prefix, so providers with prefix caching can reuse the parent's cache, and follow-ups reuse BTW's own. The provider's default cache retention applies, as for the parent. Expected limits:
 
 - BTW sends the parent's session id, so providers that route caching by session, such as OpenAI Codex, can serve even the first question from the parent's cache. BTW always requests the stateless SSE transport, so it never shares the parent's websocket or response continuation.
-- BTW sends the parent's configured thinking budgets, request timeout, provider retry limits and provider attribution headers, read from Pi's settings as in [subagents](subagents.md); `before_provider_headers` handlers do not apply. Anthropic models with budget-based thinking key the message cache on the thinking settings; `inherit` maximizes reuse there.
+- BTW sends the parent's configured thinking budgets, request timeout, provider retry limits and provider attribution headers, read from Pi's settings as in [subagents](subagents.md); `before_provider_headers` handlers do not apply. Anthropic models with budget-based thinking and OpenAI Codex key the cache on the thinking settings; the default `inherit` maximizes reuse there.
 - Extensions that rewrite the parent's context before each request make the prefixes differ.
 
 ## Controls
@@ -44,7 +44,7 @@ BTW replays the parent's system prompt and tool declarations unchanged and sends
 | --- | --- |
 | Enter | Send; while responding, queue in FIFO order |
 | Shift+Enter | Insert a newline |
-| Shift+Tab | Cycle BTW thinking: low, inherit, off |
+| Shift+Tab | Cycle BTW thinking: inherit, off, low |
 | Ctrl+T | Show or hide the reasoning preview |
 | Ctrl+X / Pi's copy keybinding | Copy the latest finished answer, as `/bring latest` would import it |
 | Ctrl+R | After an error or cancellation, ask the last question again in place of the failed attempt |

@@ -158,6 +158,7 @@ describe("popup", () => {
 			yield { type: "done", message: response(), reason: "stop" };
 		})()));
 		ctx.model = { ...MODEL, reasoning: true };
+		ctx.thinkingLevel = "low";
 		const idle = popup.render(100)[0];
 		// When
 		const running = popup.submit(QUESTION);
@@ -168,7 +169,7 @@ describe("popup", () => {
 		releases[1]();
 		await running;
 		// Then
-		assert.match(idle, /\/btw · Ready · think low /);
+		assert.match(idle, /\/btw · Ready · think inherit:low /);
 		assert.ok(sending.includes("◌ Sending") && sending.includes(LOADING_TEXT) && sending.includes(BUSY_HELP));
 		// Escaped reasoning renders literally instead of as emphasis.
 		assert.ok(thinkingScreen.includes("Weighing *cache* reuse"));
@@ -187,6 +188,7 @@ describe("popup", () => {
 			yield { type: "done", message: response(), reason: "stop" };
 		})()));
 		ctx.model = { ...MODEL, reasoning: true };
+		ctx.thinkingLevel = "low";
 		// When
 		const levels = [];
 		for (let press = 0; press < 3; press++) { popup.handleInput("\u001b[Z"); levels.push(popup.render(200)[0].match(/think (\S+)/)[1]); }
@@ -197,7 +199,7 @@ describe("popup", () => {
 		release();
 		await running;
 		// Then
-		assert.deepEqual(levels, ["inherit:off", "off", "low"]);
+		assert.deepEqual(levels, ["off", "low", "inherit:low"]);
 		assert.equal(streamSimple.mock.calls[0].arguments[2].reasoning, "low");
 		assert.ok(hidden.includes("Thinking…") && !hidden.includes("Private reasoning"));
 		assert.equal(popup.render(200).join("\n").includes("Shift+Tab"), true);
@@ -211,7 +213,6 @@ describe("popup", () => {
 		})()));
 		ctx.model = { ...MODEL, reasoning: true };
 		ctx.thinkingLevel = "high";
-		popup.handleInput("\u001b[Z");
 		// When
 		await popup.submit(QUESTION);
 		const lines = popup.render(60);
