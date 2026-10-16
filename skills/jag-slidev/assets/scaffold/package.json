@@ -1,0 +1,17 @@
+{
+  "name": "slidev-deck",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.9.1",
+  "engines": { "node": ">=22.19.0" },
+  "scripts": {
+    "dev": "slidev slides.md",
+    "build": "slidev build slides.md",
+    "export": "slidev export slides.md"
+  },
+  "dependencies": {
+    "@slidev/cli": "^52.0.0",
+    "@slidev/theme-seriph": "^0.25.0"
+  },
+  "devDependencies": { "playwright-chromium": "^1.61.1" }
+}

@@ -9,8 +9,8 @@ import { createWorkspace, packageRoot, pi } from "./helpers/pi-host.mjs";
 // Instruction checks establish structural contracts, not real-model compliance.
 const SOURCE_REVISION = "6fd947921b935b7e1e69293a200400f0fdd5c15f";
 const SOURCE_REPOSITORY = "https://github.com/mattpocock/skills";
-const NATIVE_SKILL_COUNT = 57;
-const AUTOMATIC_SKILL_COUNT = 54;
+const NATIVE_SKILL_COUNT = 59;
+const AUTOMATIC_SKILL_COUNT = 56;
 const MANUAL_NAMES = ["jag-handoff", "jag-teach", "jag-wait-what"];
 const NEW_SKILLS = [
 	{ name: "jag-agent-docs", upstream: "writing-for-agents", bucket: "productivity", sourceHash: "551adca942227b44192edba88acd4e8db911f0121ce58ad16944ccf6a896a74a" },

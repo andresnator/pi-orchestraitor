@@ -1868,6 +1868,202 @@
       "adaptations": [
         "SKILL.md"
       ]
+    },
+    {
+      "name": "jag-slidev",
+      "upstreamName": "slidev-retro-deck",
+      "upstreamPaths": [
+        "domains/docs/skills/slidev-retro-deck/SKILL.md"
+      ],
+      "upstreamVersion": "1.2.0",
+      "license": "MIT",
+      "author": "andresnator",
+      "adaptedBy": "pi-orchestraitor",
+      "upstreamRepository": "https://github.com/andresnator/agents-orchestrator",
+      "upstreamRevision": "ea3158595b56d832e79b41c4c16175f45cd67ea2",
+      "upstreamSha256": "e0369d54093b4e6d829610bdd4e4a6768b0bd7fa08f9b683c11f736315313811",
+      "upstreamResources": [
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/SKILL.md",
+          "sha256": "e0369d54093b4e6d829610bdd4e4a6768b0bd7fa08f9b683c11f736315313811"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/global-bottom.vue",
+          "sha256": "3423eaaeea3d966125ed25955075cdac6ec9599eccf9d6d00387787f625c8982"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/mermaid-check/check.mjs",
+          "sha256": "54dbf8af20dda0a740c52f2e6b94652ec575d5a590c77349cb20f2cbc930f70a"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/mermaid-check/package.json",
+          "sha256": "5feae59a26e29cf1a17b80a7dabbd4f198e4fcc27b913e0ca082c47468cf784c"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/scaffold/package.json",
+          "sha256": "561263874940f60d39db6a1f89f58133a112ac2b03b377942759a7d25a893f93"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/scaffold/pnpm-workspace.yaml",
+          "sha256": "8063614c40befaa0ec8d92615d6b9a2d6f53c89c794ea20576b3b6fcef8fcd92"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/slides-skeleton.md",
+          "sha256": "dc2621ff488e5bedabcfc132f82ee7e8542ad2919b2b0dcfd6a2c1d2d1ee288d"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/themes/crt-phosphor/mermaid-setup.ts",
+          "sha256": "730ad8ce440874b578ffa257901bc9356727e77e0621c2c12c3b80c9c4a823df"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/themes/crt-phosphor/style.css",
+          "sha256": "5684f3e2ed487ebbc7f50a0de81385d6250380ca0a28192a54ce2f3c4b2b60ab"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/themes/dos-terminal/mermaid-setup.ts",
+          "sha256": "fd5e4a1472bf7f788c53a8eb36ad9891fe5ffaff8c2c52ea6e6c8e8563cb2729"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/themes/dos-terminal/style.css",
+          "sha256": "2ea8d12885f2044b7ce0774c589ac26595586bacacad8bbc0a539fdaaab4486c"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/themes/synthwave-arcade/mermaid-setup.ts",
+          "sha256": "ad3d843581cc64e9370c3d0f5751353657342c1d37ed922743be561a7093b9a4"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/themes/synthwave-arcade/style.css",
+          "sha256": "80e00815684be1358fa0c55a2e7d003af24482c4b32a90a945c3cfd15d3a9c60"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/references/troubleshooting.md",
+          "sha256": "07045f6a2a8c2df2e5483ceb0983da8e8657f75d302deb719cf03e5198d0aedc"
+        }
+      ],
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "3f26d29820e025443e72684f515a9ce4543d2d5d391eec4d4c93c36de8317ed7"
+        },
+        {
+          "path": "assets/global-bottom.vue",
+          "sha256": "0727a8589a37dbb8f8621369537cff2bb0f7e67291a9cbd1fece390997de3afc"
+        },
+        {
+          "path": "assets/mermaid-check/check.mjs",
+          "sha256": "37bdece55ed1f9703c4a0aaff73f72b5c37c5af95b1b0c8707a9d7b77ade3ac9"
+        },
+        {
+          "path": "assets/mermaid-check/package.json",
+          "sha256": "de3bdc4a28af5c22f2d72a2a8cf6dbf7255dd69979a24cb1949b353b09340834"
+        },
+        {
+          "path": "assets/scaffold/package.json",
+          "sha256": "7bd98a396a6c5bd870ffd7189bb44a7dbe572712162202c1f5cdbed2f41f0735"
+        },
+        {
+          "path": "assets/scaffold/pnpm-workspace.yaml",
+          "sha256": "18d22717eb77a9e8a43cfe4fa9a18bf421bdfd740aeb20d3fb87d96ad90f88fd"
+        },
+        {
+          "path": "assets/slides-skeleton.md",
+          "sha256": "dc2621ff488e5bedabcfc132f82ee7e8542ad2919b2b0dcfd6a2c1d2d1ee288d"
+        },
+        {
+          "path": "assets/themes/crt-phosphor/mermaid-setup.ts",
+          "sha256": "0edc484a08f52d2f94ba7efef0fbb8d84d2ec05d0d92785b74d91ada000109ee"
+        },
+        {
+          "path": "assets/themes/crt-phosphor/style.css",
+          "sha256": "5684f3e2ed487ebbc7f50a0de81385d6250380ca0a28192a54ce2f3c4b2b60ab"
+        },
+        {
+          "path": "assets/themes/dos-terminal/mermaid-setup.ts",
+          "sha256": "3f16c9efb8a5b98f7981324509d82f722bae56b5ee079ee1e1af2b55d348cba7"
+        },
+        {
+          "path": "assets/themes/dos-terminal/style.css",
+          "sha256": "2ea8d12885f2044b7ce0774c589ac26595586bacacad8bbc0a539fdaaab4486c"
+        },
+        {
+          "path": "assets/themes/synthwave-arcade/mermaid-setup.ts",
+          "sha256": "774b9e79f7bf040f9968134537b6870c78eafad285cc6c250b087cfdb5c4f850"
+        },
+        {
+          "path": "assets/themes/synthwave-arcade/style.css",
+          "sha256": "80e00815684be1358fa0c55a2e7d003af24482c4b32a90a945c3cfd15d3a9c60"
+        },
+        {
+          "path": "references/layout.md",
+          "sha256": "dd6638a3afa0ae0ee4d7b517176c1cd57bfb591211cc27fd4a28e338926935fa"
+        },
+        {
+          "path": "references/setup.md",
+          "sha256": "67d0607e8a549310f3596fc90dd667ab087b61e081254932b5058f4e2eda6a20"
+        },
+        {
+          "path": "references/troubleshooting.md",
+          "sha256": "334dff63b922a21867117b0e1d329c0d0896e6e0a9180d90319081a7a5cb3a30"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md",
+        "assets/global-bottom.vue",
+        "assets/mermaid-check/check.mjs",
+        "assets/mermaid-check/package.json",
+        "assets/scaffold/package.json",
+        "assets/scaffold/pnpm-workspace.yaml",
+        "assets/themes/crt-phosphor/mermaid-setup.ts",
+        "assets/themes/dos-terminal/mermaid-setup.ts",
+        "assets/themes/synthwave-arcade/mermaid-setup.ts",
+        "references/layout.md",
+        "references/setup.md",
+        "references/troubleshooting.md"
+      ]
+    },
+    {
+      "name": "jag-whisper",
+      "upstreamName": "whisper-extract",
+      "upstreamPaths": [
+        "domains/docs/skills/whisper-extract/SKILL.md"
+      ],
+      "upstreamVersion": "1.1.1",
+      "license": "MIT",
+      "author": "andresnator",
+      "adaptedBy": "pi-orchestraitor",
+      "upstreamRepository": "https://github.com/andresnator/agents-orchestrator",
+      "upstreamRevision": "ea3158595b56d832e79b41c4c16175f45cd67ea2",
+      "upstreamSha256": "aafe1e855749b874476014011dbdb4dff9f4c48bd196effd36edcdced39a0d0c",
+      "upstreamResources": [
+        {
+          "path": "domains/docs/skills/whisper-extract/SKILL.md",
+          "sha256": "aafe1e855749b874476014011dbdb4dff9f4c48bd196effd36edcdced39a0d0c"
+        }
+      ],
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "97f5304994904ce64b52d2d908a0c783a462e872eb968a8924bdb1d0b14e2425"
+        },
+        {
+          "path": "assets/transcript-template.md",
+          "sha256": "aa0392410b0aa079f5d2912c5376d95f88b66efef936b980ceba9003ec072577"
+        },
+        {
+          "path": "references/cli.md",
+          "sha256": "4fdea6af5a05945114491a84c35d1831eb254b3c568c79d4ecb0f398a0ae1b86"
+        },
+        {
+          "path": "scripts/assemble.mjs",
+          "sha256": "a3ba457115fbc6437e9aba72314641b44993730a39e96930a08ba975bf3c295a"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md",
+        "assets/transcript-template.md",
+        "references/cli.md",
+        "scripts/assemble.mjs"
+      ]
     }
   ],
   "consolidatedSkills": [

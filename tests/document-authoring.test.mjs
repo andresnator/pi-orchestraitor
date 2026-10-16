@@ -18,7 +18,7 @@ const ORIGINAL_BODY_HASHES = {
 	"jag-jira-spike": "70914d07749896423dd1622e7f3291d3a01bc93533cbc399e7fc762f429ba244",
 };
 const SELECTED_NAMES = Object.keys(ORIGINAL_BODY_HASHES);
-const BUNDLED_SKILL_COUNT = 57;
+const BUNDLED_SKILL_COUNT = 59;
 const MODE_BLOCK = /## Optional Interactive Mode\n[\s\S]*?\n\n(?=## )/g;
 const skillPath = (name) => join(packageRoot, "skills", name, "SKILL.md");
 const readSkill = (name) => readFile(skillPath(name), "utf8");

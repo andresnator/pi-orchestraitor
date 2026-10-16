@@ -4,11 +4,26 @@ The current deterministic baseline is Pi 1.3.0, Node 22.19+, and pnpm 12.9.1. En
 
 | Command | Claim checked |
 | --- | --- |
-| `pnpm test` | Native tool regressions, instructions and personality injection, tarball resources and 57 native / 54 automatic / three explicit-only skill names, adapted workflow contracts/credits, consolidated review criteria/discovery, prompt expansion, MCP overrides, migration, rollback, and restoration. |
+| `pnpm test` | Native tool regressions, instructions and personality injection, tarball resources and 59 native / 56 automatic / three explicit-only skill names, adapted workflow contracts/credits, consolidated review criteria/discovery, prompt expansion, MCP overrides, migration, rollback, and restoration. |
 | `pnpm run test:mcp` | Real Context7 and Engram calls through native codemode, extension hooks, and project separation in temporary memory storage. |
 | `pnpm run test:personality` | Configured-model responses in fresh isolated sessions, with predefined criteria and synthetic receipts for manual scoring. |
 | `pnpm run install:pi --dry-run` | Complete lexical discovery inventory, including aliases hidden by native deduplication, and proposed standalone-skill moves, without migration or registration. |
 | `pnpm pack --dry-run --ignore-scripts` | Distributed resource inventory and exclusion of tests, local reports, and personal data. |
+
+## Media skill adaptations — 2026-10-16
+
+Added `jag-slidev` and `jag-whisper` from Agents Orchestrator revision `ea3158595b56d832e79b41c4c16175f45cd67ea2` with explicit setup/privacy boundaries, portable assets and synthetic helper coverage. Existing source identities, license files and all 57 earlier provenance entries are unchanged. No runtime dependency, lockfile, policy or active-installation change is part of this feature.
+
+Fresh parent checks on Node 24.20.0 / Pi 1.3.0 / pnpm 12.9.1:
+
+- Baseline skill checks: 12/12 passed before implementation. New tests first failed on missing helpers/skills and the 57-versus-59 inventory; helpers, definitions and integration then passed. Additional reproduced failures for large backtick runs and non-Error parser rejection were corrected; Unicode, file-size, privacy and collision regressions are covered.
+- Focused native/media/document/consolidation checks: 50/50 passed, including 19 helper tests. Tests use repository-native `node:assert/strict`, not a new assertion framework.
+- Full `pnpm test`: 871/871 passed on the original base. After rebasing onto develop's footer/quota change `2f21d5d` and preserving its rows/extension list in two adjacent-line conflicts, the full suite passed **881/881**, zero failures/cancellations/skips. This includes extracted-tarball acceptance.
+- `npm pack --dry-run --ignore-scripts --json`: 297 files, 59 skill bodies and all 20 new media resources; no tests, local reports or development dependency links. All 216 declared local resource fingerprints and the new upstream resource pins were verified.
+- Native inventory: 59 total / 56 automatic / three manual, zero diagnostics; both new names resolve through the registry. `git diff --check` and committed whitespace checks passed.
+- Two bounded read-only reviews were collected and their findings checked by the parent. This was not independent or blind verification.
+
+Not performed: real Mermaid dependency-backed parsing, Slidev/Chromium rendering or six-theme/scheme PNG inspection, Whisper inference/audio decoding, model/browser downloads, live model privacy/coverage behavior, Windows filesystem execution, live MCP, or interactive `/reload`. No media prerequisites were installed. The fence scanner is intentionally not a full Markdown parser; comments/frontmatter/nested/imported diagrams need separate coverage. Stable manual cases are documented in [skills](skills.md#manual-media-checks-not-run-automatically). New names become active only through native discovery/reload after the package is actually updated.
 
 ## Pi 1.3.0 development host — 2026-10-16
 

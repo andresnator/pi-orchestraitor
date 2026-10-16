@@ -5,8 +5,8 @@ import test from "node:test";
 import { createSkillRegistry, DEFAULT_SEARCH_LIMIT } from "../extensions/skills/registry.mjs";
 import { createWorkspace, packageRoot, pi } from "./helpers/pi-host.mjs";
 
-const NATIVE_SKILL_COUNT = 57;
-const AUTOMATIC_SKILL_COUNT = 54;
+const NATIVE_SKILL_COUNT = 59;
+const AUTOMATIC_SKILL_COUNT = 56;
 const MANUAL_ONLY_NAMES = ["jag-handoff", "jag-teach", "jag-wait-what"];
 const QUALITY_REFERENCE = "references/review-lenses.md";
 const SMELL_REFERENCE = "references/smell-lenses.md";

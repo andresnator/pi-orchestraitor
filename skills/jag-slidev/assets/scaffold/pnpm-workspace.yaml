@@ -1,0 +1,3 @@
+# Enable browser builds only in an authorized generated deck, never implicitly.
+allowBuilds:
+  playwright-chromium: false
