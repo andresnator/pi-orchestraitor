@@ -101,6 +101,8 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 | `extensions/subagents.ts` | Model profiles, bounded sync/background readers, child guards, collection and native usage. |
 | `extensions/skill-registry.ts` | Bounded search/load, in-memory native snapshot refresh; lazy/native exposure. |
 | `extensions/status-ui.ts` | One owner for agents/tasks panels, unified questions, compact work-header/native-footer chrome and a warning before a model or thinking switch re-bills cached context. |
+| `extensions/footer.ts` | Replaces Pi's terminal footer with a project/branch line and a metrics line: context bar, compact token totals, provider, model name and effort. See [footer](interactive-ui.md#footer). |
+| `extensions/quota.ts` | `/quota` lists the plan usage each provider reported with its latest response in this Pi process. See [plan usage](interactive-ui.md#plan-usage). |
 | `skills/` | 57 unique skills and their supporting resources, with short `jag-*` names. |
 | `prompts/` | `/orchestraitor`, `/plan`, `/review`, and `/absorb`, with explicit arguments. |
 | `scripts/install-pi.mjs` | Migration, native package registration, verification, and restoration. |
@@ -135,7 +137,7 @@ Use `/btw` or `/btw <question>` without continuing the main task. Closing cancel
 
 ## Optional work UI
 
-Open `/orchestraitor:agents` or `/orchestraitor:tasks`; use `tasks expand|collapse` for detail and `/orchestraitor:ui hide|show` for passive chrome. The model-only task/question tools do not replace execution or permissions. Pi keeps its native editor/header/footer and counters.
+Open `/orchestraitor:agents` or `/orchestraitor:tasks`; use `tasks expand|collapse` for detail and `/orchestraitor:ui hide|show` for passive chrome. The model-only task/question tools do not replace execution or permissions. Pi keeps its native editor and header; the separate [footer extension](interactive-ui.md#footer) restyles the footer and keeps its counters.
 
 See the [interactive UI guide](interactive-ui.md) for schemas, task replay versus recovery, native keybindings, synthetic/live checks and limitations. Exclude `extensions/status-ui.ts` through `pi config` to disable the work UI without disabling the launcher or BTW. For one invocation, `--exclude-tools orchestraitor_tasks,orchestraitor_ask` persistently excludes just the model tools; `hide` only changes presentation.
 
