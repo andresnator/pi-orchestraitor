@@ -55,6 +55,8 @@ flowchart TB
   X -->|status-ui.ts owns: M| UI[Task widget / native footer / modal]
   SR -->|native observations: M| UI
   A -->|model-only tasks / questions: M| UI
+  X -->|footer.ts replaces: O| FT[Terminal footer]
+  X -->|quota.ts registers: O| Q["/quota plan usage"]
 ```
 
 | Evidence | Source |
@@ -68,6 +70,7 @@ flowchart TB
 | K | [extensions/subagents.ts](../../extensions/subagents.ts), [instructions/orchestraitor.md](../../instructions/orchestraitor.md). |
 | L | [extensions/subagent/controller.mjs](../../extensions/subagent/controller.mjs), [extensions/subagent/child.mjs:18–28](../../extensions/subagent/child.mjs), [extensions/subagent/runtime.mjs:13–25](../../extensions/subagent/runtime.mjs). |
 | N | [extensions/context-budget.ts](../../extensions/context-budget.ts): lowers the output cap of top-level codemode scripts without options; the transcript keeps the original script. |
+| O | [extensions/footer.ts](../../extensions/footer.ts): terminal-mode footer factory rendered by [extensions/ui/footer.ts](../../extensions/ui/footer.ts). [extensions/quota.ts](../../extensions/quota.ts) keeps provider-reported plan usage, read by [extensions/ui/quota.ts](../../extensions/ui/quota.ts). See the [footer](../interactive-ui.md#footer) and [plan usage](../interactive-ui.md#plan-usage). |
 
 **M:** [status-ui.ts](../../extensions/status-ui.ts) delegates to [agents](../../extensions/ui/agents.ts), [tasks](../../extensions/ui/tasks.ts), [questions](../../extensions/ui/questions.ts) and the [cache notice](../../extensions/ui/cache-notice.ts). It uses native widgets/status/dialogs/notifications, not header/footer/editor factories. Task state comes only from successful active-branch native receipts; it cannot grant writes, accept child work or recover execution. See the [UI guide](../interactive-ui.md).
 

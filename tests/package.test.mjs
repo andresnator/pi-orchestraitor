@@ -18,7 +18,7 @@ const EXPECTED_FILES = [
 	"extensions/compact-tools.ts", "extensions/context-budget.ts", "extensions/auto-compact.ts", "extensions/instructions.ts", "extensions/mcp.ts", "extensions/nan.ts", "extensions/pretty-theme.ts", "extensions/pretty/theme.mjs", "extensions/provider-options.mjs", "extensions/subagents.ts",
 	...["index", "context", "conversation", "markdown", "popup", "status", "transcript", "types"].map((name) => `extensions/btw/${name}.ts`),
 	"extensions/skill-registry.ts", "extensions/skills/sources.mjs", "extensions/skills/registry.mjs", "extensions/skills/types.ts",
-	"extensions/status-ui.ts", "extensions/ui/display.ts", "extensions/ui/agents.ts", "extensions/ui/tasks.ts", "extensions/ui/task-view.ts", "extensions/ui/questions.ts", "extensions/ui/cache-notice.ts",
+	"extensions/status-ui.ts", "extensions/footer.ts", "extensions/ui/footer.ts", "extensions/quota.ts", "extensions/ui/quota.ts", "extensions/ui/display.ts", "extensions/ui/agents.ts", "extensions/ui/tasks.ts", "extensions/ui/task-view.ts", "extensions/ui/questions.ts", "extensions/ui/cache-notice.ts",
 	"extensions/models/store.mjs", "extensions/models/panel.mjs", "extensions/models/selector.ts", "extensions/subagent/bridge.mjs", "extensions/subagent/background.mjs",
 	"extensions/subagent/child.mjs", "extensions/subagent/controller.mjs", "extensions/subagent/guard.mjs", "extensions/subagent/policy.mjs", "extensions/subagent/runtime.mjs",
 	"instructions/core.md", "instructions/orchestraitor.md", "instructions/personality.md",
@@ -79,7 +79,7 @@ test("shouldLoadPromptsAndExtensionsWhenExplicitPackageBypassesDiscovery", async
 		prompts: loader.getPrompts().prompts.map(({ name }) => name).sort(),
 		skills: loader.getSkills().skills.length,
 	}, {
-		extensions: ["auto-compact.ts", "compact-tools.ts", "context-budget.ts", "index.ts", "instructions.ts", "mcp.ts", "nan.ts", "pretty-theme.ts", "skill-registry.ts", "status-ui.ts", "subagents.ts"],
+		extensions: ["auto-compact.ts", "compact-tools.ts", "context-budget.ts", "footer.ts", "index.ts", "instructions.ts", "mcp.ts", "nan.ts", "pretty-theme.ts", "quota.ts", "skill-registry.ts", "status-ui.ts", "subagents.ts"],
 		errors: [], prompts: EXPECTED_PROMPTS, skills: 57,
 	});
 });

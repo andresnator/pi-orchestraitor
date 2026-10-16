@@ -1,6 +1,6 @@
 # See delegated work, tasks and decisions without replacing Pi
 
-The optional UI extension adds read-only agents/tasks panels, a compact task work header, one native-footer status, a unified question tool and a warning before a model or thinking switch re-bills cached context. Pi still owns the editor, application keybindings, native model/context/usage display and execution. This is presentation and branch-local task replay, not another scheduler or durable SDD recovery.
+The optional UI extension adds read-only agents/tasks panels, a compact task work header, one native-footer status, a unified question tool and a warning before a model or thinking switch re-bills cached context. Pi still owns the editor, application keybindings, native model/context/usage display and execution. This is presentation and branch-local task replay, not another scheduler or durable SDD recovery. A separate [footer extension](#footer) restyles Pi's footer.
 
 The installer also registers the separate [pi-pretty companion](pi-pretty.md). It owns read/bash presentation and its prompt-editor/activity customization; this UI extension still owns only the harness widget, status and foreground interactions.
 
@@ -41,6 +41,29 @@ Switching model or thinking level with at least 20k context tokens shows one war
 Selection, scrolling, submission and cancellation use native configurable actions. Check `/hotkeys` and Pi's keybinding documentation rather than relying on a hardcoded shortcut. Read-only panels also close with Escape. The extension never replaces the main editor/header/footer, registers global shortcuts, or changes personal themes.
 
 Before tree navigation, session switching or forking, the UI cancels its current interaction and invalidates pending work from that interaction generation. It retains the current context, task/agent projections and visibility/expansion preferences while navigation is pending. A veto or an aborted branch summary leaves the existing UI usable, including new panels and questions. Confirmed tree/session changes rebuild from the effective branch and restore the default visible, collapsed chrome. Shutdown and context replacement release the owned UI; late completion of an old interaction cannot close its replacement.
+
+## Footer
+
+`extensions/footer.ts` replaces Pi's terminal footer; other modes keep Pi's. It shows the same data in two lines plus Pi's extension-status line:
+
+```text
+~/Projects/pi-orchestraitor (develop) • session name
+━─────── ctx 16.4%/1.0M (auto)  ↑2 ↓81 CH0%          claude-bridge · Claude Opus 5.5  effort:xhigh
+```
+
+The bar shows context usage and turns warning above 70% and error above 90%. Token totals keep input, output, the latest cache hit rate and the cost when it is above zero. The model shows its provider ID and display name; effort uses the color Pi gives the editor border at that thinking level. Narrow terminals drop token totals, the provider, the bar and then effort before truncating.
+
+Disable only the footer to restore Pi's:
+
+```json
+{"packages":[{"source":"/absolute/path/to/pi-orchestraitor","extensions":["!extensions/footer.ts"]}]}
+```
+
+## Plan usage
+
+`/quota` lists the plan windows each provider reported with its latest response in this Pi process, with their reset time and the age of the report. The active provider appears even before it reports any. Providers cannot be queried on demand: usage arrives only with `after_provider_response` headers, and Pi sends no model with that event, so the active provider owns them.
+
+`pi-claude-bridge` reports Claude's `anthropic-ratelimit-unified-5h`/`7d` utilization and reset when Claude Code includes them. The `x-codex-primary`/`secondary` used-percent, window and reset headers are read on a best-effort basis: they were not observed in a live response. `extensions/quota.ts` owns the command; excluding it leaves the footer unchanged.
 
 ## Task contract
 

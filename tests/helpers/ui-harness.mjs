@@ -75,6 +75,7 @@ export function fakeUIContext(mode = "tui") {
 	const statuses = new Map([["foreign-status", "Foreign status"]]);
 	const calls = [];
 	const dialogs = [];
+	const footers = [];
 	const ctx = {
 		mode, hasUI: mode === "tui" || mode === "rpc",
 		ui: {
@@ -82,6 +83,7 @@ export function fakeUIContext(mode = "tui") {
 			setWidget(key, value) { calls.push(["widget", key, value]); value === undefined ? widgets.delete(key) : widgets.set(key, value); },
 			setStatus(key, value) { calls.push(["status", key, value]); value === undefined ? statuses.delete(key) : statuses.set(key, value); },
 			notify(message, level) { calls.push(["notify", message, level]); },
+			setFooter(factory) { footers.push(factory); },
 			custom(factory) {
 				return new Promise((resolve, reject) => {
 					let component;
@@ -103,5 +105,5 @@ export function fakeUIContext(mode = "tui") {
 		},
 		sessionManager: pi.SessionManager.inMemory(),
 	};
-	return { ctx, widgets, statuses, calls, dialogs };
+	return { ctx, widgets, statuses, calls, dialogs, footers };
 }

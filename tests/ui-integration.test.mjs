@@ -6,14 +6,14 @@ import { mkdir, readFile, realpath } from "node:fs/promises";
 import test from "node:test";
 import { createPackageUISession, createWorkspace, packageRoot } from "./helpers/ui-harness.mjs";
 
-const EXTENSIONS = ["auto-compact.ts", "compact-tools.ts", "context-budget.ts", "index.ts", "instructions.ts", "mcp.ts", "nan.ts", "pretty-theme.ts", "skill-registry.ts", "status-ui.ts", "subagents.ts"];
+const EXTENSIONS = ["auto-compact.ts", "compact-tools.ts", "context-budget.ts", "footer.ts", "index.ts", "instructions.ts", "mcp.ts", "nan.ts", "pretty-theme.ts", "quota.ts", "skill-registry.ts", "status-ui.ts", "subagents.ts"];
 const ACTIVE = ["read", "bash", "edit", "write", "subagent_collect", "subagent_run", "orchestraitor_tasks", "orchestraitor_ask", "skill_registry"];
 const run = promisify(execFile);
 
 for (const mode of ["tui", "rpc", "json", "print"]) {
 	test(`shouldLoadUniqueCompletePackageWithoutUiOrServiceSideEffectsWhenModeIs${mode}`, async (t) => {
 		// Given
-		const { session, resources, errors, calls, close } = await createPackageUISession(t, mode);
+		const { session, resources, errors, calls, footers, close } = await createPackageUISession(t, mode);
 		const extensions = resources.loader.getExtensions().extensions;
 		const commands = extensions.flatMap((extension) => [...extension.commands.keys()]);
 		const tools = session.extensionRunner.getAllRegisteredTools().map(({ definition }) => definition.name);
@@ -23,8 +23,8 @@ for (const mode of ["tui", "rpc", "json", "print"]) {
 		const callableNames = ctx.tools.map(({ name }) => name);
 		await close();
 		// Then
-		assert.deepEqual({ paths: extensions.filter(({ path }) => path.startsWith(packageRoot)).map(({ path }) => basename(path)).sort(), active: session.getActiveToolNames(), errors, calls },
-			{ paths: EXTENSIONS, active: ACTIVE, errors: [], calls: [] });
+		assert.deepEqual({ paths: extensions.filter(({ path }) => path.startsWith(packageRoot)).map(({ path }) => basename(path)).sort(), active: session.getActiveToolNames(), errors, calls, footers: footers.length },
+			{ paths: EXTENSIONS, active: ACTIVE, errors: [], calls: [], footers: mode === "tui" ? 1 : 0 });
 		assert.equal(new Set(commands).size, commands.length);
 		assert.equal(new Set(tools).size, tools.length);
 		assert.ok(rejected.every((result) => result.isError));
