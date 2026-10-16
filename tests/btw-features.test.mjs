@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { before, describe, it, mock } from "node:test";
 import {
 	initTheme, KeybindingsManager, TUI_KEYBINDINGS, visibleWidth, BtwMarkdown,
-	BtwPopup, LATEST_CONTROL, SideConversation, selectTranscript,
+	BtwPopup, LATEST_CONTROL, SideConversation, latestAnswer,
 } from "./helpers/btw-harness.mjs";
 
 const QUESTION = "Pregunta lateral";
@@ -11,35 +11,27 @@ const MODEL = { id: "main-model", provider: "test", reasoning: true };
 const SEARCH_TRAILING_CONTEXT = "After\n\n".repeat(20);
 before(() => initTheme("dark", false));
 
-describe("exports", () => {
+describe("clipboard answer", () => {
 	const turns = [{ question: "One", answer: "First" }, { question: "Two", answer: "Second" }, { question: "Three", answer: "Third" }];
 
-	it("shouldExportOnlyTheLatestAnswerWhenNoRangeIsRequested", () => {
-		// Given / When / Then
-		assert.equal(selectTranscript(turns), "Third");
+	it("shouldSelectOnlyTheLatestNonemptyAnswerWhenCopying", () => {
+		// Given
+		const withEmptyAnswer = [...turns, { question: "Four", answer: "", note: "No text" }];
+		// When / Then
+		assert.equal(latestAnswer(withEmptyAnswer), "Third");
 	});
 
 	it("shouldKeepTheLatestAnswerNoteWhenItWasTruncated", () => {
 		// Given
 		const truncated = [...turns, { question: "Four", answer: "Partial", note: "Response truncated" }];
 		// When / Then
-		assert.equal(selectTranscript(truncated), "Partial\n\n> Response truncated");
-		assert.ok(selectTranscript(truncated, "4-4").endsWith("## Answer\nPartial\n\n> Response truncated"));
+		assert.equal(latestAnswer(truncated), "Partial\n\n> Response truncated");
 	});
 
-	it("shouldExportAnInclusiveRangeOrQuestionSuffixWhenRequested", () => {
-		// Given
-		const selected = "## Question 2\nTwo\n\n## Answer\nSecond\n\n---\n\n## Question 3\nThree\n\n## Answer\nThird";
-		// When / Then
-		assert.equal(selectTranscript(turns, "2-3"), selected);
-		assert.equal(selectTranscript(turns, "2+"), selected);
-		assert.ok(selectTranscript(turns, "all").includes("## Question 1\nOne"));
-	});
-
-	for (const selection of ["0+", "4+", "3-1", "1-9", "all garbage", "2"]) {
-		it(`shouldRejectInvalidSelectionsWhenSelectionIs${selection}`, () => {
+	for (const empty of [[], [{ question: "Empty", answer: "", note: "No text" }]]) {
+		it(`shouldRejectCopyingWhenNoTextExistsIn${empty.length}Turns`, () => {
 			// Given / When / Then
-			assert.throws(() => selectTranscript(turns, selection));
+			assert.throws(() => latestAnswer(empty), { message: "The side conversation has no answers yet." });
 		});
 	}
 });
@@ -352,20 +344,22 @@ describe("search and controls", () => {
 		assert.ok(popup.render(100).length > 0);
 	});
 
-	it("shouldImportOnlyTheLatestAnswerAndEraseStateWhenBringIsSubmitted", async () => {
+	it("shouldKeepAnswersAndHideImportHintsWhenBringIsSubmitted", async () => {
 		// Given
 		const { popup, conversation, done } = popupFixture();
 		await popup.submit(QUESTION);
-		const answer = conversation.turns[0].answer;
+		const turns = structuredClone(conversation.turns);
 		// When
 		await popup.submit("/bring");
 		// Then
-		assert.deepEqual(done.mock.calls.map(call => call.arguments), [[answer]]);
-		assert.deepEqual({ turns: conversation.turns, pending: conversation.pending, screen: popup.render(100) },
-			{ turns: [], pending: [], screen: [] });
+		assert.deepEqual(done.mock.calls.map(call => call.arguments), []);
+		assert.deepEqual(conversation.turns, turns);
+		const screen = popup.render(300).join("\n");
+		assert.match(screen, /BTW does not support slash commands/);
+		assert.doesNotMatch(screen, /\/bring/);
 	});
 
-	for (const command of ["/model", "/thinking", "/manager", "/workspace", "/clear", "/delete"]) {
+	for (const command of ["/bring", "/bring latest", "/bring 2+", "/bring 1-2", "/bring all", "/model", "/thinking", "/manager", "/workspace", "/clear", "/delete"]) {
 		it(`shouldRejectRemovedCommandsWhenGiven${command}`, async () => {
 			// Given
 			const { popup, conversation, done } = popupFixture();
@@ -374,29 +368,18 @@ describe("search and controls", () => {
 			// Then
 			assert.deepEqual(conversation.turns, []);
 			assert.equal(done.mock.calls.length, 0);
-			assert.ok(popup.render(200).join("\n").includes("Available BTW command: /bring"));
+			assert.ok(popup.render(200).join("\n").includes("BTW does not support slash commands."));
 		});
 	}
 
-	it("shouldKeepThePanelOpenWhenBringHasNoAnswer", async () => {
+	it("shouldOfferManualCopyWithoutImportHintsWhenThePanelIsEmpty", () => {
 		// Given
-		const { popup, done } = popupFixture();
+		const { popup } = popupFixture();
 		// When
-		await popup.submit("/bring");
+		const screen = popup.render(300).join("\n");
 		// Then
-		assert.equal(done.mock.calls.length, 0);
-		assert.ok(popup.render(200).join("\n").includes("The side conversation has no answers yet."));
-	});
-
-	it("shouldKeepThePanelOpenWhenBringFollowsAnEmptyAnswer", async () => {
-		// Given
-		const { popup, done } = popupFixture("");
-		await popup.submit(QUESTION);
-		// When
-		await popup.submit("/bring");
-		// Then
-		assert.equal(done.mock.calls.length, 0);
-		assert.ok(popup.render(200).join("\n").includes("The side conversation has no answers yet."));
+		assert.match(screen, /Ctrl\+X: copy/);
+		assert.doesNotMatch(screen, /\/bring/);
 	});
 
 	it("shouldReuseCompletedMarkdownWhenRenderingFollowups", async (t) => {

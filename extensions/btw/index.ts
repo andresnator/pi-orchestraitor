@@ -24,15 +24,14 @@ export default function (pi: ExtensionAPI) {
 			let popup: BtwPopup | undefined;
 			try {
 				conversation = new SideConversation(ctx, buildSideContext(ctx.sessionManager.getBranch(), ctx.getSystemPrompt()),
-					model => providerRequestOptions(SettingsManager.inMemory(pi.getSettings()), model, ctx.sessionManager.getSessionId()));
+					(model, sessionId) => providerRequestOptions(SettingsManager.inMemory(pi.getSettings()), model, sessionId));
 				const current = conversation;
-				const imported = await ctx.ui.custom<string | undefined>((tui, theme, keybindings, done) => {
+				await ctx.ui.custom<void>((tui, theme, keybindings, done) => {
 					popup = new BtwPopup(tui, theme, keybindings, current, done);
 					closeDialog = () => popup?.close();
 					if (args.trim()) void popup.submit(args);
 					return popup;
 				}, { overlay: true, overlayOptions: { anchor: "center", width: POPUP_WIDTH, maxHeight: POPUP_MAX_HEIGHT } });
-				if (imported !== undefined) pi.sendMessage({ customType: "btw-import", content: imported, display: true }, { triggerTurn: false });
 			} catch (error) {
 				ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
 			} finally {

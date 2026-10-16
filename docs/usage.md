@@ -94,7 +94,7 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 | `@heyhuynhgiabuu/pi-pretty@0.7.0` | Separately installed companion: highlighted reads, FFF-backed find/grep, prompt editor and activity indicators. Its bash tool is disabled so Pi's bash keeps the user's shell settings. |
 | `extensions/pretty-theme.ts` | Maps Pi's built-in `dark`/`light` themes to Pretty's `github-dark`/`github-light` through `PRETTY_THEME` on each start or reload; writes no files and yields to any theme set for Pretty. See [highlight theme](pi-pretty.md#highlight-theme). |
 | `pi-claude-bridge@0.9.3` | Separately installed companion through `install:pi`; Claude Code bridge. Authentication and model selection remain user-controlled. |
-| `extensions/btw/index.ts` | Temporary 70% side-conversation panel; no tools or local history, explicit `/bring` imports only. |
+| `extensions/btw/index.ts` | Temporary 70% side-conversation panel; no tools or local history, manual clipboard copying only. |
 | `extensions/instructions.ts` | Adds core, execution, and personality sections while preserving Pi and project instructions. Only Pi's docs rule changes, from reading whole files to reading the relevant sections. |
 | `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. Engram is skipped when another package already provides its `mem_search` tool. |
 | `extensions/nan.ts` | Native NaN API-key login/environment fallback and seven documented chat models; no default changes or startup requests. |
@@ -133,7 +133,7 @@ This uses the native scheduler, summary generation and overflow recovery, with n
 
 ## Temporary side conversations
 
-Use `/btw` or `/btw <question>` without continuing the main task. Closing cancels and discards the conversation. Submit `/bring latest|N+|N-M|all` **inside BTW** to explicitly copy a selection into the parent without triggering a turn. The panel uses the parent's current model and thinking level; it has no tools. See [BTW controls, isolation, and migration](btw.md).
+Use `/btw` or `/btw <question>` without continuing the main task. Closing cancels and discards the conversation. Use **Ctrl+X** to copy the latest finished answer, then paste it manually if needed. BTW never appends messages to the parent. The panel uses the parent's current model and thinking level; it has no tools. See [BTW controls, isolation, and migration](btw.md).
 
 ## Optional work UI
 

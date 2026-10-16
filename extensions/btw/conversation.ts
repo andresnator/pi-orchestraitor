@@ -3,6 +3,7 @@ import {
 	type AssistantMessage, type Context, type Message, type Model, type ModelThinkingLevel, type SimpleStreamOptions,
 } from "@earendil-works/pi-ai";
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { SIDE_QUESTION_INSTRUCTIONS } from "./context.ts";
 import type { SidePhase, SideProgress, SideThinking, SideTurn } from "./types.ts";
@@ -21,6 +22,7 @@ export const DEFAULT_SIDE_THINKING: SideThinking = "inherit";
 export const SIDE_RETRY = { maxRetries: 2, baseDelayMs: 2000 };
 
 export class SideConversation {
+	private readonly sessionId = randomUUID();
 	private history: Message[] = [];
 	private sideTurns: SideTurn[] = [];
 	private request?: AbortController;
@@ -37,7 +39,7 @@ export class SideConversation {
 		// Takes ownership of the isolated snapshot built for this opening.
 		private readonly context: Context,
 		// The host's timeouts, provider retries, thinking budgets and headers for the model (provider-options.mjs).
-		private readonly requestOptions: (model: Model<any>) => SimpleStreamOptions = () => ({}),
+		private readonly requestOptions: (model: Model<any>, sessionId: string) => SimpleStreamOptions = () => ({}),
 	) {}
 
 	get busy(): boolean { return this.request !== undefined; }
@@ -85,7 +87,7 @@ export class SideConversation {
 			const model = this.ctx.model;
 			if (!model) throw new Error("Select a model before using /btw.");
 			const reasoning = this.thinkingLevel;
-			const requestOptions = this.requestOptions(model);
+			const requestOptions = this.requestOptions(model, this.sessionId);
 			for (let attempt = 1; ; attempt++) {
 				let transient: string | undefined;
 				const stream = this.ctx.modelRegistry.streamSimple(model, {
@@ -94,12 +96,10 @@ export class SideConversation {
 				}, {
 					...requestOptions,
 					signal: controller.signal,
-					// Providers use the session only for prompt cache keys and affinity headers, so the
-					// parent's lets even the first side question reuse its cached prefix. The provider's
-					// default retention applies, as for the parent's requests.
-					sessionId: this.ctx.sessionManager.getSessionId(),
-					// Codex keeps per-session websockets with response continuations; SSE is stateless,
-					// so side turns never share the parent's connection.
+					// Stateful providers may resume a conversation by sessionId regardless of transport.
+					// Keep a separate identity for this opening, stable across follow-ups and retries.
+					sessionId: this.sessionId,
+					// Prefer SSE without relying on it for provider-session isolation.
 					transport: "sse",
 					reasoning: reasoning === "off" ? undefined : reasoning,
 				});
@@ -118,7 +118,7 @@ export class SideConversation {
 					} else if (event.type === "done") {
 						turn.answer = extractText(event.message);
 						progress.usage = event.message.usage;
-						// Notes are UI only: an empty answer is never replayed or brought into the main thread.
+						// Notes are UI only: an empty answer is never replayed as a reply.
 						if (event.reason === "toolUse" || event.reason === "deferred") turn.note = TOOL_REQUEST_TEXT;
 						else if (event.reason === "length") turn.note = TRUNCATED_RESPONSE_TEXT;
 						else if (!turn.answer) turn.note = EMPTY_RESPONSE_TEXT;
