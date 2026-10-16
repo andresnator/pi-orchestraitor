@@ -80,7 +80,7 @@ GitHub CI uses the same lockfile on Node 22 and 24. It does not publish, call li
 - [Usage, installation recovery, and package resources](docs/usage.md)
 - [Skill catalog](docs/skills.md)
 - [Subagents and their limits](docs/subagents.md)
-- [Temporary BTW conversations and explicit imports](docs/btw.md)
+- [Temporary BTW conversations and clipboard copying](docs/btw.md)
 - [NaN login and model provider](docs/nan.md)
 - [Interactive UI](docs/interactive-ui.md)
 - [Verification evidence](docs/verification.md)

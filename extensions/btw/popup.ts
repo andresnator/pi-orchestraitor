@@ -3,7 +3,7 @@ import { Container, CURSOR_MARKER, Editor, Input, matchesKey, ScrollView, stripT
 import { LOADING_TEXT, SideConversation } from "./conversation.ts";
 import { BtwMarkdown, type BtwMarkdownLayout } from "./markdown.ts";
 import { fitParts, formatThinking, progressParts, thinkingPreview, type StatusPart } from "./status.ts";
-import { selectTranscript } from "./transcript.ts";
+import { latestAnswer } from "./transcript.ts";
 import type { SidePhase } from "./types.ts";
 
 export const POPUP_HEIGHT_RATIO = 0.7;
@@ -20,11 +20,12 @@ const PHASE_COLORS: Record<SidePhase, ThemeColor> = {
 };
 // Reasoning previews render literally, so partial markup cannot restyle the panel.
 const MARKDOWN_SYNTAX = /[\\`*_[\]#<>|~]/g;
-export const WELCOME_TEXT = "Ask a question. BTW uses Pi's model and is discarded on close. Only /bring returns content to the main conversation.";
+export const WELCOME_TEXT = "Ask a question. BTW uses Pi's model and is discarded on close. Copy any answer you want to keep.";
+export const COMMANDS_UNAVAILABLE_TEXT = "BTW does not support slash commands. Use Ctrl+X to copy the latest answer.";
 // Narrow panels drop numbered hints first, highest number first; sending and closing always show.
 const IDLE_HINTS: StatusPart[] = [
 	{ text: "Enter: send" }, { text: "Shift+Tab: thinking", priority: 1 }, { text: "Ctrl+X: copy", priority: 2 }, { text: "Ctrl+F: search", priority: 3 },
-	{ text: "/bring: import", priority: 4 }, { text: "Ctrl+Q: close and discard" },
+	{ text: "Ctrl+Q: close and discard" },
 ];
 const RETRY_HINT: StatusPart = { text: "Ctrl+R: retry", priority: 0 };
 const BUSY_HINTS: StatusPart[] = [
@@ -64,7 +65,7 @@ export class BtwPopup implements Component, Focusable {
 		private readonly theme: Theme,
 		private readonly keybindings: KeybindingsManager,
 		private readonly conversation: SideConversation,
-		private readonly done: (imported?: string) => void,
+		private readonly done: () => void,
 		private readonly copy: (text: string) => Promise<void> = copyToClipboard,
 	) {
 		const dim = { color: (text: string) => theme.fg("dim", text) };
@@ -104,10 +105,7 @@ export class BtwPopup implements Component, Focusable {
 		if (this.disposed || !question) return;
 		if (question.startsWith("/")) {
 			this.editor.setText("");
-			try {
-				if (/^\/bring(?:\s|$)/.test(question)) this.close(selectTranscript(this.conversation.turns, question.slice("/bring".length).trim() || "latest"));
-				else throw new Error("Available BTW command: /bring latest|N+|N-M|all.");
-			} catch (error) { this.statusMessage = error instanceof Error ? error.message : String(error); }
+			this.statusMessage = COMMANDS_UNAVAILABLE_TEXT;
 			this.tui.requestRender();
 			return;
 		}
@@ -117,11 +115,11 @@ export class BtwPopup implements Component, Focusable {
 		await this.conversation.send(question);
 	}
 
-	/** Copies the newest finished answer, as `/bring latest` would import it. */
+	/** Copies the newest finished answer without closing the panel. */
 	private async copyLatest(): Promise<void> {
 		const { busy, turns } = this.conversation;
 		try {
-			await this.copy(selectTranscript(busy ? turns.slice(0, -1) : turns, "latest"));
+			await this.copy(latestAnswer(busy ? turns.slice(0, -1) : turns));
 			this.statusMessage = COPIED_TEXT;
 		} catch (error) { this.statusMessage = error instanceof Error ? error.message : String(error); }
 		if (!this.disposed) this.tui.requestRender();
@@ -148,7 +146,7 @@ export class BtwPopup implements Component, Focusable {
 		this.transcript.children = [...this.turnViews, this.pendingView];
 	}
 
-	/** `#N` for `/bring` plus how the request went, once it has ended; the title covers the running one. */
+	/** Turn number and outcome once the request has ended; the title covers the running one. */
 	private turnSummary(index: number, width: number): string {
 		const progress = this.conversation.turns[index].progress;
 		if (progress?.endedAt === undefined) return "";
@@ -199,10 +197,10 @@ export class BtwPopup implements Component, Focusable {
 		this.tui.requestRender();
 	}
 
-	close(imported?: string): void {
+	close(): void {
 		if (this.disposed) return;
 		this.dispose();
-		this.done(imported);
+		this.done();
 	}
 
 	handleMouse(event: TuiMouseEvent) {

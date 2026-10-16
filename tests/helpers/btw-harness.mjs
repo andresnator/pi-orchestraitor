@@ -6,7 +6,7 @@ export const {
 	btw, buildSideContext, SIDE_QUESTION_INSTRUCTIONS, SideConversation, CHAT_STATUS, EMPTY_RESPONSE_TEXT,
 	CANCELLED_RESPONSE_TEXT, FAILED_RESPONSE_TEXT, TRUNCATED_RESPONSE_TEXT, TOOL_REQUEST_TEXT, LOADING_TEXT,
 	fitParts, formatProgress, formatThinking, thinkingPreview,
-	BtwMarkdown, BtwPopup, BUSY_HELP, COPIED_TEXT, FOOTER_HELP, LATEST_CONTROL, STATUS_TICK_MS, WELCOME_TEXT, selectTranscript,
+	BtwMarkdown, BtwPopup, BUSY_HELP, COPIED_TEXT, FOOTER_HELP, LATEST_CONTROL, STATUS_TICK_MS, WELCOME_TEXT, latestAnswer,
 	initTheme, SessionManager, CURSOR_MARKER, KeybindingsManager, TUI_KEYBINDINGS, visibleWidth,
 } = await loadUiModule({ after }, "tests/fixtures/btw-modules.ts");
 

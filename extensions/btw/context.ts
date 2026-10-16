@@ -10,7 +10,7 @@ Do not execute commands, modify files, or claim to have done so.
 Use only the supplied context and your knowledge; acknowledge missing information.
 Follow-up questions can refer to previous answers in this side conversation.
 The side conversation stays separate from the main conversation. Closing the window discards it completely.
-Only explicitly selected excerpts can be returned to the main conversation by the user.`;
+There is no import command. The user can manually copy and paste text into the main conversation.`;
 
 export function buildSideContext(entries: SessionEntry[], systemPrompt: string): Context {
 	// Pi's projection respects the current branch, compaction, and context edits.

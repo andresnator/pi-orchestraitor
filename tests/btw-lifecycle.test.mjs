@@ -89,7 +89,7 @@ describe("open, converse, discard", () => {
 		await running;
 		// Then
 		const firstRequest = streamSimple.mock.calls[0].arguments;
-		// BTW inherits the parent's thinking level by default, keeping its provider cache key.
+		// BTW inherits the parent's thinking level without changing the parent.
 		assert.partialDeepStrictEqual(firstRequest, [MODEL, {
 			systemPrompt: "Main instructions", messages: [user("Main context"), { role: "user", content: firstQuestion("Private question") }],
 		}, { reasoning: "high" }]);
@@ -104,7 +104,8 @@ describe("open, converse, discard", () => {
 
 	it("shouldSendPiProviderOptionsWithTheSideSessionAndTransport", async () => {
 		// Given
-		const { run, panels, streamSimple, session } = fixture();
+		const { run, panels, streamSimple, session, ctx } = fixture();
+		ctx.model = { ...MODEL, provider: "opencode" };
 		// When
 		const running = run("Private question");
 		await waitFor(() => assert.ok(panels[0].render(200).join("\n").includes(ANSWER)));
@@ -113,9 +114,12 @@ describe("open, converse, discard", () => {
 		// Then
 		const { signal, transformHeaders, ...options } = streamSimple.mock.calls[0].arguments[2];
 		assert.ok(signal instanceof AbortSignal);
+		assert.equal(typeof options.sessionId, "string");
+		assert.notEqual(options.sessionId, session.getSessionId());
 		assert.deepEqual({ ...options, headers: await transformHeaders({ "x-request": "kept" }) }, {
 			timeoutMs: 30000, websocketConnectTimeoutMs: undefined, maxRetries: 4, maxRetryDelayMs: 60000, thinkingBudgets: { low: 1024 },
-			sessionId: session.getSessionId(), transport: "sse", reasoning: "high", headers: { "x-request": "kept" },
+			sessionId: options.sessionId, transport: "sse", reasoning: "high",
+			headers: { "x-request": "kept", "x-opencode-session": options.sessionId, "x-opencode-client": "pi" },
 		});
 	});
 
@@ -147,9 +151,11 @@ describe("open, converse, discard", () => {
 		assert.deepEqual({ argumentCount: secondRequest.length, messageCount: secondRequest[1].messages.length,
 			questionBlocks: secondRequest[1].messages.at(-1).content.length },
 			{ argumentCount: 3, messageCount: 3, questionBlocks: 2 });
-		// Every opening reuses the parent's cache affinity over a connection of its own.
-		assert.deepEqual(streamSimple.mock.calls.map(call => [call.arguments[2].sessionId, call.arguments[2].transport]),
-			[[session.getSessionId(), "sse"], [session.getSessionId(), "sse"]]);
+		// Each opening gets a different provider identity; neither can resume the parent.
+		const sessionIds = streamSimple.mock.calls.map(call => call.arguments[2].sessionId);
+		assert.ok(sessionIds.every(id => typeof id === "string" && id.length > 0));
+		assert.equal(new Set([session.getSessionId(), ...sessionIds]).size, 3);
+		assert.deepEqual(streamSimple.mock.calls.map(call => call.arguments[2].transport), ["sse", "sse"]);
 	});
 
 	for (const method of ["close", "shutdown", "dispose"]) {
@@ -201,27 +207,26 @@ describe("open, converse, discard", () => {
 		assert.equal(pi.sendMessage.mock.calls.length, 0);
 	});
 
-	for (const selection of ["latest", "1+", "1-1", "all"]) {
-		it(`shouldImportOnlyTheSelectionAndCloseWhenBringUses${selection}`, async () => {
+	for (const command of ["/bring", "/bring latest", "/bring 1+", "/bring 1-1", "/bring all"]) {
+		it(`shouldKeepTheParentAndActiveRequestUnchangedWhenRemovedCommandIs${command}`, async () => {
 			// Given
 			const { run, panels, streamSimple, pi, session } = fixture();
 			const before = structuredClone(session.getEntries());
 			const release = blockStream(streamSimple);
 			const running = run("Private question");
 			await waitFor(() => assert.ok(panels[0].render(200).join("\n").includes(ANSWER)));
-			await panels[0].submit("Never sent");
 			// When
-			await panels[0].submit(`/bring ${selection}`);
-			await running;
+			await panels[0].submit(command);
+			const afterCommand = { aborted: streamSimple.mock.calls[0].arguments[2].signal.aborted,
+				open: panels[0].render(200).length > 0 };
+			panels[0].close();
 			release();
-			await new Promise(resolve => setImmediate(resolve));
+			await running;
 			// Then
-			const content = selection === "latest" ? ANSWER : `## Question 1\nPrivate question\n\n## Answer\n${ANSWER}`;
-			assert.deepEqual(pi.sendMessage.mock.calls.map(call => call.arguments),
-				[[{ customType: "btw-import", content, display: true }, { triggerTurn: false }]]);
-			assert.deepEqual({ aborted: streamSimple.mock.calls[0].arguments[2].signal.aborted, requests: streamSimple.mock.calls.length,
-				entries: session.getEntries(), screen: panels[0].render(200) },
-				{ aborted: true, requests: 1, entries: before, screen: [] });
+			assert.deepEqual(afterCommand, { aborted: false, open: true });
+			assert.deepEqual({ imports: pi.sendMessage.mock.calls.map(call => call.arguments),
+				requests: streamSimple.mock.calls.length, entries: session.getEntries() },
+				{ imports: [], requests: 1, entries: before });
 		});
 	}
 
