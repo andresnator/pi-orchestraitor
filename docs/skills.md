@@ -1,6 +1,6 @@
 # Bundled development skills
 
-The package ships 57 unique native skills: 54 automatically selectable and three explicit-only in an isolated package profile. The historical 51-skill base comes from non-learning domains of `agents-orchestrator`, revision `e90b11a4d5fb77bfebcf5f5c96da9471014c17ab`; six direct Matt Pocock adaptations are added, including the explicitly requested teaching exception. Other native sources and configuration filters may change an effective catalog. Public names use the short `jag-*` namespace (at most 15 characters). Original names are recorded in provenance; authors, licenses, and supporting resources are retained. All skill directories are materialized; none depends on a link to the source repository. Ten former review lenses are retained as conditional reference material rather than standalone skills.
+The package ships 59 unique native skills: 56 automatically selectable and three explicit-only in an isolated package profile. The historical 51-skill base comes from non-learning domains of `agents-orchestrator`, revision `e90b11a4d5fb77bfebcf5f5c96da9471014c17ab`; six direct Matt Pocock adaptations are added, including the explicitly requested teaching exception. Two media skills adapt a newer Agents Orchestrator snapshot as documented below. Other native sources and configuration filters may change an effective catalog. Public names use the short `jag-*` namespace (at most 15 characters). Original names are recorded in provenance; authors, licenses, and supporting resources are retained. All skill directories are materialized; none depends on a link to the source repository. Ten former review lenses are retained as conditional reference material rather than standalone skills.
 
 ## Names and upgrades
 
@@ -41,6 +41,24 @@ These stable cases require user-run conversations; structural/native tests do no
 | WW2 | `/skill:jag-wait-what explain the decision` with canonical context vocabulary | Clarifies the requested decision with the existing terms; does not invent a competing glossary or edit domain documents. |
 | GR1 | Stress-test an idea with dependent decisions and an inspectable fact | One question at a time; checks the fact directly, waits for the user's decision and revisits downstream assumptions. |
 | GR2 | Confirm the interview's understanding without authorizing implementation | Summarizes settled choices and limits, then stops; agreement does not initiate edits or Git delivery. |
+
+## Media workflows
+
+`jag-slidev` and `jag-whisper` adapt Agents Orchestrator revision `ea3158595b56d832e79b41c4c16175f45cd67ea2`, retaining upstream versions 1.2.0 and 1.1.1 in provenance. Both local versions are 2.0.0, adaptation 2.0.0, status `testing`. New names require native `/reload`; registry refresh alone does not authorize them.
+
+- **Slidev:** generated decks use a chosen directory, three bundled retro themes and explicit expected-diagram counts. The helper validates a documented fence subset; HTML comments/YAML, nested and imported diagrams require separate coverage. Full PNG export and inspection of every slide in each used scheme remain mandatory before a verified completion claim.
+- **Whisper:** local recording transcription uses a private per-run directory. Transcript-only assembly avoids model ingestion; optional summary processing requires an explicit provider/privacy boundary and tracked coverage. The local Node assembler preserves recognized text in a safe fence, rejects malformed/empty/oversized inputs and refuses output overwrites. Recognition is fallible; no invented speakers or automatic content persistence.
+- Runtime prerequisites are optional, not newly installed harness dependencies. No browser, model, dependency, publication or active-configuration change follows merely from discovery.
+
+### Manual media checks (not run automatically)
+
+| Key | Preconditions and request | Expected outcome |
+| --- | --- | --- |
+| MEDIA-SLIDEV-01 | Authorized disposable deck with installed Slidev, matching Mermaid and Chromium; choose each theme in light/dark | Check diagram count/parse, then full export and inspect cover/content/diagram slides in all six combinations. Record fonts, counts, scheme and defects. Missing dependencies/image access yields incomplete verification, not installation or a false done. |
+| MEDIA-WHISPER-01 | Authorized nonsensitive recording and local Whisper/model/ffmpeg; compare transcript-only and authorized summary requests | Transcript-only exposes metadata, not recording/log text, to the model. Summary mode discloses provider processing and records coverage. Raw JSON text is retained; repeated/concurrent basenames use distinct private runs and output collisions stop safely. |
+| MEDIA-WHISPER-02 | Silent/invalid media, unavailable model, long transcript and cancellation | Report actual failure or partial coverage; do not invent text, download a model, use a cloud fallback, clear a shared directory or delete recording/run files. |
+
+Synthetic helper tests and native discovery do not establish transcription accuracy, browser rendering, real-model compliance or network isolation.
 
 ## Optional document authoring
 
@@ -171,6 +189,8 @@ See [offline savings and limitations](performance.md) and [child resolution](sub
 | Current technical documentation | Installed docs, types and source for installed packages, Pi included; Context7 for libraries that are not installed, disclosed when unavailable. |
 | Code graphs | Optional configured graph integration; normal source inspection is the fallback. No graph indexer is installed or launched. |
 | Knowledge-base publishing | Optional configured destination, with explicit publishing authorization. |
+| Slidev decks | Authorized deck-local Slidev/Seriph, Playwright Chromium, fonts and Mermaid checker dependencies; image inspection is a completion gate. |
+| Media transcription | Local openai-whisper, ffmpeg and authorized cached/downloaded weights; Node >=22.19 for private artifact assembly. Provider processing needs explicit authorization for summaries. |
 
 Missing optional tooling limits that operation, without inventing tools or silently installing software.
 
@@ -237,7 +257,9 @@ Each entry maps the shipped name to its original name, version and SKILL.md lice
 | [jag-research](../skills/jag-research/SKILL.md) | `research` | unversioned | MIT | Matt Pocock: engineering |
 | [jag-teach](../skills/jag-teach/SKILL.md) | `teach` | unversioned | MIT | Matt Pocock: productivity |
 | [jag-wait-what](../skills/jag-wait-what/SKILL.md) | `wait-what` | unversioned | MIT | Matt Pocock: productivity |
+| [jag-slidev](../skills/jag-slidev/SKILL.md) | `slidev-retro-deck` | 1.2.0 | MIT | docs; media adaptation |
+| [jag-whisper](../skills/jag-whisper/SKILL.md) | `whisper-extract` | 1.1.1 | MIT | docs; media adaptation |
 
 ## Excluded capabilities
 
-The historical source's learning-domain skills remain excluded; the direct, explicit-only `jag-teach` addition above is the user-selected exception. `ask-matt`, `jag-guide`, and the external navigation map are not adopted. `graphify-cli`, `judgment-day`, `sdd-cold-verification`, `tcr`, `work-unit-commits`, `chained-pr`, `caveman`, `grill`, `slidev-retro-deck`, and `whisper-extract` are excluded from this delivery. `jag-grill` (upstream `grilling`) is a distinct, included design interview skill. Existing user copies of excluded names are left in place.
+The historical source's learning-domain skills remain excluded; the direct, explicit-only `jag-teach` addition above is the user-selected exception. `ask-matt`, `jag-guide`, and the external navigation map are not adopted. `graphify-cli`, `judgment-day`, `sdd-cold-verification`, `tcr`, `work-unit-commits`, `chained-pr`, `caveman`, and `grill` are excluded from this delivery. `jag-grill` (upstream `grilling`) is a distinct, included design interview skill. Existing user copies of excluded names are left in place.

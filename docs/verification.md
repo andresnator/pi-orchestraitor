@@ -4,7 +4,7 @@ The current deterministic baseline is Pi 1.3.0, Node 22.19+, and pnpm 12.9.1. En
 
 | Command | Claim checked |
 | --- | --- |
-| `pnpm test` | Native tool regressions, instructions and personality injection, tarball resources and 57 native / 54 automatic / three explicit-only skill names, adapted workflow contracts/credits, consolidated review criteria/discovery, prompt expansion, MCP overrides, migration, rollback, and restoration. |
+| `pnpm test` | Native tool regressions, instructions and personality injection, tarball resources and 59 native / 56 automatic / three explicit-only skill names, adapted workflow contracts/credits, consolidated review criteria/discovery, prompt expansion, MCP overrides, migration, rollback, and restoration. |
 | `pnpm run test:mcp` | Real Context7 and Engram calls through native codemode, extension hooks, and project separation in temporary memory storage. |
 | `pnpm run test:personality` | Configured-model responses in fresh isolated sessions, with predefined criteria and synthetic receipts for manual scoring. |
 | `pnpm run install:pi --dry-run` | Complete lexical discovery inventory, including aliases hidden by native deduplication, and proposed standalone-skill moves, without migration or registration. |
