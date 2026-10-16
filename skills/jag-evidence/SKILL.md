@@ -8,7 +8,7 @@ metadata:
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
   status: in-progress
-  version: "5.0.0"
+  version: "5.0.1"
 ---
 
 ## Contract
@@ -17,7 +17,7 @@ Plan before implementation. Read relevant code and contracts; never edit product
 
 ## Method
 
-1. **Evidence first.** Verify implementations, callers, tests, tool versions, and reusable `path:symbol` elements. Cite `path:line` or mark `hypothesis`.
+1. **Evidence first.** Verify implementations, callers, tests, tool versions, and reusable `path:symbol` elements. Cite `path:line` or mark `hypothesis`. Code proves current behavior, not business requirements. Record business rules, compliance, SLAs, pricing, retention, priorities or target users found in code as open questions until the user or an authoritative product document confirms them.
 2. **Ask only decisions.** Explore repository facts. Ask each unresolved open-ended scope, product, acceptance, or risk choice directly in normal chat and wait. Add `Recommendation: ...` only when useful; use an available Pi UI choice mechanism for closed choices, or ask in chat.
 3. **Validate edges.** Every edge is handled, out of scope, or an open question. Use `references/edge-validation.md`.
 4. **Stay proportional.** Keep only information that changes execution; record meaningful rejected alternatives briefly.

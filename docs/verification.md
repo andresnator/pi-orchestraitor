@@ -10,6 +10,18 @@ The current deterministic baseline is Pi 1.2.0, Node 22.19+, and pnpm 12.9.1. En
 | `pnpm run install:pi --dry-run` | Complete lexical discovery inventory, including aliases hidden by native deduplication, and proposed standalone-skill moves, without migration or registration. |
 | `pnpm pack --dry-run --ignore-scripts` | Distributed resource inventory and exclusion of tests, local reports, and personal data. |
 
+## Planning guidance from ECC consultation — 2026-10-16
+
+The user approved two text-only recommendations from the local ECC `intent-driven-development` audit. `jag-evidence` 5.0.1 and its question-economy reference record business rules found in code as open questions, because code proves current behavior, not business requirements. `jag-plan` 1.1.2 adds two self-check items: business requirements cite the user or a product document, and required behavior uses observable evidence instead of unqualified vague terms. `jag-issue` 2.1.4 applies the same vague-term guard to its acceptance checklist. The wording was rewritten, not copied. Provenance records the ECC source at `76aaa77df6adc5b889e689007bf99b9a4f74af34` as a consultation, and the notices credit it. The hash-locked document skills, prompts, runtime manifest and the discovery template are unchanged.
+
+Fresh checks, Node 24.20.0 / pnpm 12.9.1 / locked Pi 1.2.0:
+
+- Baseline `node --test tests/skill-resources.test.mjs tests/skill-adaptations.test.mjs tests/productivity-skills.test.mjs tests/document-authoring.test.mjs`: 29/29 passed before the edits.
+- `node --test tests/planning-guidance.test.mjs`: RED 0/4 before the edits, with expected missing guidance and consultation records; GREEN 4/4 afterwards.
+- `pnpm test`: 849/849 passed, zero failures, cancellations or skips, including extracted-package resource fingerprints.
+
+Receipts remain local under `.ai/verification/planning-guidance/`. Structural tests do not prove that a real model follows the new guidance. Not performed: live-model planning runs, installed Pi 1.3.0 suite, interactive reload, manual tarball validation and remote CI. Changes are unstaged and uncommitted.
+
 ## Pretty highlight theme — 2026-10-14
 
 Pi's built-in `dark` and `light` themes are not Shiki themes, so Pretty 0.6.30 warned on its first highlight and used `github-dark` for both. `extensions/pretty-theme.ts` now sets `PRETTY_THEME` to the matching `github-dark`/`github-light` on every start and `/reload`, unless a Pretty theme is already set. It writes no files. An earlier version pinned the theme into `pi-pretty.json` during `install:pi`; review showed that pin went stale when Pi's theme changed, so it was replaced before merge.

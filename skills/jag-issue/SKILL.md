@@ -8,7 +8,7 @@ metadata:
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
   status: backlog
-  version: "2.1.3"
+  version: "2.1.4"
 ---
 
 # Skill: jag-issue
@@ -130,7 +130,7 @@ When the user references an issue number:
 - [ ] Intent explains why the change matters.
 - [ ] Type is one of `feature`, `bugfix`, `refactor`, or `chore`.
 - [ ] Scope has explicit in-scope and out-of-scope lists.
-- [ ] Acceptance scenarios are observable and use Given/When/Then.
+- [ ] Acceptance scenarios are observable, use Given/When/Then, and back any "correct", "secure", "fast" or "robust" claim with evidence or mark it as human review.
 - [ ] Technical context names affected areas or says they are unknown.
 - [ ] Constraints and priority are filled.
 - [ ] No placeholder text remains.

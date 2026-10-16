@@ -7,7 +7,7 @@ Questions are expensive: each one blocks the user and interrupts their flow. Spe
 Before asking anything, classify it:
 
 - **The repo can answer it** (does X exist? how is Y called? what pattern do tests use? which framework version?) → explore read-only. Asking these erodes trust in every question that follows.
-- **Only the user can answer it** (scope boundaries, product trade-offs, priorities, acceptance criteria, risk appetite) → it earns a slot in the round.
+- **Only the user can answer it** (scope boundaries, product trade-offs, priorities, acceptance criteria, risk appetite, business rules, compliance, SLAs, pricing, retention) → it earns a slot in the round. Code can show today's value, never whether the business requires it.
 
 ## One conversational question at a time
 

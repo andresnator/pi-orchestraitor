@@ -25,3 +25,7 @@ Pi adaptations change invocation, output destinations, evidence qualifications a
 The installer also registers [@heyhuynhgiabuu/pi-pretty](https://github.com/heyhuynhgiabuu/pi-pretty), version 0.6.30, licensed MIT, through native Pi package management. Its source and dependencies remain in the separately installed upstream package; they are not redistributed in this tarball.
 
 No OpenCode runtime or plugin, personal credential, model store, session, or Engram database is distributed.
+
+## ECC consultation
+
+`jag-evidence` 5.0.1, `jag-plan` 1.1.2 and `jag-issue` 2.1.4 add short guidance consulted from `pi/core/skills/intent-driven-development/SKILL.md` in [ECC](https://github.com/affaan-m/ECC) at revision `76aaa77df6adc5b889e689007bf99b9a4f74af34`, licensed MIT, Copyright (c) 2026 Affaan Mustafa. The guidance separates current code behavior from user-owned business requirements and requires observable evidence for vague acceptance terms. The wording was rewritten; no source text or resource is redistributed. The skills keep their original import identities, and provenance records the consulted source fingerprint. This does not imply endorsement by the ECC author.
