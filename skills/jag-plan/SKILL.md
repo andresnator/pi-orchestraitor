@@ -7,7 +7,7 @@ metadata:
   pi_adaptation: "2.0.0"
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
-  version: "1.1.1"
+  version: "1.1.2"
   status: testing
 ---
 
@@ -33,7 +33,9 @@ Create exactly one plan for the requested outcome. The plan may be small or larg
 
 - One file contains every required section from the template.
 - Every claim is evidenced or explicitly marked as an open question.
+- Business requirements cite the user or a product document, not code.
 - Every task is actionable and verifiable; behavior changes do not hide in tasks.
+- Required behavior avoids "correctly", "securely", "fast", "robust" or "intuitive" unless it states observable evidence; otherwise mark it as human review.
 - Every work group names its implementation skills or `none`.
 - `Delivery`, when present, appears once immediately after the title and reflects explicit user language.
 - Dependencies are explicit and acyclic.

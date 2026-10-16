@@ -4,7 +4,7 @@ A personal Pi package with **57 development/workflow skills** (54 automatic, thr
 
 ## Install
 
-Use **pnpm 12.9.1** and **Node 22.19+**. The checkout's lockfile supplies **Pi 1.2.0**; it is not installed globally or bundled in the distributed package. Engram **3.0.0** is required only for memory. See [development security](#development-security) for the install policy.
+Use **pnpm 12.9.1** and **Node 22.19+**. The checkout's lockfile supplies **Pi 1.3.0**; it is not installed globally or bundled in the distributed package. Engram **3.0.0** is required only for memory. See [development security](#development-security) for the install policy.
 
 From this repository:
 
@@ -127,7 +127,7 @@ The command persists `compaction.modelOverrides["provider/modelId"].reserveToken
 
 Saving waits for the parent run to finish, then **reloads Pi**, closing active readers and panels. Trusted project `.pi/settings.json` settings take precedence; if they disable compaction or override this model's reserve, the command refuses to modify personal settings. Adjust that project setting first. When project trust is disabled, that project layer is ignored.
 
-This uses the native scheduler, summary generation and overflow recovery, with no second compaction loop. Native `reserveTokens` also affects the summary output budget. If you later change a model's context-window definition, rerun the command to maintain the same absolute threshold. The writer uses Pi 1.2.0's installed `FileSettingsStorage` lock protocol; recheck this internal storage integration when upgrading Pi. Original session history remains stored.
+This uses the native scheduler, summary generation and overflow recovery, with no second compaction loop. Native `reserveTokens` also affects the summary output budget. If you later change a model's context-window definition, rerun the command to maintain the same absolute threshold. The writer uses Pi 1.3.0's installed `FileSettingsStorage` lock protocol; recheck this internal storage integration when upgrading Pi. Original session history remains stored.
 
 ## Temporary side conversations
 

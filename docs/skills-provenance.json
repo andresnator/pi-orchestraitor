@@ -157,11 +157,24 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "2b92c63ea2a4073e0128cd0014da6c099fd95e5204c6ccd0a41c2c3c6344da28"
+          "sha256": "4864d2990c9c8f4623ecbeedc5022e9de358325dd80061da3290479acd79bcd8"
         }
       ],
       "adaptations": [
         "SKILL.md"
+      ],
+      "sourceConsultations": [
+        {
+          "upstreamRepository": "https://github.com/affaan-m/ECC",
+          "upstreamRevision": "76aaa77df6adc5b889e689007bf99b9a4f74af34",
+          "purpose": "Consulted for business-constraint and observable-acceptance guidance; wording rewritten and original import identity retained.",
+          "resources": [
+            {
+              "path": "pi/core/skills/intent-driven-development/SKILL.md",
+              "sha256": "e34045f7b3bf6a6fbd364f85c7bc81d8208e18bb929ceff80bbc987f78aadea8"
+            }
+          ]
+        }
       ]
     },
     {
@@ -419,7 +432,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "f1edc859f5d516bda6d9965425ae841f17698c0454b7c0d04eff89374c24fbd8"
+          "sha256": "c403245bf57428f49e8b0613fef28a6b7efc6fc375a42de960423803fcc5af4f"
         },
         {
           "path": "assets/discovery-template.md",
@@ -431,12 +444,25 @@
         },
         {
           "path": "references/question-economy.md",
-          "sha256": "3aaf8d729e022a7c231f50ae045575e91bf6f7fbd95926c442d62d074aa08194"
+          "sha256": "804541337243511fbc8aca6beb763aabb43e957ca606bf1ff38959a3e43467b7"
         }
       ],
       "adaptations": [
         "SKILL.md",
         "references/question-economy.md"
+      ],
+      "sourceConsultations": [
+        {
+          "upstreamRepository": "https://github.com/affaan-m/ECC",
+          "upstreamRevision": "76aaa77df6adc5b889e689007bf99b9a4f74af34",
+          "purpose": "Consulted for business-constraint and observable-acceptance guidance; wording rewritten and original import identity retained.",
+          "resources": [
+            {
+              "path": "pi/core/skills/intent-driven-development/SKILL.md",
+              "sha256": "e34045f7b3bf6a6fbd364f85c7bc81d8208e18bb929ceff80bbc987f78aadea8"
+            }
+          ]
+        }
       ]
     },
     {
@@ -453,7 +479,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "dae6b009152fe51e8093be89738522e2dab569d7f30c3c0b37f48351bb89fcfc"
+          "sha256": "917a9920ef86b6c9286db1da0284b21fbabf6d5f9b640eae64f16a64a629b9e8"
         },
         {
           "path": "assets/plan-template.md",
@@ -463,6 +489,19 @@
       "adaptations": [
         "SKILL.md",
         "assets/plan-template.md"
+      ],
+      "sourceConsultations": [
+        {
+          "upstreamRepository": "https://github.com/affaan-m/ECC",
+          "upstreamRevision": "76aaa77df6adc5b889e689007bf99b9a4f74af34",
+          "purpose": "Consulted for business-constraint and observable-acceptance guidance; wording rewritten and original import identity retained.",
+          "resources": [
+            {
+              "path": "pi/core/skills/intent-driven-development/SKILL.md",
+              "sha256": "e34045f7b3bf6a6fbd364f85c7bc81d8208e18bb929ceff80bbc987f78aadea8"
+            }
+          ]
+        }
       ]
     },
     {

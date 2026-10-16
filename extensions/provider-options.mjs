@@ -1,5 +1,5 @@
 /**
- * Provider options Pi 1.2.0 adds to its own agent requests (core/sdk.js buildRequestOptions, plus the
+ * Provider options Pi 1.3.0 adds to its own agent requests (core/sdk.js buildRequestOptions, plus the
  * agent's thinkingBudgets and transport), for requests an extension sends through the model registry itself.
  * `settings` is a SettingsManager over the host's effective settings: SettingsManager.inMemory(pi.getSettings()).
  * Not reproducible: before_provider_headers handlers, which only Pi's extension runner emits to its own requests.

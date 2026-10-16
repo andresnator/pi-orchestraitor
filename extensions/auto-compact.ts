@@ -38,7 +38,7 @@ export default function autoCompact(pi: ExtensionAPI) {
 				if (threshold !== undefined && (threshold > maximum || threshold <= settings.keepRecentTokens)) {
 					throw new Error(`Threshold must be greater than keepRecentTokens (${settings.keepRecentTokens}) and at most ${maximum}, keeping Pi's default ${MIN_RESERVE_TOKENS}-token reserve below the model's context window (${model.contextWindow}).`);
 				}
-				// Pi 1.2.0 exposes no reserveTokens setter. Use its installed storage and lock protocol,
+				// Pi 1.3.0 exposes no reserveTokens setter. Use its installed storage and lock protocol,
 				// then the command-only reload API to refresh the live SettingsManager.
 				const { FileSettingsStorage } = await import(pathToFileURL(join(getPackageDir(), "dist/core/settings-manager.js")).href);
 				const storage = new FileSettingsStorage(ctx.cwd, getAgentDir());

@@ -1,6 +1,6 @@
 # Verification evidence
 
-The current deterministic baseline is Pi 1.2.0, Node 22.19+, and pnpm 12.9.1. Engram 3.0.0 is required only for memory. Development checks use the locked local host; rerun them before upgrading or distributing the package.
+The current deterministic baseline is Pi 1.3.0, Node 22.19+, and pnpm 12.9.1. Engram 3.0.0 is required only for memory. Development checks use the locked local host; rerun them before upgrading or distributing the package.
 
 | Command | Claim checked |
 | --- | --- |
@@ -9,6 +9,41 @@ The current deterministic baseline is Pi 1.2.0, Node 22.19+, and pnpm 12.9.1. En
 | `pnpm run test:personality` | Configured-model responses in fresh isolated sessions, with predefined criteria and synthetic receipts for manual scoring. |
 | `pnpm run install:pi --dry-run` | Complete lexical discovery inventory, including aliases hidden by native deduplication, and proposed standalone-skill moves, without migration or registration. |
 | `pnpm pack --dry-run --ignore-scripts` | Distributed resource inventory and exclusion of tests, local reports, and personal data. |
+
+## Pi 1.3.0 development host — 2026-10-16
+
+The user requested moving the locked development host from Pi 1.2.0 to Pi 1.3.0. The manifest, pnpm policy test, CI job name, README, usage, NAN and subagent docs now name 1.3.0. Pi 1.3.0 was published on 2026-10-15T19:13:30Z, inside the 24-hour `minimumReleaseAge` window, so the seven exact `@earendil-works/*@1.3.0` packages replace the 1.2.0 entries in `minimumReleaseAgeExclude`. `pnpm install` changed only those seven Pi packages in `pnpm-lock.yaml`, and the lockfile passed pnpm's supply-chain verification. Third-party dependency versions are unchanged.
+
+Internal integrations were rechecked against the installed 1.2.0 and 1.3.0 releases. `dist/core/sdk.js` is byte-identical, so `extensions/provider-options.mjs` still mirrors `buildRequestOptions`. `dist/core/settings-manager.js` only adds `sessionShareDestination` accessors: there is still no `reserveTokens` setter, and the `FileSettingsStorage` lock protocol used by `extensions/auto-compact.ts` is unchanged. Only their version comments changed. Historical measurements in [performance](performance.md) still name the host they were measured on.
+
+Fresh checks, Node 24.20.0 / pnpm 12.9.1:
+
+- Preview before the bump, `PI_TEST_PACKAGE_DIR` set to installed Pi 1.3.0: 849/849 passed.
+- `node --test tests/pnpm-policy.test.mjs`: RED 1/2 after updating its expectations; GREEN after the manifest, policy and lockfile change.
+- `pnpm test`, locked Pi 1.3.0: 849/849 passed, zero failures, cancellations or skips. Rerun in a new Herdr pane created for this check (`pi --version` 1.3.0): 849/849 passed.
+- `npm run install:pi -- --dry-run`: user scope, 57 skills, no moves or blockers. `npm run install:pi`: registered this checkout plus `@heyhuynhgiabuu/pi-pretty@0.7.0` and `pi-claude-bridge@0.9.3`, verified 57 effective package skills, needed no backup, and left `settings.json` unchanged because the same packages were already registered.
+
+One live check ran in that pane with installed Pi 1.3.0, the user's default `openai-codex/gpt-6.1-sol` model at low reasoning, and a synthetic `/tmp` workspace whose `src/export.js:1` defines `FREE_TIER_EXPORT_LIMIT = 100`. Criteria were written before the run. The session transcript shows the new `jag-evidence` and `jag-plan` guidance was loaded from this checkout.
+
+| Criterion | Observed |
+| --- | --- |
+| C1: cite the limit as current behavior | Discovery and plan cite `src/export.js:1-5` as current eligibility behavior. |
+| C2: do not infer the business rule | First turn: "code alone does not establish whether that policy should apply to CSV", then asked the user. The confirmed answer is recorded as a user decision; the plan states that all product requirements come from the user's decisions. |
+| C3: no unqualified vague terms in required behavior | The plan contains none of "correct(ly)", "secure(ly)", "fast", "robust" or "intuitive"; every THEN is observable. |
+
+The run took four user turns. It asked one question each about policy and invalid input, and needed no manual repair. The status bar reported 43k input, 5.0k output and 189k cache-read tokens, with $0.155 (subscription estimate). The live agent saved Engram observations #864 and #865 under the synthetic project `pi-live-guidance.y87sns`. This is one anecdotal run without a no-guidance control. It does not show that the new text caused the behavior or that models follow it in general. Receipts remain local under `.ai/verification/planning-guidance/`, including `live/`. Changes are unstaged and uncommitted; remote CI, publication and interactive `/reload` of the existing session were not performed.
+
+## Planning guidance from ECC consultation — 2026-10-16
+
+The user approved two text-only recommendations from the local ECC `intent-driven-development` audit. `jag-evidence` 5.0.1 and its question-economy reference record business rules found in code as open questions, because code proves current behavior, not business requirements. `jag-plan` 1.1.2 adds two self-check items: business requirements cite the user or a product document, and required behavior uses observable evidence instead of unqualified vague terms. `jag-issue` 2.1.4 applies the same vague-term guard to its acceptance checklist. The wording was rewritten, not copied. Provenance records the ECC source at `76aaa77df6adc5b889e689007bf99b9a4f74af34` as a consultation, and the notices credit it. The hash-locked document skills, prompts, runtime manifest and the discovery template are unchanged.
+
+Fresh checks, Node 24.20.0 / pnpm 12.9.1 / locked Pi 1.2.0:
+
+- Baseline `node --test tests/skill-resources.test.mjs tests/skill-adaptations.test.mjs tests/productivity-skills.test.mjs tests/document-authoring.test.mjs`: 29/29 passed before the edits.
+- `node --test tests/planning-guidance.test.mjs`: RED 0/4 before the edits, with expected missing guidance and consultation records; GREEN 4/4 afterwards.
+- `pnpm test`: 849/849 passed, zero failures, cancellations or skips, including extracted-package resource fingerprints.
+
+Receipts remain local under `.ai/verification/planning-guidance/`. Structural tests do not prove that a real model follows the new guidance. Not performed: live-model planning runs, installed Pi 1.3.0 suite, interactive reload, manual tarball validation and remote CI. Changes are unstaged and uncommitted.
 
 ## Pretty highlight theme — 2026-10-14
 
