@@ -11,6 +11,10 @@
 | Location | Observed defect or inferred risk | Impact | Smallest proposed remedy | Evidence |
 | --- | --- | --- | --- | --- |
 
+## Remedy selection
+| Finding | Mechanical / judgment / navigation / access | Existing check | Wiring evidence and missing / unwired / broken / effective / unknown | Proposed remedy and target path | Verification |
+| --- | --- | --- | --- | --- | --- |
+
 ## Branch contract
 | Trigger | Action | Reference | Completion criterion | Guardrail |
 | --- | --- | --- | --- | --- |

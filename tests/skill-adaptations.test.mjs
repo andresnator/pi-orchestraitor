@@ -9,9 +9,9 @@ import { createWorkspace, packageRoot, pi } from "./helpers/pi-host.mjs";
 // Instruction checks establish structural contracts, not real-model compliance.
 const SOURCE_REVISION = "6fd947921b935b7e1e69293a200400f0fdd5c15f";
 const SOURCE_REPOSITORY = "https://github.com/mattpocock/skills";
-const NATIVE_SKILL_COUNT = 59;
-const AUTOMATIC_SKILL_COUNT = 56;
-const MANUAL_NAMES = ["jag-handoff", "jag-teach", "jag-wait-what"];
+const NATIVE_SKILL_COUNT = 37;
+const AUTOMATIC_SKILL_COUNT = 33;
+const MANUAL_NAMES = ["jag-handoff", "jag-retro", "jag-teach", "jag-wait-what"];
 const NEW_SKILLS = [
 	{ name: "jag-agent-docs", upstream: "writing-for-agents", bucket: "productivity", sourceHash: "551adca942227b44192edba88acd4e8db911f0121ce58ad16944ccf6a896a74a" },
 	{ name: "jag-pr", upstream: "pr", bucket: "engineering", sourceHash: "ab63f1cf78647389edcd386c9427c5dfca27ed2836930c24773ffee834c19bcd" },
@@ -35,7 +35,7 @@ async function assertContract(name, resources, signals) {
 	assert.ok(body.includes(SOURCE_REVISION));
 	assert.match(body, /^  modification_notice: .+/m);
 	assert.match(body, /^  upstream_name: .+/m);
-	assert.match(body, name === "jag-domain" ? /^  version: "2\.0\.0"$/m : /^  version: "1\.0\.0"$/m);
+	assert.equal(body.match(/^  version: "([^"]+)"$/m)?.[1], { "jag-domain": "2.0.0", "jag-agent-docs": "1.1.0" }[name] ?? "1.0.0");
 	for (const path of resources) await access(skillFile(name, path));
 	for (const signal of signals) assert.match(body, signal);
 	assert.doesNotMatch(body, /call the Skill tool|spin up a background agent|Bash\(open/i);

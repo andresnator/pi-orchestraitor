@@ -20,6 +20,17 @@ Each step ends at a checkable condition. Prefer exhaustive local criteria such a
 
 Use a recognizable leading concept only if its meaning is clear; an invented word costs a definition. State the positive target behavior, while retaining explicit hard prohibitions for authorization, safety, privacy and destructive operations. Pruning must preserve exceptions, negations and evidence qualifications.
 
+## Remedy Before More Instructions
+
+Classify the observed failure before adding prose. Inspect the repository's existing check command and CI/hook wiring first. Record the guard as **missing**, **unwired**, **broken**, **effective**, or **unknown**, with evidence. Effective requires relevant execution evidence; configuration alone proves neither coverage nor effectiveness. If evidence is unavailable or stale, say unknown. No command named `lint`, or no hook, does not by itself establish missing protection.
+
+- **Mechanically decidable violation:** prefer a deterministic check. Reuse the existing guard; propose wiring or repair before adding a duplicate.
+- **Judgment call:** propose narrowly triggered author/reviewer guidance. Reviewers may still need callers, requirements and runtime evidence.
+- **Navigation gap:** improve a conditional pointer instead of copying its target.
+- **Missing evidence or access:** state the gap and propose separately scoped access; do not grant it implicitly.
+
+Keep authorization rules and safety/privacy boundaries even when some checks are automated. An audit proposal is not permission to execute checks, repair CI, install tools or edit instructions. State the target path, expected benefit and verification for each proposed remedy; benefit remains a hypothesis until evaluated.
+
 ## Pruning
 
 Give each meaning one authoritative home. Inspect environment facts instead of copying cheap lookups into prose. Remove irrelevant or stale instructions, repeated meanings and no-op sentences only with a reason. A suspected no-op is model-relative: record it as an inference unless a bounded comparison supports it.

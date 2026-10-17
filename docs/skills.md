@@ -1,6 +1,6 @@
 # Bundled development skills
 
-The package ships 59 unique native skills: 56 automatically selectable and three explicit-only in an isolated package profile. The historical 51-skill base comes from non-learning domains of `agents-orchestrator`, revision `e90b11a4d5fb77bfebcf5f5c96da9471014c17ab`; six direct Matt Pocock adaptations are added, including the explicitly requested teaching exception. Two media skills adapt a newer Agents Orchestrator snapshot as documented below. Other native sources and configuration filters may change an effective catalog. Public names use the short `jag-*` namespace (at most 15 characters). Original names are recorded in provenance; authors, licenses, and supporting resources are retained. All skill directories are materialized; none depends on a link to the source repository. Ten former review lenses are retained as conditional reference material rather than standalone skills.
+The package ships 37 unique native skills: 33 automatically selectable and four explicit-only in an isolated package profile. The historical 51-skill base comes from non-learning domains of `agents-orchestrator`, revision `e90b11a4d5fb77bfebcf5f5c96da9471014c17ab`; 28 of those remain after the [retirements](#retired-skills) below. Seven direct Matt Pocock adaptations are added, including the explicitly requested teaching exception and manual retrospective. Two media skills adapt a newer Agents Orchestrator snapshot as documented below. Other native sources and configuration filters may change an effective catalog. Public names use the short `jag-*` namespace (at most 15 characters). Original names are recorded in provenance; authors, licenses, and supporting resources are retained. All skill directories are materialized; none depends on a link to the source repository. Ten former review lenses are retained as conditional reference material rather than standalone skills.
 
 ## Names and upgrades
 
@@ -8,12 +8,13 @@ Directory basenames and frontmatter names match. Use the new identifiers in `/sk
 
 ## Adapted workflows
 
-Matt Pocock is credited in the skill definitions, centralized provenance and third-party notices. The five earlier direct adaptations retain local version 1.0.0 and source revision `6fd947921b935b7e1e69293a200400f0fdd5c15f`. The explicit-only `jag-wait-what` addition uses source revision `49dd158d1076134a641b33efb035946536778336`; upstream individual versions are absent, not invented. `jag-grill` clarifies dependencies, recommendations and authorization, consulting the latter source while preserving its original import identity and one-question interaction. Both skills use minimal frontmatter; authorship, source details and resource fingerprints remain in provenance and notices. `jag-domain` retains its original 1.0.4 import identity in provenance, with local version 2.0.0 / adaptation 3.0.0 for the changed output/authorization contract. PR visual guidance additionally retains Dex Horthy/HumanLayer credits and both complete MIT notices.
+Matt Pocock is credited in the skill definitions, centralized provenance and third-party notices. The five earlier direct adaptations retain their original source revision `6fd947921b935b7e1e69293a200400f0fdd5c15f`. The explicit-only `jag-wait-what` addition uses source revision `49dd158d1076134a641b33efb035946536778336`; upstream individual versions are absent, not invented. `jag-grill` clarifies dependencies, recommendations and authorization, consulting the latter source while preserving its original import identity and one-question interaction. Both skills use minimal frontmatter; authorship, source details and resource fingerprints remain in provenance and notices. `jag-domain` retains its original 1.0.4 import identity in provenance, with local version 2.0.0 / adaptation 3.0.0 for the changed output/authorization contract. PR visual guidance additionally retains Dex Horthy/HumanLayer credits and both complete MIT notices.
 
 | Skill | Invocation | Default generated output |
 | --- | --- | --- |
 | `jag-agent-docs` | Automatic or explicit; audit is not editing permission | Authorized audit/draft: `.ai/agent-docs/YYYY-MM-DD-<slug>.md` |
 | `jag-pr` | Automatic or explicit; drafting only | Inline, or requested `.ai/pr/<slug>.md` |
+| `jag-retro` | User `/skill:jag-retro [session/scope]` only; inline when requested | Learning and proposals: `.ai/retrospectives/YYYY-MM-DD-<slug>.md` |
 | `jag-handoff` | User `/skill:jag-handoff <next task>` only | `.ai/handoffs/YYYY-MM-DD-<slug>.md` |
 | `jag-research` | Automatic or explicit; parent-led | Authorized report: `.ai/research/YYYY-MM-DD-<slug>.md` |
 | `jag-domain` | Automatic or explicit; writes require authorization | `.ai/domain/CONTEXT.md`, multi-context map/contexts, and separate `.ai/adr/` |
@@ -42,6 +43,32 @@ These stable cases require user-run conversations; structural/native tests do no
 | GR1 | Stress-test an idea with dependent decisions and an inspectable fact | One question at a time; checks the fact directly, waits for the user's decision and revisits downstream assumptions. |
 | GR2 | Confirm the interview's understanding without authorizing implementation | Summarizes settled choices and limits, then stops; agreement does not initiate edits or Git delivery. |
 
+## Session evidence workflows
+
+The manual `jag-retro` adaptation uses Matt Pocock's `retro` at revision `49dd158d1076134a641b33efb035946536778336`. After user `/reload`, invoke `/skill:jag-retro` for the current session. Explicit invocation authorizes only the learning report; use `/skill:jag-retro current session, inline only` for no writes. It is not automatically selected after a task, and does not apply its proposals.
+
+The report records scope, redacted evidence, supported learning, hypotheses, ranked proposed changes and verification limits. Historical logs need explicit bounded scope/access; missing or stale evidence stays unknown. Existing output files are preserved on collision. No transcript export, production access, memory sync, checks execution, installation, Git operation or environment repair follows automatically.
+
+The three existing workflow owners receive small, separate updates:
+
+- `jag-agent-docs` 1.1.0 owns check-versus-prose classification. Inspect existing checks and wiring before adding instructions; distinguish missing, unwired, broken, effective and unknown. Effective requires relevant execution evidence. Retro reuses this guidance rather than duplicating it.
+- `jag-evidence` 5.0.2 keeps one discovery file and separates precise blocked questions, not-yet-specified in-scope areas and exclusions. Existing edge dispositions and user-owned business decisions remain unchanged. No tracker is added.
+- `jag-arch-ideas` 4.1.0 adds an explicitly requested candidate-survey mode. It returns inline alternatives with evidence, ADR conflicts, expected benefits labelled as hypotheses and a first reversible validation. It may conclude that no change is justified. It stops before ADR/plan creation or implementation. The ordinary design mode still produces one ADR and one plan.
+
+All three retain their original import identities; provenance records the separate source consultations. No new Grill/Domain wrapper or Chief of Staff coordinator is added.
+
+### Manual coverage (not run automatically)
+
+| Key | Request / context | Expected outcome |
+| --- | --- | --- |
+| RETRO-01 | `/skill:jag-retro` with a session mistake and an existing unwired check | Saves one redacted learning report; proposes wiring the existing guard rather than another rule/check; applies no repair and runs no check. |
+| RETRO-02 | Request an unavailable historical session, then an inline-only review; repeat a saved report basename | Requests only bounded source access or records missing coverage, never scans other projects; inline mode writes nothing; saved collisions preserve the original artifact. |
+| RETRO-03 | A judgment rule, missing guard, suspected instruction no-op and stale check receipt | Distinguishes remedy types and observations/hypotheses; stale effectiveness is unknown; no invented benefit or automatic repair. |
+| DISCOVERY-01 | One precise blocked decision, one vague in-scope area and one explicit exclusion | Records each separately in one discovery; no premature decomposition or scope expansion; relevant uncertainty blocks final planning. |
+| ARCH-SURVEY-01 | Request candidate review of an area with an ADR, then inspect an area without evidenced friction | Reports evidence and ADR conflicts, asks for a choice and stops; no automatic artifacts, browser or implementation. No material candidates is valid. |
+
+These manual cases are not executed by text/discovery tests. Passing structural checks does not prove model behavior or future learning efficacy.
+
 ## Media workflows
 
 `jag-slidev` and `jag-whisper` adapt Agents Orchestrator revision `ea3158595b56d832e79b41c4c16175f45cd67ea2`, retaining upstream versions 1.2.0 and 1.1.1 in provenance. Both local versions are 2.0.0, adaptation 2.0.0, status `testing`. New names require native `/reload`; registry refresh alone does not authorize them.
@@ -65,7 +92,7 @@ Synthetic helper tests and native discovery do not establish transcription accur
 Build a document together by requesting `interactive mode`, `section by section`, or equivalent wording in your language. Supported skills:
 
 - `jag-docs`, `jag-prd`, `jag-prd-lite`, `jag-rfc`, `jag-adr`, `jag-usm`.
-- `jag-jira-story`, `jag-jira-task`, `jag-jira-spike`.
+- `jag-jira` (User Story, Task, Spike).
 
 ```text
 /skill:jag-rfc interactive mode: propose asynchronous email delivery
@@ -73,7 +100,7 @@ Build a document together by requesting `interactive mode`, `section by section`
 
 Confirm the section order, answer one missing-input question at a time, and review each section's draft. The agent waits for explicit approval before advancing and carries approved text forward. Earlier decision changes reopen affected sections. After every section is approved and validation passes, the agent assembles the complete document for final review. Pause or leave the mode at any time.
 
-Existing defaults remain unchanged, including Jira Quick Creation and explicit Refinement. Templates, evidence, validation, artifact language and output formats still apply. Section approval does not authorize file writes or publication. No new command, skill or Test Plan skill is added. Local versions are 1.1.0 for `jag-docs` and 2.1.0 for the other eight; adaptation 2.1.0, status `testing`.
+Existing defaults remain unchanged, including Jira Quick Creation and explicit Refinement. Templates, evidence, validation, artifact language and output formats still apply. Section approval does not authorize file writes or publication. No new command, skill or Test Plan skill is added. Local versions are 1.1.0 for `jag-docs`, 3.0.1 for `jag-jira` and 2.1.0 for the other five; adaptation 2.1.0 (`jag-jira` 3.0.1), status `testing`.
 
 ### Manual coverage: DOC-SECTION-01
 
@@ -105,9 +132,26 @@ These ten names are no longer supplied as standalone skills or aliases by this p
 
 Run native `/reload` to remove stale package commands/catalog entries. Update explicit resource paths/filters and existing plan `Skills:` fields yourself; immutable plans and historical reports are not rewritten. A replacement name does not automatically satisfy an old plan's contract: check the assigned behavior and routing rules before changing it.
 
-The references retain evidence/confidence rules, caller-owned output, behavior preservation, validation/rollback, real-variation gates, temporal-coupling checks and characterization-test safeguards. They do not authorize code changes during a review. Default Jira, product/PRD/USM, reading, security, testing and legacy workflows remain unchanged; the optional document mode above adds section review only when requested.
+The references retain evidence/confidence rules, caller-owned output, behavior preservation, validation/rollback, real-variation gates, temporal-coupling checks and characterization-test safeguards. They do not authorize code changes during a review. The consolidation itself left the other workflows unchanged; later removals are listed under [Retired skills](#retired-skills). The optional document mode above adds section review only when requested.
 
 The `skills` array in [provenance](skills-provenance.json) lists active resources. `consolidatedSkills` retains each retired source's original metadata, last instruction fingerprint and replacement skill/path/section. These derived references remain Apache-2.0 even under MIT skill bodies. Structural tests verify retention, discovery and search; they do not prove equivalent model behavior or provider savings.
+
+## Retired skills
+
+These 24 names are no longer shipped. Twenty-one restated general engineering knowledge that current models already apply without a skill: the gentle-ai review lenses expected a planning orchestrator this package does not ship, and no prompt, instruction or routing rule loaded them. The three Jira skills were 93% identical and are now one `jag-jira`. Git history keeps the removed text.
+
+| Retired name | Reason | Replacement |
+| --- | --- | --- |
+| `jag-arch-impact`, `jag-behavior`, `jag-big-o`, `jag-java-naming`, `jag-legacy`, `jag-logs`, `jag-nulls`, `jag-risk`, `jag-scope`, `jag-seams`, `jag-test-scope`, `jag-tool-matrix`, `jag-tools`, `jag-types`, `jag-validation` | Redundant general knowledge (gentle-ai lenses) | None |
+| `jag-java-api`, `jag-java-errors`, `jag-java-model`, `jag-java-secure` | Redundant general Java knowledge | None; `jag-java-test` and the `jag-refactor` Java gate remain |
+| `jag-prompts`, `jag-refine` | Redundant prompt-writing and summarizing | None |
+| `jag-jira-story` | Merged | [`jag-jira` User Story](../skills/jag-jira/SKILL.md#user-story) |
+| `jag-jira-task` | Merged | [`jag-jira` Task](../skills/jag-jira/SKILL.md#task) |
+| `jag-jira-spike` | Merged | [`jag-jira` Spike](../skills/jag-jira/SKILL.md#spike) |
+
+`jag-refactor` and `jag-java-test` also dropped their bundled textbook catalogs (Fowler's technique files and the legacy-testing references); their own workflow, conventions, selection heuristics, smell lenses, Java gate and setup references remain.
+
+Run native `/reload` after upgrading. Copies of these names from other sources are not moved or disabled. Update explicit resource paths/filters and plan `Skills:` fields yourself; immutable plans and historical reports are not rewritten. The `retiredSkills` array in [provenance](skills-provenance.json) keeps each name's upstream identity, author, license, last instruction fingerprint, reason and replacement.
 
 ## Lazy registry
 
@@ -169,11 +213,11 @@ See [offline savings and limitations](performance.md) and [child resolution](sub
 
 ## Pi adaptations
 
-- Every skill declares Pi compatibility and a separate `pi_adaptation` version. The namespace rename baseline is 2.0.0; consolidation recipients use 2.1.1 after the discovery-vocabulary correction, with the `jag-code` pointer correction at 2.0.1. Original upstream versions remain in provenance.
+- Every skill declares Pi compatibility and a separate `pi_adaptation` version. The namespace rename baseline is 2.0.0; consolidation recipients use 2.1.1 after the discovery-vocabulary correction, with the `jag-code` pointer correction at 2.0.1. Dropping the textbook catalogs moved `jag-refactor` to 2.2.0 and `jag-java-test` to 2.1.0; the merged `jag-jira` uses 3.0.1. Original upstream versions remain in provenance.
 - Skill routing uses native-authorized names and descriptions via `skill_registry`, or the native catalog when unavailable. Catalog suppression does not rewrite source bodies/resources; executors load selected names. The routing adaptation is 2.0.0.
 - Closed questions use an available Pi UI choice mechanism, with ordinary chat as the fallback. No OpenCode question tool is assumed.
 - `jag-plan` and its template target sequential Orchestraitor execution, unchanged plans, and working-tree delivery. Unsupported SDD, TCR, and automatic Git delivery are reported as blockers.
-- `jag-skill` uses the Pi package layout/discovery checks and a bundled template. Its conditional `jag-agent-docs` pointer loads shared writing guidance only when natively available; it creates no runtime, installer or manual-catalog dependency. `jag-prompts` keeps its no-tool evaluation contract.
+- `jag-skill` uses the Pi package layout/discovery checks and a bundled template. Its conditional `jag-agent-docs` pointer loads shared writing guidance only when natively available; it creates no runtime, installer or manual-catalog dependency.
 - Absorb compares the destination's actual runtime. Refactoring instructions require explicit authorization for commits.
 - Descriptions, references, and templates use English. Replies and explicitly requested artifact languages follow the user.
 
@@ -203,17 +247,11 @@ Each entry maps the shipped name to its original name, version and SKILL.md lice
 | [jag-absorb](../skills/jag-absorb/SKILL.md) | `absorb` | 1.2.4 | MIT | meta |
 | [jag-adr](../skills/jag-adr/SKILL.md) | `adr` | 2.0.0 | MIT | architecture, docs |
 | [jag-arch-ideas](../skills/jag-arch-ideas/SKILL.md) | `architecture-ideation` | 4.0.0 | MIT | architecture |
-| [jag-arch-impact](../skills/jag-arch-impact/SKILL.md) | `architecture-impact-review` | 1.1.3 | Apache-2.0 | plan |
 | [jag-arch-map](../skills/jag-arch-map/SKILL.md) | `architecture-map` | 2.0.1 | MIT | architecture |
 | [jag-arch-state](../skills/jag-arch-state/SKILL.md) | `architecture-state` | 2.0.1 | MIT | architecture |
-| [jag-behavior](../skills/jag-behavior/SKILL.md) | `behavior-characterization` | 1.1.0 | Apache-2.0 | orchestration, plan |
 | [jag-issue](../skills/jag-issue/SKILL.md) | `buildable-issue` | 2.1.3 | MIT | docs |
-| [jag-test-scope](../skills/jag-test-scope/SKILL.md) | `characterization-test-scoping` | 2.2.1 | Apache-2.0 | plan |
 | [jag-code](../skills/jag-code/SKILL.md) | `code-conventions` | 2.0.1 | MIT | architecture, common, orchestration, plan, review |
 | [jag-docs](../skills/jag-docs/SKILL.md) | `cognitive-doc-design` | 1.0.2 | Apache-2.0 | docs, orchestration |
-| [jag-refine](../skills/jag-refine/SKILL.md) | `cognitive-output-refiner` | 2.0.0 | MIT | common |
-| [jag-big-o](../skills/jag-big-o/SKILL.md) | `complexity-big-o` | 1.0.0 | Apache-2.0 | common, plan |
-| [jag-seams](../skills/jag-seams/SKILL.md) | `dependency-seam-detection` | 1.1.1 | Apache-2.0 | plan |
 | [jag-dep-audit](../skills/jag-dep-audit/SKILL.md) | `dependency-security-audit` | 2.1.2 | MIT | architecture |
 | [jag-patterns](../skills/jag-patterns/SKILL.md) | `design-patterns-pragmatic` | 1.1.0 | MIT | architecture, common, plan |
 | [jag-domain](../skills/jag-domain/SKILL.md) | `domain-modeling` | 1.0.4 | MIT | common, plan |
@@ -221,39 +259,23 @@ Each entry maps the shipped name to its original name, version and SKILL.md lice
 | [jag-plan](../skills/jag-plan/SKILL.md) | `execution-plan` | 1.1.1 | MIT | architecture, common, plan |
 | [jag-grill](../skills/jag-grill/SKILL.md) | `grilling` | 2.0.0 | MIT | common, plan |
 | [jag-routing](../skills/jag-routing/SKILL.md) | `implementation-skill-routing` | 3.0.0 | MIT | architecture, common, orchestration, plan |
-| [jag-validation](../skills/jag-validation/SKILL.md) | `input-validation-preconditions` | 1.0.0 | Apache-2.0 | common, plan |
-| [jag-java-api](../skills/jag-java-api/SKILL.md) | `java-api-design` | 1.0.4 | MIT | plan |
-| [jag-java-errors](../skills/jag-java-errors/SKILL.md) | `java-exception-robustness` | 1.0.4 | MIT | plan |
-| [jag-java-model](../skills/jag-java-model/SKILL.md) | `java-immutability-modeling` | 1.0.4 | MIT | plan |
-| [jag-java-naming](../skills/jag-java-naming/SKILL.md) | `java-naming-readability` | 1.0.1 | Apache-2.0 | plan |
-| [jag-java-secure](../skills/jag-java-secure/SKILL.md) | `java-secure-coding` | 1.0.4 | MIT | plan |
 | [jag-java-test](../skills/jag-java-test/SKILL.md) | `java-testing` | 3.2.1 | MIT | architecture, orchestration, plan |
-| [jag-jira-spike](../skills/jag-jira-spike/SKILL.md) | `jira-spike` | 2.0.0 | MIT | docs |
-| [jag-jira-task](../skills/jag-jira-task/SKILL.md) | `jira-task` | 2.0.0 | MIT | docs |
-| [jag-jira-story](../skills/jag-jira-story/SKILL.md) | `jira-user-story` | 2.0.0 | MIT | docs |
-| [jag-legacy](../skills/jag-legacy/SKILL.md) | `legacy-code-safety` | 1.1.1 | Apache-2.0 | orchestration, plan |
-| [jag-logs](../skills/jag-logs/SKILL.md) | `logging-observability` | 1.0.0 | Apache-2.0 | common, plan |
-| [jag-nulls](../skills/jag-nulls/SKILL.md) | `null-safety` | 1.0.1 | Apache-2.0 | plan |
+| [jag-jira](../skills/jag-jira/SKILL.md) | `jira-user-story`, `jira-task`, `jira-spike` | 2.0.0 | MIT | docs |
 | [jag-prd](../skills/jag-prd/SKILL.md) | `prd` | 2.0.0 | MIT | docs |
 | [jag-prd-lite](../skills/jag-prd-lite/SKILL.md) | `prd-light` | 2.0.0 | MIT | docs |
 | [jag-practices](../skills/jag-practices/SKILL.md) | `programming-practices-core` | 1.0.4 | MIT | common, review |
-| [jag-prompts](../skills/jag-prompts/SKILL.md) | `prompt-structure-writer` | 1.1.0 | MIT | meta |
 | [jag-refactor](../skills/jag-refactor/SKILL.md) | `refactor` | 1.3.0 | MIT | plan |
 | [jag-repo-issues](../skills/jag-repo-issues/SKILL.md) | `repo-issues` | 2.1.1 | MIT | architecture |
 | [jag-rfc](../skills/jag-rfc/SKILL.md) | `rfc` | 2.0.0 | MIT | docs |
-| [jag-risk](../skills/jag-risk/SKILL.md) | `risk-assessment` | 1.1.0 | Apache-2.0 | common, plan |
-| [jag-scope](../skills/jag-scope/SKILL.md) | `scope-analysis` | 1.0.2 | Apache-2.0 | plan |
 | [jag-boundaries](../skills/jag-boundaries/SKILL.md) | `service-boundary-analysis` | 2.0.0 | MIT | architecture |
 | [jag-skill](../skills/jag-skill/SKILL.md) | `skill-creator` | 2.0.1 | Apache-2.0 | meta |
 | [jag-summary](../skills/jag-summary/SKILL.md) | `summarize` | 1.0.3 | MIT | docs |
 | [jag-debug](../skills/jag-debug/SKILL.md) | `systematic-debugging` | 1.0.0 | MIT | common, orchestration |
-| [jag-tools](../skills/jag-tools/SKILL.md) | `tooling-audit` | 1.0.3 | Apache-2.0 | plan |
-| [jag-tool-matrix](../skills/jag-tool-matrix/SKILL.md) | `tooling-compatibility-matrix` | 1.1.1 | Apache-2.0 | plan |
-| [jag-types](../skills/jag-types/SKILL.md) | `type-contracts` | 1.0.1 | Apache-2.0 | plan |
 | [jag-usm](../skills/jag-usm/SKILL.md) | `usm` | 2.0.0 | MIT | docs |
 | [jag-agent-docs](../skills/jag-agent-docs/SKILL.md) | `writing-for-agents` | unversioned | MIT | Matt Pocock: productivity |
 | [jag-pr](../skills/jag-pr/SKILL.md) | `pr` | unversioned | MIT | Matt Pocock: engineering; HumanLayer visual credit |
 | [jag-handoff](../skills/jag-handoff/SKILL.md) | `handoff` | unversioned | MIT | Matt Pocock: productivity |
+| [jag-retro](../skills/jag-retro/SKILL.md) | `retro` | unversioned | MIT | Matt Pocock: engineering; explicit-only |
 | [jag-research](../skills/jag-research/SKILL.md) | `research` | unversioned | MIT | Matt Pocock: engineering |
 | [jag-teach](../skills/jag-teach/SKILL.md) | `teach` | unversioned | MIT | Matt Pocock: productivity |
 | [jag-wait-what](../skills/jag-wait-what/SKILL.md) | `wait-what` | unversioned | MIT | Matt Pocock: productivity |

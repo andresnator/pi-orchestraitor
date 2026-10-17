@@ -4,11 +4,39 @@ The current deterministic baseline is Pi 1.3.0, Node 22.19+, and pnpm 12.9.1. En
 
 | Command | Claim checked |
 | --- | --- |
-| `pnpm test` | Native tool regressions, instructions and personality injection, tarball resources and 59 native / 56 automatic / three explicit-only skill names, adapted workflow contracts/credits, consolidated review criteria/discovery, prompt expansion, MCP overrides, migration, rollback, and restoration. |
+| `pnpm test` | Native tool regressions, instructions and personality injection, tarball resources and 37 native / 33 automatic / four explicit-only skill names, retired-name rejection, adapted workflow contracts/credits, consolidated review criteria/discovery, prompt expansion, MCP overrides, migration, rollback, and restoration. |
 | `pnpm run test:mcp` | Real Context7 and Engram calls through native codemode, extension hooks, and project separation in temporary memory storage. |
 | `pnpm run test:personality` | Configured-model responses in fresh isolated sessions, with predefined criteria and synthetic receipts for manual scoring. |
 | `pnpm run install:pi --dry-run` | Complete lexical discovery inventory, including aliases hidden by native deduplication, and proposed standalone-skill moves, without migration or registration. |
 | `pnpm pack --dry-run --ignore-scripts` | Distributed resource inventory and exclusion of tests, local reports, and personal data. |
+
+## Session learning and bounded surveys — 2026-10-17
+
+Added manual-only `jag-retro` with a saved, redacted learning/proposal report, shared prevention guidance in `jag-agent-docs`, uncertainty categories in `jag-evidence`, and an explicit survey mode in `jag-arch-ideas`. No runtime extension, dependency, lockfile, active configuration or automatic repair was added. The pre-existing staged retirement/consolidation was separately committed as `dbba6c6` after a fresh 885/885 baseline pass.
+
+Fresh parent checks on Node 24.20.0 / Pi 1.3.0 / pnpm 12.9.1:
+
+- New `node --test tests/absorb-workflows.test.mjs`: **8/8 failed before implementation**. Focused workflow/provenance/native checks then passed **33/33**.
+- First full pass: 892/893; one unrelated document-authoring inventory assertion still expected 36 skills. Updated that assertion for the added manual skill, then full `pnpm test`: **893/893 passed**, zero failures/cancellations/skips.
+- Native discovery: **37 total / 33 automatic / four manual**, no diagnostics. Actual Pi command expansion accepts `/skill:jag-retro` with and without arguments; registry search/automatic selection excludes it.
+- `npm pack --dry-run --ignore-scripts --json`: **195 files**, 37 skill bodies and **114 verified skill resources**. No tests, ignored reports or personal configuration is packaged.
+- Every declared resource hash matches disk, with no unlisted or missing skill resources. Original identities, unselected active provenance, retired records and consolidated records remain unchanged.
+- Parent review and one bounded reader identified and clarified repository-write versus existing memory-protocol authority, and added separate structural checks for inline-only output, historical-log permission and no automatic test runs. This was not blind or independent verification. `git diff --check` passed.
+
+Not performed: real-model retrospective generation, collision/privacy behavior, learning efficacy or architecture-survey behavior; manual cases in `docs/skills.md` remain unrun. Native discovery and text checks do not prove those outcomes. No live-provider requests or interactive user `/reload` were required for these checks.
+
+## Redundant skill retirement — 2026-10-17
+
+Retired 21 skills that restated general engineering knowledge (15 gentle-ai review lenses, four Java design skills, `jag-prompts`, `jag-refine`), merged the three Jira skills into `jag-jira` with byte-identical templates, and dropped the bundled textbook catalogs of `jag-refactor` (63 technique files, four references) and `jag-java-test` (ten references). Before the change, 116 local Pi sessions (2026-10-02 to 2026-10-16) showed no registry load, child selection or explicit command for any retired name except two `jag-arch-impact` loads. Provenance moves the 24 names to `retiredSkills` with their previous instruction fingerprints; the ten consolidated lenses are unchanged.
+
+Fresh parent checks on Node 24.20.0 / Pi 1.3.0 / pnpm 12.9.1:
+
+- New `tests/skill-retirement.test.mjs`: 5/5 failed against the unchanged base checkout, then 5/5 passed.
+- Full `pnpm test`: **885/885** passed, zero failures/cancellations/skips, including extracted-tarball acceptance and the lazy-versus-native bench reduction.
+- `npm pack --dry-run --ignore-scripts --json`: 192 files, 36 skill bodies, 111 skill resources, no `techniques/` files and no tests. All 111 declared resource fingerprints match the files on disk, with no unlisted or missing skill files.
+- Native inventory: 36 total / 33 automatic / three manual, zero diagnostics; retired names are rejected by the registry and Jira story/task/spike searches find `jag-jira`. `git diff --check` passed.
+
+Not performed: live model runs of `jag-jira` type selection or interactive mode, other harnesses' copies of the retired names, or interactive `/reload` on an installed package.
 
 ## Media skill adaptations — 2026-10-16
 

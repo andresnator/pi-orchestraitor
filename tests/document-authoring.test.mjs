@@ -13,12 +13,12 @@ const ORIGINAL_BODY_HASHES = {
 	"jag-rfc": "7159b24cb5e63375325170950b70eea2c9ef2b4104d70d7e7586e8b1dd4fa229",
 	"jag-adr": "013db18c921f8c1f9019283497eb7797a64474567298dd6e8b9da031cb3e4c18",
 	"jag-usm": "7aea0926c8baa05190e133f12e3fd6e49e95d1af4cb7181127262b5b0aad6640",
-	"jag-jira-story": "ac86f20d3a61db1081abc4a692199dc2b91eb0be3686bfe9aa0942562e9ac2f1",
-	"jag-jira-task": "3e85c612af393c65351708b903b18c78712bab39d27582eeaf86b86115e7db1a",
-	"jag-jira-spike": "70914d07749896423dd1622e7f3291d3a01bc93533cbc399e7fc762f429ba244",
+	// Merged Jira Story/Task/Spike default body, deduplicated 2026-10-17.
+	"jag-jira": "400070801d0dae32b9449f899ebc1a7a6dde1f2dcec499d15d3f5440af01541b",
 };
+const VERSIONS = { "jag-docs": ["1.1.0", "2.1.0"], "jag-jira": ["3.0.1", "3.0.1"] };
 const SELECTED_NAMES = Object.keys(ORIGINAL_BODY_HASHES);
-const BUNDLED_SKILL_COUNT = 59;
+const BUNDLED_SKILL_COUNT = 37;
 const MODE_BLOCK = /## Optional Interactive Mode\n[\s\S]*?\n\n(?=## )/g;
 const skillPath = (name) => join(packageRoot, "skills", name, "SKILL.md");
 const readSkill = (name) => readFile(skillPath(name), "utf8");
@@ -74,9 +74,9 @@ test("documents/shouldAdvertiseOptionalReviewWithoutAddingSkillsWhenNativeDiscov
 	const metadataFailures = [];
 	for (const { name, description, disableModelInvocation } of selected) {
 		const body = await readSkill(name);
-		const version = name === "jag-docs" ? "1.1.0" : "2.1.0";
+		const [version, adaptation] = VERSIONS[name] ?? ["2.1.0", "2.1.0"];
 		if (!description.includes("optional section review") || disableModelInvocation ||
-			!body.includes(`  version: "${version}"`) || !body.includes('  pi_adaptation: "2.1.0"') ||
+			!body.includes(`  version: "${version}"`) || !body.includes(`  pi_adaptation: "${adaptation}"`) ||
 			!body.includes("  status: testing")) metadataFailures.push(name);
 	}
 	// Then
