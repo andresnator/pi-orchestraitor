@@ -95,15 +95,7 @@ async function worker(mode) {
 			result.skillWorkflow = { load: size(loaded.content.map(block => block.text ?? "").join("")),
 				calls: size(JSON.stringify([{ name: "read", arguments: readArgs }])) };
 		}
-		const tool = session.getToolDefinition("orchestraitor_tasks");
 		const ctx = session.extensionRunner.createContext();
-		const tasks = Array.from({ length: 20 }, (_, index) => ({ id: `t${index}`, title: `Inspect synthetic module ${index}`, status: "pending" }));
-		const first = await tool.execute("seed", { operation: "replace", expectedRevision: 0, tasks }, undefined, undefined, ctx);
-		session.sessionManager.appendMessage({ role: "toolResult", toolName: tool.name, toolCallId: "seed", isError: false, timestamp: Date.now(), ...first });
-		const params = { operation: "update", expectedRevision: 1, id: "t0", changes: { status: "done", evidence: "Synthetic check passed" } };
-		const updated = await tool.execute("update", params, undefined, undefined, ctx);
-		result.taskResponse = size(updated.content.map(block => block.text ?? "").join(""));
-		result.taskUpdateMs = await timings(() => tool.execute("update", params, undefined, undefined, ctx));
 		const controller = globalThis[Symbol.for("pi-orchestraitor.subagent-controller")];
 		const originalRun = controller.run;
 		try {
@@ -116,7 +108,7 @@ async function worker(mode) {
 				undefined, undefined, { ...ctx, model, modelRegistry: { getAvailable: () => [model] } });
 			result.subagentResponse = { compact: size(childResult.content[0].text), fullReceipt: size(JSON.stringify(childResult.details.results, null, 2)) };
 		} finally { controller.run = originalRun; }
-		// Measure native UI projection hooks without terminal I/O.
+		// Measure native UI status hooks without terminal I/O.
 		const probe = join(temporary, "probe.ts");
 		await writeFile(probe, `import statusUI from ${JSON.stringify(join(ROOT, "extensions/status-ui.ts"))};\nexport default function(pi) { pi.registerTool({name:"bench_probe", label:"Probe", description:"Offline probe", parameters:{type:"object",properties:{}}, execute:async()=>({content:[],details:{statusUI}})}); }`);
 		const { loadExtensions } = await import(pathToFileURL(join(host, "dist/core/extensions/loader.js")));
@@ -186,8 +178,7 @@ async function main(args) {
 			const current = report.modes[mode], previous = before.modes[mode];
 			if (!previous) { report.comparison.modes[mode] = { unavailable: "Previous report has no matching configuration" }; continue; }
 			report.comparison.modes[mode] = { startupMedianChangePercent: 100 * (current.summary.startupMs.median / previous.summary.startupMs.median - 1),
-				promptCharacterReductionPercent: 100 * (1 - current.samples[0].prompt.characters / previous.samples[0].prompt.characters),
-				...(mode !== "native" ? { taskResponseCharacterReductionPercent: 100 * (1 - current.samples[0].taskResponse.characters / previous.samples[0].taskResponse.characters) } : {}) };
+				promptCharacterReductionPercent: 100 * (1 - current.samples[0].prompt.characters / previous.samples[0].prompt.characters) };
 		}
 	}
 	if (options.output) await writeFile(options.output, JSON.stringify(report, null, 2) + "\n", { flag: "wx" });

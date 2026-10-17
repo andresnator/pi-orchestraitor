@@ -7,7 +7,7 @@ import test from "node:test";
 import { createPackageUISession, createWorkspace, packageRoot } from "./helpers/ui-harness.mjs";
 
 const EXTENSIONS = ["auto-compact.ts", "compact-tools.ts", "context-budget.ts", "footer.ts", "index.ts", "instructions.ts", "mcp.ts", "nan.ts", "pretty-theme.ts", "quota.ts", "skill-registry.ts", "status-ui.ts", "subagents.ts"];
-const ACTIVE = ["read", "bash", "edit", "write", "subagent_collect", "subagent_run", "orchestraitor_tasks", "orchestraitor_ask", "skill_registry"];
+const ACTIVE = ["read", "bash", "edit", "write", "subagent_collect", "subagent_run", "orchestraitor_ask", "skill_registry"];
 const run = promisify(execFile);
 
 for (const mode of ["tui", "rpc", "json", "print"]) {
@@ -19,7 +19,7 @@ for (const mode of ["tui", "rpc", "json", "print"]) {
 		const tools = session.extensionRunner.getAllRegisteredTools().map(({ definition }) => definition.name);
 		// When
 		const ctx = session.extensionRunner.createToolContext("nested", undefined);
-		const rejected = await Promise.all(["orchestraitor_tasks", "orchestraitor_ask"].map((name) => ctx.executeTool(name, name.endsWith("tasks") ? { operation: "list" } : { questions: [] })));
+		const rejected = await ctx.executeTool("orchestraitor_ask", { questions: [] });
 		const callableNames = ctx.tools.map(({ name }) => name);
 		await close();
 		// Then
@@ -27,14 +27,14 @@ for (const mode of ["tui", "rpc", "json", "print"]) {
 			{ paths: EXTENSIONS, active: ACTIVE, errors: [], calls: [], footers: mode === "tui" ? 1 : 0 });
 		assert.equal(new Set(commands).size, commands.length);
 		assert.equal(new Set(tools).size, tools.length);
-		assert.ok(rejected.every((result) => result.isError));
+		assert.ok(rejected.isError);
 		assert.ok(!callableNames.some((name) => name.startsWith("orchestraitor_")));
 	});
 }
 
 for (const mode of ["tui", "rpc", "json", "print"]) for (const selection of [
 	{ tools: ["read"] }, { tools: ["read", "bash", "edit", "write", "subagent_run"] },
-	{ excludeTools: ["orchestraitor_tasks", "orchestraitor_ask"] },
+	{ excludeTools: ["orchestraitor_ask"] },
 ]) {
 	test(`shouldPreserveExactPersistentSelectionAcrossReloadWhenModeIs${mode}AndSelectionIs${JSON.stringify(selection)}`, async (t) => {
 		// Given
@@ -71,7 +71,7 @@ test("shouldDriveActualNativeToolsWithLocalProviderAndKeepFixtureOutOfPackageWhe
 	await readFile(fixture, "utf8");
 	const args = ["--mode", "json", "--offline", "--no-approve", "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-themes", "--no-context-files",
 		"-e", join(packageRoot, "extensions/instructions.ts"), "-e", join(packageRoot, "extensions/compact-tools.ts"), "-e", join(packageRoot, "extensions/subagents.ts"), "-e", join(packageRoot, "extensions/status-ui.ts"), "-e", fixture,
-		"--model", "ui-smoke/model", "--thinking", "off", "--session-dir", receipts, "ui-smoke:tasks-create", "ui-smoke:two", "ui-smoke:single"];
+		"--model", "ui-smoke/model", "--thinking", "off", "--session-dir", receipts, "ui-smoke:two", "ui-smoke:single"];
 	// When
 	const pending = run("pi", args, { cwd, env: { ...process.env, PI_CODING_AGENT_DIR: profile, PI_OFFLINE: "1", PI_TELEMETRY: "0", UI_SMOKE_ENABLED: "1", UI_SMOKE_ROOT: root }, maxBuffer: 8 * 1024 * 1024, timeout: 25000 });
 	pending.child.stdin.end(); // Pi consumes piped stdin before initial JSON-mode prompts.
@@ -80,13 +80,12 @@ test("shouldDriveActualNativeToolsWithLocalProviderAndKeepFixtureOutOfPackageWhe
 	const results = events.filter((event) => event.type === "message_end" && event.message?.role === "toolResult").map(({ message }) => message);
 	// Then
 	assert.equal(stderr, "");
-	assert.deepEqual(results.map(({ toolName }) => toolName), ["orchestraitor_tasks", "subagent_run", "orchestraitor_ask"]);
-	assert.equal(results[0].details.state.tasks.length, 2);
-	assert.deepEqual(results[1].details.results.map(({ status, terminated, writes, usageComplete }) => ({ status, terminated, writes, usageComplete })), [
+	assert.deepEqual(results.map(({ toolName }) => toolName), ["subagent_run", "orchestraitor_ask"]);
+	assert.deepEqual(results[0].details.results.map(({ status, terminated, writes, usageComplete }) => ({ status, terminated, writes, usageComplete })), [
 		{ status: "completed", terminated: true, writes: [], usageComplete: true }, { status: "completed", terminated: true, writes: [], usageComplete: true },
 	]);
-	assert.ok(results[1].details.results.every(({ finalResponse }) => /marker\.txt/.test(finalResponse)));
-	assert.deepEqual(results[2].details, { version: 1, status: "unavailable" });
+	assert.ok(results[0].details.results.every(({ finalResponse }) => /marker\.txt/.test(finalResponse)));
+	assert.deepEqual(results[1].details, { version: 1, status: "unavailable" });
 	const manifest = JSON.parse(await readFile(join(packageRoot, "package.json"), "utf8"));
 	assert.ok(!manifest.files.some((path) => path.startsWith("tests")));
 });

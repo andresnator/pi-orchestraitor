@@ -18,9 +18,8 @@ pnpm run bench --samples 7 --compare /tmp/pi-before.json --output /tmp/pi-after.
 
 - **Native / package / package-native:** isolated SDK resource/session startup, prepared prompt and model-visible tool declaration sizes, RSS/heap and CPU over a 100 ms idle interval. Package defaults to lazy skills; package-native loads the same 37-skill catalog (33 automatic and four explicit-only) after the public native-mode command. Startup includes host import/resources/mode setup, not first prompt preparation or time to first model token; preparation is reported separately. These samples use print mode.
 - **Skills:** actual bounded search/load plus native read of jag-code; one warmup and five refresh/search/load timings per package sample. Initial and one-selected-skill character totals include schema and lookup/call overhead. The full diagnostic file is measured separately, never added to model context. This single deterministic English query does not evaluate selector quality.
-- **Tasks:** real task-tool execution on a synthetic 20-task board, preserving full receipts; update latency and model-facing response size.
 - **Subagents:** actual launcher response shaping with a synthetic controller receipt. No process or model is started; sizes do not measure child startup or real delegation savings.
-- **Hooks:** simulated native Pi UI without terminal I/O, 10,000 native entries, five warmups and 30 unchanged-history starts. This measures task projection overhead.
+- **Hooks:** simulated native Pi UI without terminal I/O, 10,000 native entries, five warmups and 30 unchanged-history starts. This measures status hook overhead.
 
 These benchmark modes load the harness alone, excluding the separately installed pi-pretty companion and its FFF index/highlighter. They do not measure the complete pretty-enabled profile. `test:pretty` checks that integration separately.
 
@@ -70,10 +69,9 @@ These are hypotheses until measured. After a week of comparable work, run `pnpm 
 
 ## Task and memory turns
 
-About 15% of the baseline's assistant turns only updated tasks or memory. The package makes those updates smaller and asks for them to travel with work:
+About 15% of the baseline's assistant turns only updated tasks or memory. The package removes the task board and keeps memory updates few and alongside work:
 
-- `orchestraitor_tasks` mutations return the operation, the new revision and only the affected tasks. `list` still returns the complete board, and every receipt keeps the full versioned state in `details`. On the benchmark's one-task update on a 20-task board, the model-facing response fell from 261 to 146 characters.
-- The task tool runs sequentially, so several updates in one assistant message, alongside work calls, take consecutive revisions. Pi then runs every call in that message sequentially: two 400 ms calls plus a task update take about 800 ms instead of 400 ms. The tool description therefore asks to pair updates with at most one slow call, and marking a task done needs parent evidence.
+- The `orchestraitor_tasks` board is removed. Its tool ran sequentially, so Pi ran every call in the same assistant message one after another: two 400 ms calls plus a task update took about 800 ms instead of 400 ms. Its schema also added 1,463 characters, about 366 estimated tokens, to every request: package tool declarations fell from 7,602 to 6,139 characters in the offline benchmark.
 - `extensions/mcp.ts` registers Engram as a `hidden` server whose four memory tools (`mem_search`, `mem_save`, `mem_context`, `mem_get_observation`) are reachable only through codemode. Declared directly, those four schemas would add about 7,100 characters per request; gentle-engram's route declares all 22 of its tools and adds a 2,768-character protocol that makes saving mandatory.
 - When measured, this guidance and the codemode rules added 439 characters to the owned instructions (since replaced by the shorter core instructions) and 40 to the tool declarations. Prompt plus tool declarations grew by 528 characters, about 130 estimated tokens per request, in a prefix that stays stable and is mostly read from cache. Package startup stayed within 1% of the baseline.
 
@@ -117,7 +115,7 @@ Raw reports are retained privately under `.ai/verification/performance/`; that d
 
 ## Native UI after integration removal
 
-The optional workbench, publisher, private snapshot transport and duplicate usage projection are removed. Native Pi owns session accounting; child attribution remains in full native receipts. Task projection caching still avoids branch reads when the manager/leaf are unchanged. Tasks no longer bind a plan, so nothing checks plans for external drift.
+The optional workbench, publisher, private snapshot transport and duplicate usage projection are removed. Native Pi owns session accounting; child attribution remains in full native receipts. Status hooks still avoid branch reads while the session is unchanged.
 
 Historical benchmark report version 2 measured only native and package configurations. It removes duplicate package startup samples and the removed usage projection fixture. Comparisons record `sameMethodology`; prompt/task size and print-mode startup fields are unchanged, but the hook fixture now measures native UI alone. Do not compare hook timings across report versions as the same operation. Removal reduces code and background work; it does not itself prove provider-token savings.
 

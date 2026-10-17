@@ -108,7 +108,7 @@ try {
   assert.match(result.systemPromptOptions.sections.pi_orchestraitor_core, /Personal harness rules/);
   assert.match(result.systemPromptOptions.sections.pi_orchestraitor_personality, /Colombian software architect/);
   assert.equal(session.modelRuntime.getProvider("nan")?.name, "NaN");
-  for (const tool of ["subagent_run", "subagent_collect", "orchestraitor_tasks", "orchestraitor_ask", "skill_registry"]) {
+  for (const tool of ["subagent_run", "subagent_collect", "orchestraitor_ask", "skill_registry"]) {
     assert.ok(session.getActiveToolNames().includes(tool), `Missing tool: ${tool}`);
   }
   const { BatchController } = await import(pathToFileURL(join(PACKAGE_DIR, "extensions/subagent/controller.mjs")).href);

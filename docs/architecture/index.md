@@ -9,7 +9,7 @@ Source: `7232484becc7895167d3b3d063765a8186b3541d` plus the authorized interacti
 1. This page: what the pieces do.
 2. [Choose a workflow](flows.md): diagrams and a small example for every route.
 3. [Execute and delegate](execution.md): who changes files, who checks them, and when work stops.
-4. [Interactive UI](../interactive-ui.md): one presentation owner, task receipts and user decisions.
+4. [Interactive UI](../interactive-ui.md): one presentation owner and user decisions.
 
 ## System context
 
@@ -52,9 +52,9 @@ flowchart TB
   X -->|subagents.ts registers: K| SR[subagent_run]
   A -->|optional delegation: K| SR
   SR -->|controller spawns: L| CH[Child process + guard]
-  X -->|status-ui.ts owns: M| UI[Task widget / native footer / modal]
+  X -->|status-ui.ts owns: M| UI[Native footer status / modal]
   SR -->|native observations: M| UI
-  A -->|model-only tasks / questions: M| UI
+  A -->|model-only questions: M| UI
   X -->|footer.ts replaces: O| FT[Terminal footer]
   X -->|quota.ts registers: O| Q["/quota plan usage"]
 ```
@@ -72,7 +72,7 @@ flowchart TB
 | N | [extensions/context-budget.ts](../../extensions/context-budget.ts): lowers the output cap of top-level codemode scripts without options; the transcript keeps the original script. |
 | O | [extensions/footer.ts](../../extensions/footer.ts): terminal-mode footer factory rendered by [extensions/ui/footer.ts](../../extensions/ui/footer.ts). [extensions/quota.ts](../../extensions/quota.ts) keeps provider-reported plan usage, read by [extensions/ui/quota.ts](../../extensions/ui/quota.ts). See the [footer](../interactive-ui.md#footer) and [plan usage](../interactive-ui.md#plan-usage). |
 
-**M:** [status-ui.ts](../../extensions/status-ui.ts) delegates to [agents](../../extensions/ui/agents.ts), [tasks](../../extensions/ui/tasks.ts), [questions](../../extensions/ui/questions.ts) and the [cache notice](../../extensions/ui/cache-notice.ts). It uses native widgets/status/dialogs/notifications, not header/footer/editor factories. Task state comes only from successful active-branch native receipts; it cannot grant writes, accept child work or recover execution. See the [UI guide](../interactive-ui.md).
+**M:** [status-ui.ts](../../extensions/status-ui.ts) delegates to [agents](../../extensions/ui/agents.ts), [questions](../../extensions/ui/questions.ts) and the [cache notice](../../extensions/ui/cache-notice.ts). It uses native status/dialogs/notifications, not header/footer/editor factories. It cannot grant writes, accept child work or recover execution. See the [UI guide](../interactive-ui.md).
 
 ## The distinctions that prevent confusion
 
@@ -98,4 +98,4 @@ Sources: [prompts/plan.md](../../prompts/plan.md), [instructions/core.md](../../
 
 Planning-only scope and parent verification are **agent instructions**. Child tool/path restrictions have executable guards, but are **not an OS sandbox**. No durable SDD resume, automatic commits, TCR or blind dual review is supplied; commits need explicit permission ([instructions/core.md](../../instructions/core.md)).
 
-Evidence method: local manifest, instructions and implementation; Graphify index absent. Context7 resolved Pi but its indexed versions do not establish 1.0.2 behavior, so installed public declarations/docs are the compatibility authority. Engram records verified project decisions, not task authority. Examples on the next pages are illustrative; current acceptance and limits belong in [verification](../verification.md).
+Evidence method: local manifest, instructions and implementation; Graphify index absent. Context7 resolved Pi but its indexed versions do not establish 1.0.2 behavior, so installed public declarations/docs are the compatibility authority. Engram records verified project decisions, not execution authority. Examples on the next pages are illustrative; current acceptance and limits belong in [verification](../verification.md).

@@ -80,8 +80,6 @@ export function compactTool<TParams extends TSchema, TDetails, TState>(
 			if (expanded && !context.isError && result.details && typeof result.details === "object") {
 				if (["subagent_run", "subagent_collect"].includes(original.name) && "results" in result.details && Array.isArray(result.details.results)) {
 					output = JSON.stringify("pending" in result.details && Array.isArray(result.details.pending) && result.details.pending.length ? { results: result.details.results, pending: result.details.pending } : result.details.results, null, 2);
-				} else if (original.name === "orchestraitor_tasks" && "state" in result.details) {
-					output = JSON.stringify(result.details, null, 2);
 				}
 			}
 			const diff = !context.isError && original.name === "edit" && result.details &&

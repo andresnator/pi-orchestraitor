@@ -6,10 +6,9 @@ import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { getAgentDir, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { createAssistantMessageEventStream, type AssistantMessage } from "@earendil-works/pi-ai";
-import { replayTasks } from "../../extensions/ui/tasks.ts";
 
 const MODEL = "ui-smoke/model";
-const ACTIONS = ["two", "writer", "failure", "cancel", "retry", "tasks-create", "tasks-start", "tasks-block", "tasks-done", "tasks-reopen", "single", "form"];
+const ACTIONS = ["two", "writer", "failure", "cancel", "retry", "single", "form"];
 const MARKER = "marker: SYNTHETIC-UI-47\nunknown: 7319\nnote: synthetic only\n";
 const INITIAL_TYPO = "synthetic tpyo\n";
 const ZERO_COST = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 };
@@ -25,7 +24,6 @@ export default function smoke(pi: ExtensionAPI) {
 	if (process.env.UI_SMOKE_ENABLED !== "1" || !process.env.UI_SMOKE_ROOT) throw new Error("UI smoke fixture requires explicit UI_SMOKE_ENABLED=1 and a fresh isolated UI_SMOKE_ROOT");
 	const root = process.env.UI_SMOKE_ROOT;
 	let server: Server | undefined;
-	let branch: () => any[] = () => [];
 
 	pi.registerProvider("ui-smoke", {
 		api: "openai-completions", baseUrl: "https://example.invalid", apiKey: "fixture", models: [MODEL_DEFINITION],
@@ -35,7 +33,7 @@ export default function smoke(pi: ExtensionAPI) {
 				const user = context.messages.filter((message) => message.role === "user").at(-1);
 				const action = messageText(user).replace(/^ui-smoke:/u, "").trim();
 				const first = context.messages.at(-1)?.role === "user";
-				const call = first && ACTIONS.includes(action) ? operation(action, replayTasks(branch())) : undefined;
+				const call = first && ACTIONS.includes(action) ? operation(action) : undefined;
 				const message: AssistantMessage = { role: "assistant", api: model.api, provider: model.provider, model: model.id, timestamp: Date.now(),
 					stopReason: options?.signal?.aborted ? "aborted" : call ? "toolUse" : "stop",
 					usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { ...ZERO_COST } },
@@ -67,7 +65,6 @@ export default function smoke(pi: ExtensionAPI) {
 
 	pi.on("session_start", async (_event, ctx) => {
 		if (await realpath(ctx.cwd) !== join(root, "workspace") || await realpath(getAgentDir()) !== join(root, "profile")) throw new Error("UI smoke fixture refuses non-isolated workspace/profile");
-		branch = () => ctx.sessionManager.getBranch();
 		for (const [name, content] of [["marker.txt", MARKER], ["typo.txt", INITIAL_TYPO], ["plan.md", "# Synthetic UI plan\n\nGroup 1: inspect\nGroup 2: verify\n"]]) {
 			try { await writeFile(join(ctx.cwd, name), content, { flag: "wx" }); }
 			catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
@@ -110,14 +107,7 @@ export default function smoke(pi: ExtensionAPI) {
 	});
 }
 
-function operation(action: string, state: ReturnType<typeof replayTasks>) {
-	if (action.startsWith("tasks-")) {
-		const status = ({ "tasks-start": "in_progress", "tasks-block": "blocked", "tasks-done": "done", "tasks-reopen": "pending" } as const)[action as "tasks-start"];
-		const arguments_ = action === "tasks-create"
-			? { operation: "replace", expectedRevision: state.revision, tasks: [{ id: "inspect", title: "Inspect marker 原é", status: "pending" }, { id: "verify", title: "Verify native receipts", status: "pending" }] }
-			: { operation: "update", expectedRevision: state.revision, id: "inspect", changes: { status, ...(status === "done" ? { evidence: "Synthetic parent inspected native marker read receipt" } : {}), ...(action === "tasks-reopen" ? { reason: "Synthetic correction before acceptance" } : {}) } };
-		return { name: "orchestraitor_tasks", arguments: arguments_ };
-	}
+function operation(action: string) {
 	if (action === "single" || action === "form") {
 		const options = [{ label: "Alpha 原", value: "opaque/alpha", recommended: true }, { label: "Beta é", value: "opaque/beta" }];
 		return { name: "orchestraitor_ask", arguments: { questions: action === "single" ? [{ id: "single/id", prompt: "Synthetic choice: choose a harmless marker", selection: "single", options }]
