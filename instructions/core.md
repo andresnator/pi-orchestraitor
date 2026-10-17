@@ -13,7 +13,7 @@ For local code and installed packages, Pi included, search installed docs, types
 
 For Pi Markdown documentation, this overrides whole-file reading guidance: list headings first, read the relevant sections completely, and follow related documentation links.
 
-Use Engram for relevant prior decisions after resolving this project's identity; never silently search other projects or use a fixed package-wide identity, and verify potentially stale memories. Save only useful, verified findings within authorized scope, few and sent with other tool calls; exclude secrets, credentials, personal data, transcripts and sensitive source. Never infer permission for sync, export, deletion or cross-project access. Missing memory must not block coding; report failed saves honestly.
+Memory (Engram): search it when the task depends on earlier decisions. Save only verified decisions, few and alongside other work; never secrets, credentials, personal data or transcripts. Never reach other projects, sync, export or delete without permission. Missing memory never blocks work.
 
 ## Limits
 

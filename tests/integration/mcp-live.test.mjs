@@ -47,8 +47,7 @@ test("shouldConnectBothServersAndSeparateMemoriesWhenProjectsUseOneTemporaryData
 		}
 		// Execute the bound codemode tool without a model. Nested calls use the
 		// native validation and extension-hook pipeline.
-		const call = async (session, name, args) => {
-			const code = `const name = ${JSON.stringify(name)}; const result = await tools[name.replace(/[^a-zA-Z0-9_$]/g, "_")](${JSON.stringify(args)}); text("MCP_RESULT=" + JSON.stringify(result));`;
+		const run = async (session, code) => {
 			// The host requires an issuing assistant message for nested calls. This
 			// deterministic fixture does not call a model or imply model behavior.
 			session.agent.state.messages = [...session.agent.state.messages, { role: "assistant", content: [{ type: "toolCall", id: "integration-codemode", name: "codemode", arguments: { code } }],
@@ -62,6 +61,10 @@ test("shouldConnectBothServersAndSeparateMemoriesWhenProjectsUseOneTemporaryData
 			assert.match(text, /Script completed/);
 			return JSON.parse(text.match(/MCP_RESULT=(.*)/)[1]);
 		};
+		const call = (session, name, args) => run(session,
+			`const name = ${JSON.stringify(name)}; const result = await tools[name.replace(/[^a-zA-Z0-9_$]/g, "_")](${JSON.stringify(args)}); text("MCP_RESULT=" + JSON.stringify(result));`);
+		const reachable = (session, names) => run(session,
+			`text("MCP_RESULT=" + JSON.stringify(${JSON.stringify(names)}.filter((name) => ALL_TOOLS.some((tool) => tool.name === name))));`);
 		// When
 		const context7 = await call(sessions[0], "mcp__context7__query-docs", {
 			libraryId: "/earendil-works/pi", query: "How does a Pi package declare bundled skills in package.json?",
@@ -73,6 +76,7 @@ test("shouldConnectBothServersAndSeparateMemoriesWhenProjectsUseOneTemporaryData
 		});
 		const own = await call(sessions[0], "mcp__engram__mem_search", { query: MEMORY_MARKER });
 		const other = await call(sessions[1], "mcp__engram__mem_search", { query: MEMORY_MARKER });
+		const memoryTools = await reachable(sessions[0], ["mcp__engram__mem_save", "mcp__engram__mem_search", "mcp__engram__mem_session_summary", "mcp__engram__mem_save_prompt"]);
 		// Then
 		assert.notEqual(context7.isError, true, JSON.stringify(context7.content));
 		assert.ok(context7.content.some(({ type, text }) => type === "text" && text.length > 0));
@@ -90,6 +94,7 @@ test("shouldConnectBothServersAndSeparateMemoriesWhenProjectsUseOneTemporaryData
 			ownProject: "project-alpha", ownContainsSavedContent: true,
 			otherProject: "project-beta", otherResult: `No memories found for: "${MEMORY_MARKER}"`,
 		});
+		assert.deepEqual(memoryTools, ["mcp__engram__mem_save", "mcp__engram__mem_search"]);
 		assert.equal(nestedCalls.filter(({ name, parent }) => name.startsWith("mcp__") && parent === "integration-codemode").length, 4);
 	} finally {
 		await Promise.all(closers.map((close) => close()));

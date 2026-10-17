@@ -27,7 +27,7 @@ flowchart LR
 Evidence for nodes and edges:
 - **A:** [prompts/orchestraitor.md:5–8](../../prompts/orchestraitor.md), [prompts/plan.md:5–12](../../prompts/plan.md).
 - **B:** [instructions/orchestraitor.md](../../instructions/orchestraitor.md).
-- **C:** [extensions/mcp.ts:3–28](../../extensions/mcp.ts). Engram registers on session start unless another package already provides `mem_search`. Registration is not proof of service availability. Engram is not an SDD state store.
+- **C:** [extensions/mcp.ts:3–23](../../extensions/mcp.ts). Engram registers as a hidden server with four codemode memory tools. Registration is not proof of service availability. Engram is not an SDD state store.
 - **D:** [extensions/subagents.ts](../../extensions/subagents.ts), [extensions/subagent/runtime.mjs:7–29](../../extensions/subagent/runtime.mjs), [extensions/subagent/guard.mjs:13–83](../../extensions/subagent/guard.mjs).
 
 ## Inside the package
