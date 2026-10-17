@@ -6,15 +6,15 @@
 
 ## Use
 
-1. Reload Pi after updating the package.
+1. Restart Pi after updating the package.
 2. Open `/btw` and ask questions. Follow-ups retain the side conversation only while the panel is open.
-3. Press **Ctrl+Q** to close and discard, or submit **`/bring` inside BTW** to explicitly import a selection and close.
+3. Use **Ctrl+X** to copy an answer you want to keep. Press **Ctrl+Q** to close and discard, then paste it wherever you need it.
 
 BTW snapshots the **current parent branch** on opening, respecting compaction and context edits. Each request uses the parent's **current model** when it starts; later changes do not affect an already running request. There are no separate model selectors, saved histories, other branches, or split views.
 
 ### Thinking and status
 
-BTW answers with **low** thinking by default, so side questions stay fast while the parent works on harder settings. **Shift+Tab** cycles `low` → `inherit` → `off`; `inherit` follows the parent's level when each request starts. The title shows the choice and, when it differs, what the current model allows (`think inherit:high`, `think low→off`).
+BTW **inherits** the parent's thinking level by default: it follows the parent's level when each request starts. **Shift+Tab** cycles `inherit` → `off` → `low` for faster answers with less reasoning. The title shows the choice and, when it differs, what the current model allows (`think inherit:high`, `think low→off`).
 
 The title also reports the latest request:
 
@@ -28,15 +28,19 @@ The title also reports the latest request:
 
 `~` marks estimates from visible text; Done uses the provider's reported usage. In narrow panels the title drops request details before the phase, queue, or thinking level, and the footer keeps sending and closing hints.
 
-Each finished answer ends with a dim summary of its own request, such as `#2 · ✓ Done 2.9s · cache 6.7k/6.8k · 38 tok`. The number is the one `/bring` uses.
+Each finished answer ends with a dim summary of its own request, such as `#2 · ✓ Done 2.9s · cache 6.7k/6.8k · 38 tok`. The number identifies the turn within the panel.
 
-### Prompt cache
+### Provider isolation and prompt cache
 
-BTW replays the parent's system prompt and tool declarations unchanged and sends its own instructions once, with the first side question. The request therefore starts with the parent's exact prefix, so providers with prefix caching can reuse the parent's cache, and follow-ups reuse BTW's own. The provider's default cache retention applies, as for the parent. Expected limits:
+Every opening gets a fresh provider session id, distinct from the parent's and every previous panel. Follow-ups and retries reuse that id only within the same panel. Provider attribution headers use the side id too. This prevents session-id-based providers, including Claude Bridge, from resuming the parent's provider conversation with BTW's no-tools instructions. SSE remains the preferred transport, but a transport setting alone is not an isolation guarantee.
 
-- BTW sends the parent's session id, so providers that route caching by session, such as OpenAI Codex, can serve even the first question from the parent's cache. BTW always requests the stateless SSE transport, so it never shares the parent's websocket or response continuation.
-- Anthropic models with budget-based thinking key the message cache on the thinking settings; `inherit` maximizes reuse there.
+BTW replays the parent's system prompt and tool declarations unchanged and sends its own instructions once, with the first side question. Providers may reuse matching prompt prefixes, and follow-ups can reuse BTW's own cache. The provider's default cache retention applies. Expected limits:
+
+- A separate session id can reduce first-question cache reuse with providers that route caching by session, such as OpenAI Codex. Isolation takes priority over sharing the parent's cache affinity.
+- BTW sends the parent's configured thinking budgets, request timeout and provider retry limits, read from Pi's settings as in [subagents](subagents.md); `before_provider_headers` handlers do not apply. Changes in thinking settings can also affect cache reuse.
 - Extensions that rewrite the parent's context before each request make the prefixes differ.
+
+This protects new panels; it does not repair a parent conversation already contaminated by an older version.
 
 ## Controls
 
@@ -44,9 +48,9 @@ BTW replays the parent's system prompt and tool declarations unchanged and sends
 | --- | --- |
 | Enter | Send; while responding, queue in FIFO order |
 | Shift+Enter | Insert a newline |
-| Shift+Tab | Cycle BTW thinking: low, inherit, off |
+| Shift+Tab | Cycle BTW thinking: inherit, off, low |
 | Ctrl+T | Show or hide the reasoning preview |
-| Ctrl+X / Pi's copy keybinding | Copy the latest finished answer, as `/bring latest` would import it |
+| Ctrl+X / Pi's copy keybinding | Copy the latest finished answer without closing the panel |
 | Ctrl+R | After an error or cancellation, ask the last question again in place of the failed attempt |
 | Ctrl+Q | Close, cancel, and discard everything |
 | Esc / Pi's interrupt keybinding | Cancel the response and clear the queue; close if idle |
@@ -56,20 +60,13 @@ BTW replays the parent's system prompt and tool declarations unchanged and sends
 | Alt+Home / Alt+End | Jump to the beginning / end |
 | Click `↓ latest answer` | Jump to the end |
 
-An error also discards queued questions. You can retry or ask again without closing. Copy and import notices clear on the next key. Mouse controls require Pi's fullscreen mode.
+Transient provider errors (rate limits, overload, 5xx, network) that arrive before any answer text are retried automatically after 2 and 4 s, classified as Pi classifies its own retries; the note shows the countdown and Esc cancels the wait. Context overflow and quota or billing errors fail at once. A final error also discards queued questions. You can retry or ask again without closing. Copy notices clear on the next key. Mouse controls require Pi's fullscreen mode.
 
-## Import into the parent
+## Copy answers
 
-Nothing is imported automatically. Submit one of these commands **inside the BTW panel**:
+BTW has no import command and never appends messages to the parent. Use **Ctrl+X** or Pi's copy keybinding to copy the latest finished answer, including any truncation or cancellation note, then paste it manually where needed. Copying keeps the panel open and does not cancel an active request; while streaming, it copies the previous finished answer.
 
-| Command | Imported content |
-| --- | --- |
-| `/bring` or `/bring latest` | Latest answer containing text |
-| `/bring 3+` | Questions 3 onward, with their answers |
-| `/bring 2-4` | Questions and answers 2 through 4 |
-| `/bring all` | Entire currently open side conversation |
-
-Import adds a visible parent message **without triggering another parent turn**, then closes BTW and discards the remainder. During streaming, only the available text is copied and the request is cancelled.
+Replies without text are skipped. If no answer contains text, the panel shows a notice instead of changing the clipboard. Slash commands inside BTW are rejected locally without sending a model request.
 
 ## Isolation and rendering
 
@@ -93,4 +90,4 @@ node --test tests/btw-*.test.mjs
 node --test tests/package.test.mjs
 ```
 
-The BTW cases use fake providers and Pi's native TypeScript/peer mapping. They cover context isolation, the replayed parent prefix, the shared cache session, thinking levels, status phases, copy, retry, tool-request notices, model inheritance, FIFO, cancellation, disposal during streaming, empty reopening, explicit imports, Mermaid, search, focus, resize, and terminal bounds. Package tests cover registration, excluding a standalone copy, and dependency-backed loading from extracted tarballs. They do not replace visual acceptance in a real terminal or a live provider check.
+The BTW cases use fake providers and Pi's native TypeScript/peer mapping. They cover context isolation, the replayed parent prefix, per-opening provider session isolation, side-scoped attribution headers, the parent's provider options, thinking levels, status phases, copy, manual and automatic retry, empty replies, tool-request notices, model inheritance, FIFO, cancellation, disposal during streaming, empty reopening, rejected slash commands, Mermaid, search, focus, resize, and terminal bounds. Package tests cover registration, excluding a standalone copy, and dependency-backed loading from extracted tarballs. They do not replace visual acceptance in a real terminal or a live provider check.

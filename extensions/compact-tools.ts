@@ -1,17 +1,12 @@
 import { sanitizeDisplay } from "./ui/display.ts";
 import { classifyAgent } from "./ui/agents.ts";
-import { fileURLToPath } from "node:url";
 import {
-	createBashToolDefinition,
 	createCodemodeExtension,
-	createEditToolDefinition,
-	createReadToolDefinition,
-	createWriteToolDefinition,
 	keyHint,
 	type ExtensionAPI,
-	type ExtensionContext,
 	type Theme,
 	type ToolDefinition,
+	type ToolRenderers,
 } from "@earendil-works/pi-coding-agent";
 import { Text, truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
 import type { TSchema } from "typebox";
@@ -27,64 +22,23 @@ const STATUS = {
 	error: "error",
 } as const;
 const EMPTY_COMPONENT: Component = { render: () => [], invalidate() {} };
-const EXTENSION_PATH = fileURLToPath(import.meta.url);
+const NATIVE_TOOLS = new Set(["read", "bash", "edit", "write", "codemode"]);
 
 type RenderContext = Parameters<NonNullable<ToolDefinition["renderCall"]>>[2];
 
-/** Compact presentation only; execution and model-facing results remain native. */
+/** Compact presentation only; Pi or the owning extension keeps execution, settings and model-facing results. */
 export default function compactTools(pi: ExtensionAPI) {
-	let reportedConflict: string | undefined;
-	const checkBashOwner = (ctx: ExtensionContext) => {
-		const source = pi.getAllTools().find((tool) => tool.name === "bash")?.sourceInfo;
-		const conflict = source && source.path !== EXTENSION_PATH
-			? `Bash ownership conflict: ${source.path} retains bash. The harness must own bash to honor shellPath and shellCommandPrefix. Add "bash" to pi-pretty.json disableTools (and to PRETTY_DISABLE_TOOLS if set), or disable the conflicting extension's bash tool, then /reload. Bash calls are blocked until ownership is corrected.`
-			: undefined;
-		if (conflict && conflict !== reportedConflict) {
-			if (ctx.hasUI) ctx.ui.notify(conflict, "error");
-			else console.error(conflict);
-		}
-		reportedConflict = conflict;
-		return conflict;
-	};
-	// Wait for the effective settings and trusted working directory to be available.
-	pi.on("session_start", (_event, ctx) => {
-		reportedConflict = undefined;
-		const settings = pi.getSettings();
-		const tools = pi.getAllTools();
-		const registerInactive = (tool: ToolDefinition) => pi.registerTool({ ...compactTool(tool), defaultActive: false });
-		// Preserve foreign read renderers; bash must use the effective shell settings.
-		const hasForeignOwner = (name: string) => {
-			const source = tools.find((tool) => tool.name === name)?.sourceInfo;
-			return source && source.source !== "builtin" && source.path !== EXTENSION_PATH;
-		};
-		if (!hasForeignOwner("read")) registerInactive(createReadToolDefinition(ctx.cwd, {
-			autoResizeImages: settings.images?.autoResize,
-		}));
-		registerInactive(createBashToolDefinition(ctx.cwd, {
-			commandPrefix: settings.shellCommandPrefix,
-			shellPath: settings.shellPath,
-		}));
-		registerInactive(createEditToolDefinition(ctx.cwd));
-		registerInactive(createWriteToolDefinition(ctx.cwd));
-
-		// Reuse Pi's public factory only when its native codemode is already present.
-		// Delayed registration keeps disabled built-ins absent and avoids a startup
-		// replacement warning. Schema identity leaves foreign codemode tools alone.
-		const codemode = pi.getAllTools().find((tool) => tool.name === "codemode");
-		if (codemode) createCodemodeExtension()({
-			...pi,
-			registerTool(tool) {
-				if (tool.parameters === codemode.parameters) pi.registerTool(compactTool(tool));
-			},
-		});
-		checkBashOwner(ctx);
-	});
-	// Recheck after later session handlers and before each call, including codemode.
-	pi.on("before_agent_start", (_event, ctx) => { checkBashOwner(ctx); });
-	pi.on("tool_call", (event, ctx) => {
-		if (event.toolName !== "bash") return;
-		const reason = checkBashOwner(ctx);
-		if (reason) return { block: true, reason };
+	// Pi's codemode factory registers synchronously; its schema identifies the native tool.
+	let codemodeSchema: unknown;
+	createCodemodeExtension()({ registerTool(tool: ToolDefinition) { codemodeSchema = tool.parameters; } } as unknown as ExtensionAPI);
+	// Interactive mode always supplies built-in renderers to `next()`, so filling gaps is not enough.
+	// Compact Pi's own tools (or unregistered history calls) and leave foreign owners' renderers alone.
+	pi.registerToolRenderer((name, next) => {
+		if (!NATIVE_TOOLS.has(name)) return next();
+		const tool = pi.getAllTools().find((candidate) => candidate.name === name);
+		if (tool && (name === "codemode" ? tool.parameters !== codemodeSchema : tool.sourceInfo.source !== "builtin")) return next();
+		const { renderShell, renderCall, renderResult } = compactTool({ ...next(), name } as ToolDefinition);
+		return { renderShell, renderCall, renderResult } satisfies ToolRenderers;
 	});
 }
 
@@ -126,8 +80,6 @@ export function compactTool<TParams extends TSchema, TDetails, TState>(
 			if (expanded && !context.isError && result.details && typeof result.details === "object") {
 				if (["subagent_run", "subagent_collect"].includes(original.name) && "results" in result.details && Array.isArray(result.details.results)) {
 					output = JSON.stringify("pending" in result.details && Array.isArray(result.details.pending) && result.details.pending.length ? { results: result.details.results, pending: result.details.pending } : result.details.results, null, 2);
-				} else if (original.name === "orchestraitor_tasks" && "state" in result.details) {
-					output = JSON.stringify(result.details, null, 2);
 				}
 			}
 			const diff = !context.isError && original.name === "edit" && result.details &&

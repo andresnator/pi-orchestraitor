@@ -1,8 +1,8 @@
 # Harness efficiency
 
-The package keeps native tools, all 56 native skills (54 automatically selectable and two explicit-only), personality, bounded children and optional UI. Efficiency changes reduce repeated model context and projection work without introducing an agent pool, a model-based skill selector, a second accounting database or custom compaction.
+The package keeps native tools, all 37 native skills (33 automatically selectable and four explicit-only), personality, bounded children and optional UI. Efficiency changes reduce repeated model context and projection work without introducing an agent pool, a model-based skill selector, a second accounting database or custom compaction.
 
-The ten-lens consolidation reduces standalone catalog entries, not necessarily provider tokens. The historical 61-skill measurements below and the earlier 51-skill consolidation baseline retain their original counts; neither measures the current 56-skill package or establishes provider savings from the new workflows.
+The ten-lens consolidation reduces standalone catalog entries, not necessarily provider tokens. The historical 61-skill measurements below and the earlier 51-skill consolidation baseline retain their original counts; neither measures the current 37-skill package or establishes provider savings from the new workflows.
 
 ## Local benchmark
 
@@ -16,11 +16,10 @@ pnpm run bench --samples 7 --compare /tmp/pi-before.json --output /tmp/pi-after.
 
 `pnpm run` measures the locked Pi host in `node_modules`; `node scripts/bench.mjs` measures the `pi` on PATH, and `PI_TEST_PACKAGE_DIR` selects another installed host. Prompt preparation calls Pi 1.2.0's `emitBeforeAgentStart(request, options)` form; earlier hosts take a different signature and are not measured correctly. Output files must be new paths; existing reports are never overwritten. Without `--output`, the command prints JSON. Reports include Node/Pi versions, platform, Git revision, a SHA-256 over tracked/unignored file names and contents (including dirty changes), raw samples, medians and p95 values. Rounds run each configuration in a separate process, sequentially, without concurrent tests. Do not compare different hosts as evidence of a code improvement.
 
-- **Native / package / package-native:** isolated SDK resource/session startup, prepared prompt and model-visible tool declaration sizes, RSS/heap and CPU over a 100 ms idle interval. Package defaults to lazy skills; package-native loads the same 56-skill catalog (54 automatic and two explicit-only) after the public native-mode command. Startup includes host import/resources/mode setup, not first prompt preparation or time to first model token; preparation is reported separately. These samples use print mode.
+- **Native / package / package-native:** isolated SDK resource/session startup, prepared prompt and model-visible tool declaration sizes, RSS/heap and CPU over a 100 ms idle interval. Package defaults to lazy skills; package-native loads the same 37-skill catalog (33 automatic and four explicit-only) after the public native-mode command. Startup includes host import/resources/mode setup, not first prompt preparation or time to first model token; preparation is reported separately. These samples use print mode.
 - **Skills:** actual bounded search/load plus native read of jag-code; one warmup and five refresh/search/load timings per package sample. Initial and one-selected-skill character totals include schema and lookup/call overhead. The full diagnostic file is measured separately, never added to model context. This single deterministic English query does not evaluate selector quality.
-- **Tasks:** real task-tool execution on a synthetic 20-task board, preserving full receipts; update latency and model-facing response size.
 - **Subagents:** actual launcher response shaping with a synthetic controller receipt. No process or model is started; sizes do not measure child startup or real delegation savings.
-- **Hooks:** simulated native Pi UI without terminal I/O, 10,000 native entries, five warmups and 30 unchanged-history starts. This measures task projection overhead.
+- **Hooks:** simulated native Pi UI without terminal I/O, 10,000 native entries, five warmups and 30 unchanged-history starts. This measures status hook overhead.
 
 These benchmark modes load the harness alone, excluding the separately installed pi-pretty companion and its FFF index/highlighter. They do not measure the complete pretty-enabled profile. `test:pretty` checks that integration separately.
 
@@ -28,7 +27,7 @@ Benchmarks use temporary agent state, disabled MCP transports and no provider ca
 
 ## Recorded session usage
 
-`pnpm run usage` summarizes Pi session logs, `~/.pi/agent/sessions` by default. It reads names, sizes, counts, timestamps and provider-reported usage, never message, tool or file content; a label that is not a plain identifier is reported as `(other)`. It makes no model or MCP requests.
+`pnpm run usage` summarizes Pi session logs: by default `PI_CODING_AGENT_SESSION_DIR`, else `sessions` in `PI_CODING_AGENT_DIR` or `~/.pi/agent`. A `sessionDir` setting needs `--sessions`. It reads names, sizes, counts, timestamps and provider-reported usage, never message, tool or file content; a label that is not a plain identifier is reported as `(other)`. It makes no model or MCP requests.
 
 ```bash
 pnpm run usage --since 2026-10-03 --until 2026-10-13 --output /tmp/usage-before.json
@@ -64,18 +63,17 @@ Codemode output carried the largest share of the baseline's paid prompt cost, so
 - `extensions/context-budget.ts` adds `// @options: {"max_output_tokens": 8000}` to top-level codemode scripts the model issues without options. Pi's own default is 10,000 estimated tokens (characters/4). Above the cap, Pi keeps the start and end of the output, saves all of it to a temporary file and names that file in the result. `--orchestraitor-codemode-max-output N` sets another cap, and `0` keeps Pi's default. An invalid value is reported at session start and also keeps Pi's default.
 - The transcript keeps the script as the model wrote it; only the executed copy changes. Scripts with an options line, misplaced options (which Pi rejects), nested calls and other tools are left unchanged, and an unexpected input leaves the call as it is.
 - A blank or comment first line is replaced, so line numbers do not move. Otherwise the options line is added, and the frames in Pi's final `Script error:` block are moved back one line. The saved full output and stack traces that a script prints itself keep the shifted numbers, and first-line columns can differ from an unmodified run.
-- `extensions/instructions.ts` changes Pi's rule to read pi `.md` files completely into: list the headings first, then read the relevant sections completely. The rest of Pi's docs section, its paths and its position stay unchanged; if Pi rewords that rule, the section is left as Pi renders it. `instructions/core.md` prefers installed docs, types and source for installed packages, Pi included, and keeps Context7 for libraries that are not installed.
+- `extensions/instructions.ts` leaves Pi's native docs section intact and adds only owned instruction sections. `instructions/core.md` overrides whole-file Pi Markdown guidance with headings-first, complete relevant-section reads, prefers installed docs, types and source for installed packages, and keeps Context7 for libraries that are not installed. The reading rule stays portable without copying Pi's native docs into custom sections forwarded by `pi-claude-bridge`.
 
 These are hypotheses until measured. After a week of comparable work, run `pnpm run usage --since <merge date> --compare <baseline>` and compare per model and per turn: codemode output per turn should fall without more turns per task or repeated scripts. A lower cap, such as 6,000, cut more output when truncation was simulated over recorded results, but that simulation assumes the model behaves the same. Evaluate it as a separate, explicitly chosen cohort.
 
 ## Task and memory turns
 
-About 15% of the baseline's assistant turns only updated tasks or memory. The package makes those updates smaller and asks for them to travel with work:
+About 15% of the baseline's assistant turns only updated tasks or memory. The package removes the task board and keeps memory updates few and alongside work:
 
-- `orchestraitor_tasks` mutations return the operation, the new revision and only the affected tasks, plus `bindingCurrent` when a plan is bound. `list` still returns the complete board with `bindingCurrent` and the project identity, and every receipt keeps the full versioned state in `details`. On the benchmark's one-task update on a 20-task board, the model-facing response fell from 261 to 146 characters.
-- The task tool runs sequentially, so several updates in one assistant message, alongside work calls, take consecutive revisions. `instructions/orchestraitor.md` asks for updates with the next work calls and for done evidence that has already returned.
-- `extensions/mcp.ts` registers Engram when the session starts, unless another package, such as gentle-engram, already provides `mem_search`; both routes would expose the same memory twice. An `engram` entry in `mcp.json` still adds this package's route.
-- This guidance and the codemode rules add 439 characters to the owned instructions and 40 to the tool declarations. Prompt plus tool declarations grew by 528 characters, about 130 estimated tokens per request, in a prefix that stays stable and is mostly read from cache. Package startup stayed within 1% of the baseline.
+- The `orchestraitor_tasks` board is removed. Its tool ran sequentially, so Pi ran every call in the same assistant message one after another: two 400 ms calls plus a task update took about 800 ms instead of 400 ms. Its schema also added 1,463 characters, about 366 estimated tokens, to every request: package tool declarations fell from 7,602 to 6,139 characters in the offline benchmark.
+- `extensions/mcp.ts` registers Engram as a `hidden` server whose four memory tools (`mem_search`, `mem_save`, `mem_context`, `mem_get_observation`) are reachable only through codemode. Declared directly, those four schemas would add about 7,100 characters per request; gentle-engram's route declares all 22 of its tools and adds a 2,768-character protocol that makes saving mandatory.
+- When measured, this guidance and the codemode rules added 439 characters to the owned instructions (since replaced by the shorter core instructions) and 40 to the tool declarations. Prompt plus tool declarations grew by 528 characters, about 130 estimated tokens per request, in a prefix that stays stable and is mostly read from cache. Package startup stayed within 1% of the baseline.
 
 The main Codex models rarely sent several calls per message, so fewer turns depend on the model following this guidance. Compare ceremony-only turns per model with `pnpm run usage --compare`.
 
@@ -83,7 +81,7 @@ The main Codex models rarely sent several calls per message, so fewer turns depe
 
 The first request after a model or thinking switch usually misses the prompt cache and pays for the whole context again. In the baseline, every request sent right after a model switch missed the cache, as did about two thirds of those after a thinking switch, against about 2% of the others. Pi's optional `showCacheMissNotices` setting reports a miss after it happens. `extensions/ui/cache-notice.ts` warns before the request, while the switch can still be undone:
 
-- It waits until switching has settled for 1 second, then compares the selection with the latest request's on the current branch. After `/tree` moves to another branch, it compares with that branch's latest request, since tree navigation keeps the active selection. Switching back is silent, and so are selections Pi restores.
+- It waits until switching has settled for 1 second, then compares the selection with the latest request's on the current branch. After `/tree` moves to another branch, it compares with that branch's latest request, since tree navigation keeps the active selection; a resumed session also starts from its branch's latest request, even when a CLI flag or an unsent switch selected another. Switching back is silent, and so are selections Pi restores.
 - It warns only when the context holds at least 20k tokens, the floor of Pi's own notice, and stays silent while the size is unknown, such as right after compaction.
 - The estimated cost is the context tokens times the new model's input price, or its cache-write price when higher, minus its cache-read price. It is shown from $0.01.
 - The warning goes through `ctx.ui.notify`. It never reaches the transcript or the model and adds nothing to the prompt.
@@ -117,7 +115,7 @@ Raw reports are retained privately under `.ai/verification/performance/`; that d
 
 ## Native UI after integration removal
 
-The optional workbench, publisher, private snapshot transport and duplicate usage projection are removed. Native Pi owns session accounting; child attribution remains in full native receipts. Task projection caching still avoids branch reads when the manager/leaf are unchanged, and bound plans are still checked for external drift.
+The optional workbench, publisher, private snapshot transport and duplicate usage projection are removed. Native Pi owns session accounting; child attribution remains in full native receipts. Status hooks still avoid branch reads while the session is unchanged.
 
 Historical benchmark report version 2 measured only native and package configurations. It removes duplicate package startup samples and the removed usage projection fixture. Comparisons record `sameMethodology`; prompt/task size and print-mode startup fields are unchanged, but the hook fixture now measures native UI alone. Do not compare hook timings across report versions as the same operation. Removal reduces code and background work; it does not itself prove provider-token savings.
 
@@ -149,7 +147,7 @@ Use the pre-change revision `058e89d` and the optimized tree recorded by the ben
 | --- | --- |
 | Consultation | A two-file synthetic repository: identify the exported API and cite its definition/caller. No writes; both citations must be correct. |
 | Small change | A synthetic function with a wrong empty-input result and one deterministic failing test: make the minimal fix and observe failure/pass. Exact changed-file scope and final test result must match. |
-| Task execution | A synthetic three-group plan: inspect, fix the same function, verify. Preserve plan hash, record stable tasks and parent evidence, satisfy the same tests. |
+| Task execution | A synthetic three-step plan: inspect, fix the same function, verify. Leave the plan file unchanged, record stable tasks and parent evidence, satisfy the same tests. |
 | Delegated exploration | Two independent read-only questions on the same synthetic repository: maximum two readers, correct citations, unchanged files and confirmed exits. Parent verifies both answers. |
 
 Run three repetitions per scenario per version: 24 sessions total. Pair versions within each repetition, alternating baseline-first/optimized-first. Use fresh sessions for this cold-run comparison; record actual cache-read/write amounts because fresh sessions do not guarantee an empty provider cache. Evaluate continued-session reuse in a separate explicitly budgeted cohort, never pool it with cold runs.

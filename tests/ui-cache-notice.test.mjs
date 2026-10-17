@@ -134,6 +134,28 @@ test("shouldCompareWithTheDestinationBranchLatestRequestWhenTreeNavigationChange
 		keptTheLeftSelection: [`Model openai-codex/sol, thinking medium: the next request will likely re-bill 120k context tokens (~$0.23). ${ADVICE}`] });
 });
 
+test("shouldCompareWithTheResumedBranchLatestRequestWhenSessionStartRestoresAnotherSelection", async (t) => {
+	// Given
+	const opusHigh = [{ type: "thinking_level_change", thinkingLevel: "high" }, { type: "message", message: { role: "assistant", provider: "anthropic", model: "opus", thinkingLevel: "high" } }];
+	const scenarios = {
+		switchedBackToTheRequest: { branch: opusHigh, act: ({ select }) => { select.model(OPUS); select.thinking("high"); } },
+		changedFromTheRequest: { branch: opusHigh, act: ({ select }) => select.thinking("low") },
+		freshSession: { branch: [], act: ({ select }) => select.thinking("high") },
+	};
+	// When
+	const outcomes = {};
+	for (const [name, { branch, act }] of Object.entries(scenarios)) {
+		const harness = await noticeHarness(t);
+		harness.state.branch = branch;
+		harness.emit("session_start", { reason: "resume" });
+		act(harness);
+		await harness.settle();
+		outcomes[name] = harness.notices.map(({ message }) => message.split(":")[0]);
+	}
+	// Then
+	assert.deepEqual(outcomes, { switchedBackToTheRequest: [], changedFromTheRequest: ["Model openai-codex/sol, thinking low"], freshSession: ["Thinking high"] });
+});
+
 test("shouldWarnThroughTheStatusUIWithoutTouchingTheTranscriptWhenAPromptedSessionChangesThinking", async (t) => {
 	// Given
 	const { createAssistantMessageEventStream } = await importHost("node_modules/@earendil-works/pi-ai/dist/index.js");

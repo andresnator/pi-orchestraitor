@@ -9,7 +9,7 @@ Source: `7232484becc7895167d3b3d063765a8186b3541d` plus the authorized interacti
 1. This page: what the pieces do.
 2. [Choose a workflow](flows.md): diagrams and a small example for every route.
 3. [Execute and delegate](execution.md): who changes files, who checks them, and when work stops.
-4. [Interactive UI](../interactive-ui.md): one presentation owner, task receipts and user decisions.
+4. [Interactive UI](../interactive-ui.md): one presentation owner and user decisions.
 
 ## System context
 
@@ -25,9 +25,9 @@ flowchart LR
 ```
 
 Evidence for nodes and edges:
-- **A:** [prompts/orchestraitor.md:5–8](../../prompts/orchestraitor.md), [prompts/plan.md:5–12](../../prompts/plan.md).
-- **B:** [instructions/orchestraitor.md](../../instructions/orchestraitor.md).
-- **C:** [extensions/mcp.ts:3–28](../../extensions/mcp.ts). Engram registers on session start unless another package already provides `mem_search`. Registration is not proof of service availability. Engram is not an SDD state store.
+- **A:** [prompts/orchestraitor.md](../../prompts/orchestraitor.md), [prompts/plan.md](../../prompts/plan.md).
+- **B:** [instructions/core.md](../../instructions/core.md).
+- **C:** [extensions/mcp.ts:3–23](../../extensions/mcp.ts). Engram registers as a hidden server with four codemode memory tools. Registration is not proof of service availability. Engram is not an SDD state store.
 - **D:** [extensions/subagents.ts](../../extensions/subagents.ts), [extensions/subagent/runtime.mjs:7–29](../../extensions/subagent/runtime.mjs), [extensions/subagent/guard.mjs:13–83](../../extensions/subagent/guard.mjs).
 
 ## Inside the package
@@ -41,34 +41,38 @@ flowchart TB
   M -->|declares: E| S[Skill catalog]
   P -->|request instructions: F| A[Main agent]
   S -->|selected guidance: G| A
-  X -->|instructions.ts injects: H| I[core / orchestraitor / personality]
+  X -->|instructions.ts injects: H| I[core / personality]
   I -->|system prompt sections: H| A
   X -->|compact-tools.ts decorates: I| T[Native tool presentation]
   X -->|context-budget.ts caps: N| CB[Model-issued codemode output]
   INS[install-pi.mjs] -->|registers pinned companion: I| PP[pi-pretty]
+  X -->|pretty-theme.ts sets PRETTY_THEME: I| PP
   PP -->|read / bash / search / editor presentation: I| PUI[Pi native tool and UI APIs]
   X -->|mcp.ts registers: J| MCP[Context7 / Engram]
   X -->|subagents.ts registers: K| SR[subagent_run]
   A -->|optional delegation: K| SR
   SR -->|controller spawns: L| CH[Child process + guard]
-  X -->|status-ui.ts owns: M| UI[Task widget / native footer / modal]
+  X -->|status-ui.ts owns: M| UI[Native footer status / modal]
   SR -->|native observations: M| UI
-  A -->|model-only tasks / questions: M| UI
+  A -->|model-only questions: M| UI
+  X -->|footer.ts replaces: O| FT[Terminal footer]
+  X -->|quota.ts registers: O| Q["/quota plan usage"]
 ```
 
 | Evidence | Source |
 | --- | --- |
 | E | [package.json](../../package.json): extension, skill and prompt resource declarations. |
-| F | [prompts/plan.md:5–8](../../prompts/plan.md), [prompts/orchestraitor.md:5–6](../../prompts/orchestraitor.md), [prompts/review.md:5–8](../../prompts/review.md), [prompts/absorb.md:5–7](../../prompts/absorb.md). |
-| G | [README.md](../../README.md), [skills/jag-routing/SKILL.md:20–28](../../skills/jag-routing/SKILL.md): catalog selection, then body loading. |
-| H | [extensions/instructions.ts:4–26](../../extensions/instructions.ts): adds sections without replacing Pi/project context; only Pi's docs reading rule is narrowed, in place. |
-| I | [extensions/compact-tools.ts](../../extensions/compact-tools.ts): presentation, not a scheduler; yields read/bash to existing extension owners. The installer separately registers [pi-pretty](../pi-pretty.md). |
+| F | [prompts/plan.md](../../prompts/plan.md), [prompts/orchestraitor.md](../../prompts/orchestraitor.md), [prompts/review.md](../../prompts/review.md), [prompts/absorb.md:5–7](../../prompts/absorb.md). |
+| G | [README.md](../../README.md), [extensions/skill-registry.ts](../../extensions/skill-registry.ts): catalog selection, then body loading. |
+| H | [extensions/instructions.ts](../../extensions/instructions.ts): adds only owned sections without replacing Pi/project context; [instructions/core.md](../../instructions/core.md) narrows Pi Markdown reads without copying the native docs section. |
+| I | [extensions/compact-tools.ts](../../extensions/compact-tools.ts): presentation, not a scheduler; yields read/bash to existing extension owners. The installer separately registers [pi-pretty](../pi-pretty.md); [extensions/pretty-theme.ts](../../extensions/pretty-theme.ts) only maps Pi's built-in themes to its [highlight theme](../pi-pretty.md#highlight-theme). |
 | J | [extensions/mcp.ts:8–28](../../extensions/mcp.ts). |
-| K | [extensions/subagents.ts](../../extensions/subagents.ts), [instructions/orchestraitor.md](../../instructions/orchestraitor.md). |
+| K | [extensions/subagents.ts](../../extensions/subagents.ts), [instructions/core.md](../../instructions/core.md). |
 | L | [extensions/subagent/controller.mjs](../../extensions/subagent/controller.mjs), [extensions/subagent/child.mjs:18–28](../../extensions/subagent/child.mjs), [extensions/subagent/runtime.mjs:13–25](../../extensions/subagent/runtime.mjs). |
 | N | [extensions/context-budget.ts](../../extensions/context-budget.ts): lowers the output cap of top-level codemode scripts without options; the transcript keeps the original script. |
+| O | [extensions/footer.ts](../../extensions/footer.ts): terminal-mode footer factory rendered by [extensions/ui/footer.ts](../../extensions/ui/footer.ts). [extensions/quota.ts](../../extensions/quota.ts) keeps provider-reported plan usage, read by [extensions/ui/quota.ts](../../extensions/ui/quota.ts). See the [footer](../interactive-ui.md#footer) and [plan usage](../interactive-ui.md#plan-usage). |
 
-**M:** [status-ui.ts](../../extensions/status-ui.ts) delegates to [agents](../../extensions/ui/agents.ts), [tasks](../../extensions/ui/tasks.ts), [questions](../../extensions/ui/questions.ts) and the [cache notice](../../extensions/ui/cache-notice.ts). It uses native widgets/status/dialogs/notifications, not header/footer/editor factories. Task state comes only from successful active-branch native receipts; it cannot grant writes, accept child work or recover execution. See the [UI guide](../interactive-ui.md).
+**M:** [status-ui.ts](../../extensions/status-ui.ts) delegates to [agents](../../extensions/ui/agents.ts), [questions](../../extensions/ui/questions.ts) and the [cache notice](../../extensions/ui/cache-notice.ts). It uses native status/dialogs/notifications, not header/footer/editor factories. It cannot grant writes, accept child work or recover execution. See the [UI guide](../interactive-ui.md).
 
 ## The distinctions that prevent confusion
 
@@ -76,22 +80,22 @@ flowchart TB
 | --- | --- |
 | Prompt | A reusable request. `/plan` does not start a separate planner agent. |
 | Skill | Instructions and supporting resources, not an autonomous worker. See the [catalog](../skills.md). |
-| Orchestraitor | The execution contract followed by the **main session**, not another process. |
+| Orchestraitor | The core instructions and `/orchestraitor` prompt followed by the **main session**, not another process. |
 | Subagent | A fresh worker with role `explore`, `review` or `implement`; launched only through `subagent_run`. |
-| Plan | A Markdown contract: behavior, ordered groups, exact files, skills and checks. Not an executable scheduler. |
+| Plan | A short Markdown plan: outcome, scope, steps, checks and risks. Not an executable scheduler. |
 | `.ai/` | Planning/report artifacts; not a durable phase database. |
 
-Sources: [prompts/plan.md:5–8](../../prompts/plan.md), [instructions/orchestraitor.md](../../instructions/orchestraitor.md), [extensions/subagents.ts](../../extensions/subagents.ts), [plan template:1–62](../../skills/jag-plan/assets/plan-template.md), [jag-evidence:26–37](../../skills/jag-evidence/SKILL.md).
+Sources: [prompts/plan.md](../../prompts/plan.md), [instructions/core.md](../../instructions/core.md), [extensions/subagents.ts](../../extensions/subagents.ts), [plan template](../../skills/jag-plan/assets/plan-template.md), [jag-evidence:26–37](../../skills/jag-evidence/SKILL.md).
 
 ## Supporting pieces, not extra SDD stages
 
 - **Product inputs:** PRD, stories and buildable issues can clarify requirements. They do not automatically launch execution. Even `sdd-ready` is an issue label, not a running engine ([jag-issue:27–49](../../skills/jag-issue/SKILL.md)).
-- **Specialist skills:** architecture, debugging, refactoring and testing guidance are loaded when relevant; they are not a mandatory chain. Plans select at most three implementation skills per group ([jag-routing:20–39](../../skills/jag-routing/SKILL.md)).
+- **Specialist skills:** architecture, debugging, refactoring and testing guidance are loaded when relevant; they are not a mandatory chain.
 - **`/review`:** read-only findings; fixes need separate authorization. **`/absorb`:** compares another harness; does not adopt it ([review:5–8](../../prompts/review.md), [absorb:5–7](../../prompts/absorb.md)).
 - **Installation and tests:** `scripts/install-pi.mjs` installs/migrates resources; package scripts expose verification. Neither is an SDD coordinator ([package.json](../../package.json), [README.md](../../README.md)).
 
 ## What is enforced, and what is instructed?
 
-Planning-only scope, plan hashes, sequential groups and parent verification are **agent instructions**. Child tool/path restrictions have executable guards, but are **not an OS sandbox**. No durable SDD resume, automatic commits, TCR, parallel writers or blind dual review is supplied ([instructions/core.md:25](../../instructions/core.md), [instructions/orchestraitor.md](../../instructions/orchestraitor.md)).
+Planning-only scope and parent verification are **agent instructions**. Child tool/path restrictions have executable guards, but are **not an OS sandbox**. No durable SDD resume, automatic commits, TCR or blind dual review is supplied; commits need explicit permission ([instructions/core.md](../../instructions/core.md)).
 
-Evidence method: local manifest, instructions and implementation; Graphify index absent. Context7 resolved Pi but its indexed versions do not establish 1.0.2 behavior, so installed public declarations/docs are the compatibility authority. Engram records verified project decisions, not task authority. Examples on the next pages are illustrative; current acceptance and limits belong in [verification](../verification.md).
+Evidence method: local manifest, instructions and implementation; Graphify index absent. Context7 resolved Pi but its indexed versions do not establish 1.0.2 behavior, so installed public declarations/docs are the compatibility authority. Engram records verified project decisions, not execution authority. Examples on the next pages are illustrative; current acceptance and limits belong in [verification](../verification.md).

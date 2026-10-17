@@ -14,7 +14,15 @@
 
 ## Open questions
 
-- <user-owned decision; omit this section when Status is final>
+- <precise user-owned decision, including a blocked question; optional prerequisite and evidence needed>
+
+## Not yet specified
+
+- <in-scope area not yet precise enough to ask; sharpen it before decomposing work>
+
+## Out of scope
+
+- <explicit exclusion and reason; reconsider only after a user-approved scope change>
 
 ## Next
 

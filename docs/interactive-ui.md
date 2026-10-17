@@ -1,76 +1,65 @@
-# See delegated work, tasks and decisions without replacing Pi
+# See delegated work and decisions without replacing Pi
 
-The optional UI extension adds read-only agents/tasks panels, a compact task work header, one native-footer status, a unified question tool and a warning before a model or thinking switch re-bills cached context. Pi still owns the editor, application keybindings, native model/context/usage display and execution. This is presentation and branch-local task replay, not another scheduler or durable SDD recovery.
+The optional UI extension adds a read-only agents panel, one native-footer status, a unified question tool and a warning before a model or thinking switch re-bills cached context. Pi still owns the editor, application keybindings, native model/context/usage display and execution. This is presentation, not another scheduler or durable SDD recovery. A separate [footer extension](#footer) restyles Pi's footer.
 
-The installer also registers the separate [pi-pretty companion](pi-pretty.md). It owns read/bash presentation and its prompt-editor/activity customization; this UI extension still owns only the harness widget, status and foreground interactions.
+The installer also registers the separate [pi-pretty companion](pi-pretty.md). It owns read/bash presentation and its prompt-editor/activity customization; this UI extension still owns only the harness status and foreground interactions.
 
 ## Quick path
 
-1. Ask the coordinator to use tasks for substantial authorized work; small changes need no list.
-2. Open `/orchestraitor:agents` or `/orchestraitor:tasks` for detail.
-3. Use `/orchestraitor:tasks expand` or `collapse` to adjust the work header.
-4. Use `/orchestraitor:ui hide` or `show` for passive chrome only. Questions and execution remain active.
+1. Open `/orchestraitor:agents` for detail.
+2. Use `/orchestraitor:ui hide` or `show` for passive chrome only. Questions and execution remain active.
 
-Only native TUI mode creates components. In RPC, JSON and print, tasks still work and questions return `unavailable`; use ordinary textual clarification. These tools never enable disabled tools or grant security/destructive-action permissions.
+Only native TUI mode creates components. In RPC, JSON and print, questions return `unavailable`; use ordinary textual clarification. Questions never enable disabled tools or grant security/destructive-action permissions.
 
 ## Ownership
 
 | Responsibility | Owner |
 | --- | --- |
 | Child execution, cancellation, termination, safety lock and accounting | Existing `subagent_run` / `BatchController`; UI observes native progress only. |
-| Harness widget/status keys and foreground modal | `extensions/status-ui.ts`; one owner, no foreign keys/factories replaced. |
+| Harness status key and foreground modal | `extensions/status-ui.ts`; one owner, no foreign keys/factories replaced. |
 | Agent observations and bounded branch outcomes | `extensions/ui/agents.ts`; active batch plus at most 20 recent outcomes. |
-| Task authority | Validated successful native `orchestraitor_tasks` results on the active branch, replayed by `extensions/ui/tasks.ts`. |
-| Task header and panel rendering | `extensions/ui/task-view.ts`; display-only, reads the replayed state and receipt history. |
 | Requirements/preferences | One `orchestraitor_ask` schema and interaction in `extensions/ui/questions.ts`. |
 | Safe terminal display | Native `extensions/ui/display.ts`; original IDs and opaque values remain untouched. |
 | Cache warning before a switch | `extensions/ui/cache-notice.ts`; native notification only, never transcript or model context. |
 
-## Panels and compact chrome
+## Panel and compact chrome
 
 The agents panel shows assignment order, IDs, roles, requested/effective model evidence, phases and bounded diagnostics. Starting/running/stopping are not failure or acceptance. Runtime completion is not parent acceptance; absent effective-model or nested historical evidence stays unavailable. Panels cannot launch, retry, grant, resume or cancel work.
 
-Tasks start collapsed in at most four rows. The first row shows a status-colored progress bar, the done count, the counts by status, the plan check and the revision. Up to two rows follow for in-progress or blocked tasks, with time in the current status and any blocked reason. The last row names the most recently finished task and the next pending task. Expanded chrome adds the plan path and short hash, rules for each plan group with a done count, and evidence or reason rows. It uses half the terminal height, between five and 18 rows. It drops detail rows first and then ends with a `… N more` row. Terminals under 16 rows temporarily collapse it to one row. Empty lists contribute no task row.
+The footer contributes one status with this precedence: known launch block, awaiting input, active agents; idle contributes nothing. Native counters are not repeated.
 
-The task panel is read-only. Selection keys move through tasks grouped by plan group, and page keys scroll the detail of the selected task. Wide terminals show the list and the detail side by side; narrow terminals stack them. The detail shows the title, group, time in the current status, evidence with its parent-reported caption, the reason, and the task's history on this branch. The panel header lists the plan binding, up to two live agents and the status distribution.
+Switching model or thinking level with at least 20k context tokens shows one warning once switching has settled for 1 second: the next request will likely re-bill that context, with the cost estimated from the new model's prices. Returning to the selection of the current branch's latest request, also after `/tree` moves to another branch or a session resumes, restored selections, unknown context size after compaction and modes without UI stay silent. `hide` does not suppress it; disabling the extension does. See [performance](performance.md#model-and-thinking-switches) for the rule.
 
-Times and history come from the timestamps of the same validated receipts. They are display-only: they never enter task state, revision checks or the `list` response. The footer contributes one status with this precedence: known launch block, awaiting input, active agents; idle contributes nothing. Native counters are not repeated.
+Selection, scrolling, submission and cancellation use native configurable actions. Check `/hotkeys` and Pi's keybinding documentation rather than relying on a hardcoded shortcut. The read-only panel also closes with Escape. The extension never replaces the main editor/header/footer, registers global shortcuts, or changes personal themes.
 
-Switching model or thinking level with at least 20k context tokens shows one warning once switching has settled for 1 second: the next request will likely re-bill that context, with the cost estimated from the new model's prices. Returning to the selection of the current branch's latest request, also after `/tree` moves to another branch, restored selections, unknown context size after compaction and modes without UI stay silent. `hide` does not suppress it; disabling the extension does. See [performance](performance.md#model-and-thinking-switches) for the rule.
+Before tree navigation, session switching or forking, the UI cancels its current interaction and invalidates pending work from that interaction generation. It retains the current context, agent projection and visibility preference while navigation is pending. A veto or an aborted branch summary leaves the existing UI usable, including new panels and questions. Confirmed tree/session changes rebuild from the effective branch and restore the default visible chrome. Shutdown and context replacement release the owned UI; late completion of an old interaction cannot close its replacement.
 
-Selection, scrolling, submission and cancellation use native configurable actions. Check `/hotkeys` and Pi's keybinding documentation rather than relying on a hardcoded shortcut. Read-only panels also close with Escape. The extension never replaces the main editor/header/footer, registers global shortcuts, or changes personal themes.
+## Footer
 
-Before tree navigation, session switching or forking, the UI cancels its current interaction and invalidates pending work from that interaction generation. It retains the current context, task/agent projections and visibility/expansion preferences while navigation is pending. A veto or an aborted branch summary leaves the existing UI usable, including new panels and questions. Confirmed tree/session changes rebuild from the effective branch and restore the default visible, collapsed chrome. Shutdown and context replacement release the owned UI; late completion of an old interaction cannot close its replacement.
+`extensions/footer.ts` replaces Pi's terminal footer; other modes keep Pi's. It shows the same data in two lines plus Pi's extension-status line:
 
-## Task contract
-
-`orchestraitor_tasks` and `orchestraitor_ask` are direct model-only, sequential tools. Nested codemode/`executeTool` calls are rejected. The coordinator reads task revision before mutations:
-
-```json
-{"operation":"list"}
+```text
+~/Projects/pi-orchestraitor (develop) • session name
+━─────── ctx 16.4%/1.0M (auto)  ↑2 ↓81 CH0%          claude-bridge · Claude Opus 5.5  effort:xhigh
 ```
 
+The bar shows context usage and turns warning above 70% and error above 90%. Token totals keep input, output, the latest cache hit rate and the cost when it is above zero. The model shows its provider ID and display name; effort uses the color Pi gives the editor border at that thinking level. Narrow terminals drop token totals, the provider, the bar and then effort before truncating.
+
+Disable only the footer to restore Pi's:
+
 ```json
-{
-  "operation":"replace",
-  "expectedRevision":0,
-  "tasks":[{"id":"inspect","title":"Inspect the requested boundary","status":"pending"}]
-}
+{"packages":[{"source":"/absolute/path/to/pi-orchestraitor","extensions":["!extensions/footer.ts"]}]}
 ```
 
-Mutation content returns `operation`, `revision` and the affected `tasks` (empty after clear), plus `bindingCurrent` when a plan is bound; a newly supplied binding is also returned. Mutations fail on a stale binding. Reuse that revision for subsequent operations. The tool runs sequentially, so several mutations in one assistant message, alongside work calls, take consecutive revisions; sending them with work calls avoids turns spent only on tasks. `list` returns the complete `{state, bindingCurrent, projectIdentity}` view. Full versioned state remains in `details` for replay, native expansion and UI; historical receipts retain their meaning.
+## Plan usage
 
-Operations are `replace`, `add`, `update`, `list`, `clear`. IDs remain stable on replacement; explicit clear discards the list. Statuses are `pending`, `in_progress`, `blocked`, `done`. Limits: 50 tasks, 80-character IDs, 200-character titles and 1,000-character evidence/reason notes. Marking done requires evidence in that update; reopening requires a reason. Child success never completes a task automatically.
+`/quota` lists the plan windows each provider reported with its latest response in this Pi process, with their reset time and the age of the report. The active provider appears even before it reports any. Providers cannot be queried on demand: usage arrives only with `after_provider_response` headers, and Pi sends no model with that event, so the active provider owns them.
 
-Exact-plan work includes a binding with the canonical project identity returned by `list`, repository-relative `path`, original `sha256`, unique `groups` and each task's `group`. Binding verification is read-only and occurs outside rendering. Drift blocks mutations; reads/panels warn that the old projection is stale. The plan bytes and checkboxes are never changed by tasks.
-
-Uncommitted, failed, invalid or cancelled candidate snapshots are not authority. Reload/tree/fork replay follows the active native branch; a fresh session starts empty. This does not validate cross-session execution resumption. UI unavailability does not block otherwise safe work.
-
-Task refresh is awaited at the start of each tool, reusing the projection while the native manager and leaf are unchanged, so persisted creation, updates and clearing are visible while the next question or agent tool is still waiting. `turn_end` refreshes the final tool result. On Pi 1.0.2, `message_end` and `tool_execution_end` precede persistence, so their candidate results are not used to update the task widget. Async plan-binding checks apply only to the current context, interaction generation and latest refresh request. Hidden chrome stays hidden through these refreshes. Later refreshes still hash externally editable bound plans; only concurrent checks are coalesced.
+`pi-claude-bridge` reports Claude's `anthropic-ratelimit-unified-5h`/`7d` utilization and reset when Claude Code includes them. The `x-codex-primary`/`secondary` used-percent, window and reset headers are read on a best-effort basis: they were not observed in a live response. `extensions/quota.ts` owns the command; excluding it leaves the footer unchanged.
 
 ## Question contract
 
-Example model input:
+`orchestraitor_ask` is a direct model-only, sequential tool. Nested codemode/`executeTool` calls are rejected. Example model input:
 
 ```json
 {
@@ -103,10 +92,10 @@ Form transitions synchronize the highlight and text focus immediately, including
 
 ## Disable safely and account for host limitations
 
-For one invocation, retain the rest of the package but prevent model calls to both UI tools:
+For one invocation, retain the rest of the package but prevent model calls to the question tool:
 
 ```bash
-pi --exclude-tools orchestraitor_tasks,orchestraitor_ask
+pi --exclude-tools orchestraitor_ask
 ```
 
 To disable the whole UI extension, use `pi config` resource filtering or this package selection in your chosen settings scope:
@@ -148,7 +137,6 @@ Repeat in a fresh run with `--tui-mode regular`. This synthetic launch deliberat
 Commands in that isolated run:
 
 - Agents: `/ui-smoke two`, `writer`, `failure`, `cancel`, `retry`; open `/orchestraitor:agents`. Cancellation writes a synthetic partial file before waiting; close the panel and use native parent interruption, then verify actual bytes, write ledger, confirmed exit and retry.
-- Tasks: `/ui-smoke tasks-create`, `tasks-start`, `tasks-block`, `tasks-done`, `tasks-reopen`; inspect, collapse/expand, hide/show. These are explicit synthetic parent decisions, not automatic child acceptance.
 - Questions: `/ui-smoke single` and `/ui-smoke form`; choose predefined harmless markers, edit synthetic Unicode text, correct, submit or cancel. Inspect exact native results.
 
 ### Acceptance matrix
@@ -156,13 +144,12 @@ Commands in that isolated run:
 | ID | Exercise | Required evidence |
 | --- | --- | --- |
 | V1 | Two readers, one writer, failure, cancellation, retry | Starting/running/final frames, order, diagnostics, no acceptance label; separate actual termination/bytes checks. |
-| V2 | Task create/update/block/done/reopen/collapse/expand | Before/after header and full-panel frames, stable IDs, evidence/reason and unchanged supplied plan hash. |
 | V3 | Single choice, multi-select, free text, correction, cancel | Option/form frames, exact native values, no partial answer on cancel, restored editor text/focus. |
 | V4 | Chrome/coexistence/hide/show | Native editor/footer/context/usage, compact tools and foreign widget/status remain; state/execution unchanged. |
 | V5 | Layout, focus and lifecycle | Actual narrow/wide and short terminal sizes, dark/light/system theme checks, both native modes, scrolling, Unicode, reload/new/tree without stale UI. |
-| V6 | Bounded real model, no fixture | Two tasks, two readers on synthetic marker data, parent-inspected citations, one harmless question, agents/tasks panels; usage reconciled and an actual cancellation/retry if not already exercised. |
+| V6 | Bounded real model, no fixture | Two readers on synthetic marker data, parent-inspected citations, one harmless question, agents panel; usage reconciled and an actual cancellation/retry if not already exercised. |
 
-V1–V4 must run in both regular and fullscreen with the fixture; V5 covers real transitions. V6 uses the configured available model and existing credentials without copying/printing them, full production package and fresh synthetic workspace/session receipts; no substitute model or fixture. It consumes quota. Separate service tests isolate synthetic Engram data. Never present mocks as model acceptance or claim native Windows verification without running there.
+V1, V3 and V4 must run in both regular and fullscreen with the fixture; V5 covers real transitions. V6 uses the configured available model and existing credentials without copying/printing them, full production package and fresh synthetic workspace/session receipts; no substitute model or fixture. It consumes quota. Separate service tests isolate synthetic Engram data. Never present mocks as model acceptance or claim native Windows verification without running there.
 
 Pi 1.0.2 fresh CLI startup can persist `lastChangelogVersion` in its settings, even offline with telemetry disabled. A normal profile launch is not guaranteed read-only. When personal-setting writes are forbidden, use a native SDK `InteractiveMode` over `AgentSessionRuntime`, with services supplied a `SettingsManager.inMemory` snapshot and existing auth/model-file references. Keep the model catalog cache and session receipts in the scratch run. The installed public SDK examples for settings, session runtime and codemode/MCP define the required APIs; do not patch host internals or copy credentials. Verify the personal settings SHA-256 before startup and after shutdown. This route passed the recorded Pi 1.0.2 V6 run; revalidate against a changed host.
 

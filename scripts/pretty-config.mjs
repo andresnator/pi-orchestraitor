@@ -39,7 +39,10 @@ async function readConfig(path, validateTools = true) {
 	const text = await readFile(destination, "utf8").catch((error) => {
 		if (error.code !== "ENOENT") throw error;
 	});
-	const config = JSON.parse(text ?? "{}");
+	// Pretty reads an empty file as {}; other malformed JSON stops before a write could replace it.
+	let config;
+	try { config = JSON.parse(text?.trim() || "{}"); }
+	catch (error) { throw new Error(`${path}: invalid JSON (${error.message}); fix or empty the file, then rerun install:pi.`, { cause: error }); }
 	if (!config || typeof config !== "object" || Array.isArray(config)) throw new Error(`${path}: expected a JSON object.`);
 	if (validateTools && Object.hasOwn(config, "disableTools") && !Array.isArray(config.disableTools)) {
 		throw new Error(`${path}: disableTools must be an array before installing.`);

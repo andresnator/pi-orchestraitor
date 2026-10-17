@@ -1,14 +1,105 @@
 # Verification evidence
 
-The current deterministic baseline is Pi 1.2.0, Node 22.19+, and pnpm 12.9.1. Engram 3.0.0 is required only for memory. Development checks use the locked local host; rerun them before upgrading or distributing the package.
+The current deterministic baseline is Pi 1.3.0, Node 22.19+, and pnpm 12.9.1. Engram 3.0.0 is required only for memory. Development checks use the locked local host; rerun them before upgrading or distributing the package.
 
 | Command | Claim checked |
 | --- | --- |
-| `pnpm test` | Native tool regressions, instructions and personality injection, tarball resources and 57 native / 54 automatic / three explicit-only skill names, adapted workflow contracts/credits, consolidated review criteria/discovery, prompt expansion, MCP overrides, migration, rollback, and restoration. |
+| `pnpm test` | Native tool regressions, instructions and personality injection, tarball resources and 37 native / 33 automatic / four explicit-only skill names, retired-name rejection, adapted workflow contracts/credits, consolidated review criteria/discovery, prompt expansion, MCP overrides, migration, rollback, and restoration. |
 | `pnpm run test:mcp` | Real Context7 and Engram calls through native codemode, extension hooks, and project separation in temporary memory storage. |
 | `pnpm run test:personality` | Configured-model responses in fresh isolated sessions, with predefined criteria and synthetic receipts for manual scoring. |
 | `pnpm run install:pi --dry-run` | Complete lexical discovery inventory, including aliases hidden by native deduplication, and proposed standalone-skill moves, without migration or registration. |
 | `pnpm pack --dry-run --ignore-scripts` | Distributed resource inventory and exclusion of tests, local reports, and personal data. |
+
+## Session learning and bounded surveys — 2026-10-17
+
+Added manual-only `jag-retro` with a saved, redacted learning/proposal report, shared prevention guidance in `jag-agent-docs`, uncertainty categories in `jag-evidence`, and an explicit survey mode in `jag-arch-ideas`. No runtime extension, dependency, lockfile, active configuration or automatic repair was added. The pre-existing staged retirement/consolidation was separately committed as `dbba6c6` after a fresh 885/885 baseline pass.
+
+Fresh parent checks on Node 24.20.0 / Pi 1.3.0 / pnpm 12.9.1:
+
+- New `node --test tests/absorb-workflows.test.mjs`: **8/8 failed before implementation**. Focused workflow/provenance/native checks then passed **33/33**.
+- First full pass: 892/893; one unrelated document-authoring inventory assertion still expected 36 skills. Updated that assertion for the added manual skill, then full `pnpm test`: **893/893 passed**, zero failures/cancellations/skips.
+- Native discovery: **37 total / 33 automatic / four manual**, no diagnostics. Actual Pi command expansion accepts `/skill:jag-retro` with and without arguments; registry search/automatic selection excludes it.
+- `npm pack --dry-run --ignore-scripts --json`: **195 files**, 37 skill bodies and **114 verified skill resources**. No tests, ignored reports or personal configuration is packaged.
+- Every declared resource hash matches disk, with no unlisted or missing skill resources. Original identities, unselected active provenance, retired records and consolidated records remain unchanged.
+- Parent review and one bounded reader identified and clarified repository-write versus existing memory-protocol authority, and added separate structural checks for inline-only output, historical-log permission and no automatic test runs. This was not blind or independent verification. `git diff --check` passed.
+
+Not performed: real-model retrospective generation, collision/privacy behavior, learning efficacy or architecture-survey behavior; manual cases in `docs/skills.md` remain unrun. Native discovery and text checks do not prove those outcomes. No live-provider requests or interactive user `/reload` were required for these checks.
+
+## Redundant skill retirement — 2026-10-17
+
+Retired 21 skills that restated general engineering knowledge (15 gentle-ai review lenses, four Java design skills, `jag-prompts`, `jag-refine`), merged the three Jira skills into `jag-jira` with byte-identical templates, and dropped the bundled textbook catalogs of `jag-refactor` (63 technique files, four references) and `jag-java-test` (ten references). Before the change, 116 local Pi sessions (2026-10-02 to 2026-10-16) showed no registry load, child selection or explicit command for any retired name except two `jag-arch-impact` loads. Provenance moves the 24 names to `retiredSkills` with their previous instruction fingerprints; the ten consolidated lenses are unchanged.
+
+Fresh parent checks on Node 24.20.0 / Pi 1.3.0 / pnpm 12.9.1:
+
+- New `tests/skill-retirement.test.mjs`: 5/5 failed against the unchanged base checkout, then 5/5 passed.
+- Full `pnpm test`: **885/885** passed, zero failures/cancellations/skips, including extracted-tarball acceptance and the lazy-versus-native bench reduction.
+- `npm pack --dry-run --ignore-scripts --json`: 192 files, 36 skill bodies, 111 skill resources, no `techniques/` files and no tests. All 111 declared resource fingerprints match the files on disk, with no unlisted or missing skill files.
+- Native inventory: 36 total / 33 automatic / three manual, zero diagnostics; retired names are rejected by the registry and Jira story/task/spike searches find `jag-jira`. `git diff --check` passed.
+
+Not performed: live model runs of `jag-jira` type selection or interactive mode, other harnesses' copies of the retired names, or interactive `/reload` on an installed package.
+
+## Media skill adaptations — 2026-10-16
+
+Added `jag-slidev` and `jag-whisper` from Agents Orchestrator revision `ea3158595b56d832e79b41c4c16175f45cd67ea2` with explicit setup/privacy boundaries, portable assets and synthetic helper coverage. Existing source identities, license files and all 57 earlier provenance entries are unchanged. No runtime dependency, lockfile, policy or active-installation change is part of this feature.
+
+Fresh parent checks on Node 24.20.0 / Pi 1.3.0 / pnpm 12.9.1:
+
+- Baseline skill checks: 12/12 passed before implementation. New tests first failed on missing helpers/skills and the 57-versus-59 inventory; helpers, definitions and integration then passed. Additional reproduced failures for large backtick runs and non-Error parser rejection were corrected; Unicode, file-size, privacy and collision regressions are covered.
+- Focused native/media/document/consolidation checks: 50/50 passed, including 19 helper tests. Tests use repository-native `node:assert/strict`, not a new assertion framework.
+- Full `pnpm test`: 871/871 passed on the original base. After rebasing onto develop's footer/quota change `2f21d5d` and preserving its rows/extension list in two adjacent-line conflicts, the full suite passed **881/881**, zero failures/cancellations/skips. This includes extracted-tarball acceptance.
+- `npm pack --dry-run --ignore-scripts --json`: 297 files, 59 skill bodies and all 20 new media resources; no tests, local reports or development dependency links. All 216 declared local resource fingerprints and the new upstream resource pins were verified.
+- Native inventory: 59 total / 56 automatic / three manual, zero diagnostics; both new names resolve through the registry. `git diff --check` and committed whitespace checks passed.
+- Two bounded read-only reviews were collected and their findings checked by the parent. This was not independent or blind verification.
+
+Not performed: real Mermaid dependency-backed parsing, Slidev/Chromium rendering or six-theme/scheme PNG inspection, Whisper inference/audio decoding, model/browser downloads, live model privacy/coverage behavior, Windows filesystem execution, live MCP, or interactive `/reload`. No media prerequisites were installed. The fence scanner is intentionally not a full Markdown parser; comments/frontmatter/nested/imported diagrams need separate coverage. Stable manual cases are documented in [skills](skills.md#manual-media-checks-not-run-automatically). New names become active only through native discovery/reload after the package is actually updated.
+
+## Pi 1.3.0 development host — 2026-10-16
+
+The user requested moving the locked development host from Pi 1.2.0 to Pi 1.3.0. The manifest, pnpm policy test, CI job name, README, usage, NAN and subagent docs now name 1.3.0. Pi 1.3.0 was published on 2026-10-15T19:13:30Z, inside the 24-hour `minimumReleaseAge` window, so the seven exact `@earendil-works/*@1.3.0` packages replace the 1.2.0 entries in `minimumReleaseAgeExclude`. `pnpm install` changed only those seven Pi packages in `pnpm-lock.yaml`, and the lockfile passed pnpm's supply-chain verification. Third-party dependency versions are unchanged.
+
+Internal integrations were rechecked against the installed 1.2.0 and 1.3.0 releases. `dist/core/sdk.js` is byte-identical, so `extensions/provider-options.mjs` still mirrors `buildRequestOptions`. `dist/core/settings-manager.js` only adds `sessionShareDestination` accessors: there is still no `reserveTokens` setter, and the `FileSettingsStorage` lock protocol used by `extensions/auto-compact.ts` is unchanged. Only their version comments changed. Historical measurements in [performance](performance.md) still name the host they were measured on.
+
+Fresh checks, Node 24.20.0 / pnpm 12.9.1:
+
+- Preview before the bump, `PI_TEST_PACKAGE_DIR` set to installed Pi 1.3.0: 849/849 passed.
+- `node --test tests/pnpm-policy.test.mjs`: RED 1/2 after updating its expectations; GREEN after the manifest, policy and lockfile change.
+- `pnpm test`, locked Pi 1.3.0: 849/849 passed, zero failures, cancellations or skips. Rerun in a new Herdr pane created for this check (`pi --version` 1.3.0): 849/849 passed.
+- `npm run install:pi -- --dry-run`: user scope, 57 skills, no moves or blockers. `npm run install:pi`: registered this checkout plus `@heyhuynhgiabuu/pi-pretty@0.7.0` and `pi-claude-bridge@0.9.3`, verified 57 effective package skills, needed no backup, and left `settings.json` unchanged because the same packages were already registered.
+
+One live check ran in that pane with installed Pi 1.3.0, the user's default `openai-codex/gpt-6.1-sol` model at low reasoning, and a synthetic `/tmp` workspace whose `src/export.js:1` defines `FREE_TIER_EXPORT_LIMIT = 100`. Criteria were written before the run. The session transcript shows the new `jag-evidence` and `jag-plan` guidance was loaded from this checkout.
+
+| Criterion | Observed |
+| --- | --- |
+| C1: cite the limit as current behavior | Discovery and plan cite `src/export.js:1-5` as current eligibility behavior. |
+| C2: do not infer the business rule | First turn: "code alone does not establish whether that policy should apply to CSV", then asked the user. The confirmed answer is recorded as a user decision; the plan states that all product requirements come from the user's decisions. |
+| C3: no unqualified vague terms in required behavior | The plan contains none of "correct(ly)", "secure(ly)", "fast", "robust" or "intuitive"; every THEN is observable. |
+
+The run took four user turns. It asked one question each about policy and invalid input, and needed no manual repair. The status bar reported 43k input, 5.0k output and 189k cache-read tokens, with $0.155 (subscription estimate). The live agent saved Engram observations #864 and #865 under the synthetic project `pi-live-guidance.y87sns`. This is one anecdotal run without a no-guidance control. It does not show that the new text caused the behavior or that models follow it in general. Receipts remain local under `.ai/verification/planning-guidance/`, including `live/`. Changes are unstaged and uncommitted; remote CI, publication and interactive `/reload` of the existing session were not performed.
+
+## Planning guidance from ECC consultation — 2026-10-16
+
+The user approved two text-only recommendations from the local ECC `intent-driven-development` audit. `jag-evidence` 5.0.1 and its question-economy reference record business rules found in code as open questions, because code proves current behavior, not business requirements. `jag-plan` 1.1.2 adds two self-check items: business requirements cite the user or a product document, and required behavior uses observable evidence instead of unqualified vague terms. `jag-issue` 2.1.4 applies the same vague-term guard to its acceptance checklist. The wording was rewritten, not copied. Provenance records the ECC source at `76aaa77df6adc5b889e689007bf99b9a4f74af34` as a consultation, and the notices credit it. The hash-locked document skills, prompts, runtime manifest and the discovery template are unchanged.
+
+Fresh checks, Node 24.20.0 / pnpm 12.9.1 / locked Pi 1.2.0:
+
+- Baseline `node --test tests/skill-resources.test.mjs tests/skill-adaptations.test.mjs tests/productivity-skills.test.mjs tests/document-authoring.test.mjs`: 29/29 passed before the edits.
+- `node --test tests/planning-guidance.test.mjs`: RED 0/4 before the edits, with expected missing guidance and consultation records; GREEN 4/4 afterwards.
+- `pnpm test`: 849/849 passed, zero failures, cancellations or skips, including extracted-package resource fingerprints.
+
+Receipts remain local under `.ai/verification/planning-guidance/`. Structural tests do not prove that a real model follows the new guidance. Not performed: live-model planning runs, installed Pi 1.3.0 suite, interactive reload, manual tarball validation and remote CI. Changes are unstaged and uncommitted.
+
+## Pretty highlight theme — 2026-10-14
+
+Pi's built-in `dark` and `light` themes are not Shiki themes, so Pretty 0.6.30 warned on its first highlight and used `github-dark` for both. `extensions/pretty-theme.ts` now sets `PRETTY_THEME` to the matching `github-dark`/`github-light` on every start and `/reload`, unless a Pretty theme is already set. It writes no files. An earlier version pinned the theme into `pi-pretty.json` during `install:pi`; review showed that pin went stale when Pi's theme changed, so it was replaced before merge.
+
+Fresh checks, Node 24.20.0 / pnpm 12.9.1 / locked Pi 1.2.0:
+
+- Real Pretty `getTheme()` from the installed 0.6.30 package, temporary HOME, one process per case: without the extension, `dark` and `light` each produced the warning and `github-dark`; with it, `github-dark` and `github-light` with no warning.
+- Same package, one process reloaded as Pi does (`moduleCache: false`) through Pi themes `light`, `dark`, `dracula`, `dark`: Pretty used `github-light`, `github-dark`, `dracula`, `github-dark`, with no warning and only `settings.json` in the agent directory.
+- `node --test tests/pretty-theme.test.mjs`: RED, 4/5 with a helper that treated its own earlier value as explicit (reload kept `github-light` after a switch to `dark`); GREEN, 5/5.
+- `node --test tests/*.test.mjs`: 766/766 passed, zero failures/cancellations/skips. `git diff --check` passed.
+
+Physical TUI acceptance in a live Pi session was not run.
 
 ## Productivity frontmatter follow-up — 2026-10-13
 
@@ -66,7 +157,7 @@ Fresh local checks on Pi 1.0.4 and Node 24.20.0:
 - `npm pack --dry-run --ignore-scripts` includes 247 files, including `docs/usage.md`, and excludes tests, `.ai`, and `.github`.
 - `git diff --check` passed. Changes remain unstaged; no commit, push, publication, or personal Pi registration was performed.
 
-`.github/workflows/ci.yml` runs deterministic tests and package inventory checks on Ubuntu with Node 22.19.0 and 24.20.0, using pinned Pi 1.0.4. Live MCP, Pretty, real-model personality checks, and visible terminal acceptance are not CI gates. At this initial preparation checkpoint, GitHub-hosted execution and the Node 22/Linux matrix had not yet run; local success was not remote CI evidence. Historical failed-fixture receipts below remain unchanged.
+`.github/workflows/ci.yml` runs deterministic tests and package inventory checks on pull requests and on pushes to `main` and `develop`, on Ubuntu with Node 22.19.0 and 24.20.0, using pinned Pi 1.0.4. Live MCP, Pretty, real-model personality checks, and visible terminal acceptance are not CI gates. At this initial preparation checkpoint, GitHub-hosted execution and the Node 22/Linux matrix had not yet run; local success was not remote CI evidence. Historical failed-fixture receipts below remain unchanged.
 
 Official packaging reference: [Pi packages](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md). Installed Pi 1.0.4 documentation was the version-specific authority; Context7's indexed Pi versions did not include 1.0.4.
 

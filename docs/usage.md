@@ -1,10 +1,10 @@
 # Usage and operations
 
-A personal Pi package with **56 development/workflow skills** (54 automatic, two explicit-only), a lazy native-authorized skill registry, compact tool output, temporary `/btw` side conversations, optional interactive work UI, a bundled NaN model provider, Context7, Engram, and Orchestraitor for scoped changes and sequential plan execution. It automatically loads the source harness's Colombian architect personality: direct answers, practical explanations, respectful disagreement, and occasional Colombian expressions when the conversation supports them.
+A personal Pi package with **37 development/workflow skills** (33 automatic, four explicit-only), a lazy native-authorized skill registry, compact tool output, temporary `/btw` side conversations, optional interactive work UI, a bundled NaN model provider, Context7, Engram, and Orchestraitor for scoped changes and sequential plan execution. It automatically loads the source harness's Colombian architect personality: direct answers, practical explanations, respectful disagreement, and occasional Colombian expressions when the conversation supports them.
 
 ## Install
 
-Use **pnpm 12.9.1** and **Node 22.19+**. The checkout's lockfile supplies **Pi 1.2.0**; it is not installed globally or bundled in the distributed package. Engram **3.0.0** is required only for memory. See [development security](#development-security) for the install policy.
+Use **pnpm 12.9.1** and **Node 22.19+**. The checkout's lockfile supplies **Pi 1.3.0**; it is not installed globally or bundled in the distributed package. Engram **3.0.0** is required only for memory. See [development security](#development-security) for the install policy.
 
 From this repository:
 
@@ -16,9 +16,9 @@ pnpm run install:pi
 
 `pnpm run` puts the local Pi CLI on PATH. The installer recognizes its `.bin` shim and resolves the linked package's canonical SDK root; no `PI_TEST_PACKAGE_DIR` override is needed. The selected executable still controls host discovery, so npm-style symlink/global installations continue to work. Keep the checkout available; use `pnpm exec pi` if you want to start the local CLI.
 
-The preview lists every matching standalone skill, including multiple discovery aliases for the same source, and any blocking conflicts. Installation moves matching entries into a recoverable backup, registers this directory through native `pi install`, and verifies that all 56 skills resolve to the bundled adaptations. It also installs `@heyhuynhgiabuu/pi-pretty@0.6.30` and `pi-claude-bridge@0.9.2` through native Pi package management in the same user/project scope. Restart Pi or run `/reload` afterward.
+The preview lists every matching standalone skill, including multiple discovery aliases for the same source, and any blocking conflicts. Installation moves matching entries into a recoverable backup, registers this directory through native `pi install`, and verifies that all 37 skills resolve to the bundled adaptations. It also installs `@heyhuynhgiabuu/pi-pretty@0.7.0` and `pi-claude-bridge@0.9.3` through native Pi package management in the same user/project scope. Restart Pi or run `/reload` afterward.
 
-The installer adds `bash` to Pretty's `disableTools`, preserving other preferences, so the harness honors `shellPath` and `shellCommandPrefix`. It uses `PRETTY_CONFIG_DIR` or Pretty's default `$HOME/.pi/agent/`, independently of installation scope. A nonempty `PRETTY_DISABLE_TOOLS` list must include `bash`; an incompatible override stops installation before file changes. Use `--without-pretty` to omit Pretty while still installing the harness and Claude Bridge; this leaves any existing Pretty registration and configuration intact. `--dry-run` lists companion packages and the planned configuration path/adjustment without writes or downloads.
+The installer adds `bash` to Pretty's `disableTools`, preserving other preferences, so Pi's bash keeps honoring `shellPath` and `shellCommandPrefix`. It uses `PRETTY_CONFIG_DIR` or Pretty's default `$HOME/.pi/agent/`, independently of installation scope. A nonempty `PRETTY_DISABLE_TOOLS` list must include `bash`; an incompatible override stops installation before file changes. Use `--without-pretty` to omit Pretty while still installing the harness and Claude Bridge; this leaves any existing Pretty registration and configuration intact. `--dry-run` lists companion packages and the planned configuration path/adjustment without writes or downloads.
 
 For a project installation:
 
@@ -70,17 +70,17 @@ Native `pi install /path/to/package` also discovers bundled skills, but does not
 /skill:jag-debug investigate this failure
 ```
 
-Skills use **lazy discovery by default**: `skill_registry` searches native-authorized descriptions and loads only selected bodies. `.ai/skills/registry.md` is generated as a body-free diagnostic snapshot, not injected into the prompt. `/skill:<name>` remains an explicit native command. Use `/orchestraitor:skills status|refresh` to inspect/refresh, or `native` to restore native headers (`lazy` switches back).
+Skills use **lazy discovery by default**: `skill_registry` searches native-authorized descriptions and loads only selected bodies. The index is kept in memory and is not injected into the prompt; nothing is written to the project. `/skill:<name>` remains an explicit native command. Use `/orchestraitor:skills status|refresh` to inspect/refresh, or `native` to restore native headers (`lazy` switches back).
 
 The Matt Pocock adaptations include `jag-pr`, `jag-research`, `jag-agent-docs`, and the updated `jag-domain`. `jag-handoff` and `jag-teach` require explicit user commands (`/skill:jag-handoff <next task>` and `/skill:jag-teach <topic>`); automatic lookup/delegation rejects them. Generated workflow documents default to `.ai/`; teaching uses topic-scoped Markdown, not browser widgets. Existing domain documents are never migrated automatically. See [adapted workflows](skills.md#adapted-workflows).
 
-Ten former micro-review skills are consolidated into conditional references under `jag-practices`, `jag-refactor`, and `jag-patterns`; see the [replacement map](skills.md#consolidated-review-lenses). Their criteria remain available, but this package no longer supplies their standalone commands.
+Ten former micro-review skills are consolidated into conditional references under `jag-practices`, `jag-refactor`, and `jag-patterns`; see the [replacement map](skills.md#consolidated-review-lenses). Their criteria remain available, but this package no longer supplies their standalone commands. Twenty-four other names were retired or merged into `jag-jira`; see [retired skills](skills.md#retired-skills).
 
-All bundled skill names begin with `jag-` and contain at most 15 characters. Original identifiers remain in provenance; old skill commands and plan Skills fields must use the new names. Reload Pi after upgrading, and update any explicit skill paths or resource filters in your own configuration. Prompt commands such as `/plan` and `/absorb` are unchanged.
+All bundled skill names begin with `jag-` and contain at most 15 characters. Original identifiers remain in provenance; old skill commands and plan Skills fields must use the new names. Restart Pi after upgrading, and update any explicit skill paths or resource filters in your own configuration. Prompt commands such as `/plan` and `/absorb` are unchanged.
 
 New sources/names require native Pi configuration and `/reload`; edits and removals of already authorized skills are checked on the next request or lookup. Claude/OpenCode directories are not silently enabled. See the [skill registry and catalog](skills.md) for source configuration, limits and fallback.
 
-Orchestraitor is the execution contract in the main session. It supports direct changes and ordered work groups in a supplied plan. It checks the original plan's SHA-256, preserves the plan, and runs its assigned checks. Planning and review requests keep their own scope. Delivery defaults to unstaged working-tree changes; commits require an explicit current user instruction.
+Orchestraitor is how the main session executes: direct by default, delegating only independent parts. Given a plan file, it follows the steps and checks without rewriting the plan. Planning and review requests keep their own scope. Delivery defaults to unstaged working-tree changes; commits require an explicit current user instruction.
 
 The personality applies automatically through `extensions/instructions.ts`; no slash command is needed. Replies follow the user's language. Repository documentation, code, comments, and labels are in English. Professional and sensitive exchanges use a restrained tone. The architect's experience is a role, without an invented human biography.
 
@@ -88,18 +88,22 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 
 | Resource | Purpose |
 | --- | --- |
-| `extensions/compact-tools.ts` | Compact bash/edit/write/codemode presentation, plus a read fallback. Bash uses effective shell settings; conflicting owners are reported and blocked. Expand to inspect arguments, results and error explanations. |
+| `extensions/compact-tools.ts` | Compact presentation of Pi's read/bash/edit/write/codemode through a renderer resolver; registers no tools, so Pi or another extension keeps execution and shell settings. Expand to inspect arguments, results and error explanations. |
+| `extensions/auto-compact.ts` | `/auto-compact <tokens>` persists the current model's native compaction threshold; no argument shows it, and `default` restores inheritance. See [automatic compaction](#automatic-compaction). |
 | `extensions/context-budget.ts` | Caps output of top-level codemode scripts that set no options at 8,000 estimated tokens; Pi saves the full output to a temporary file. `--orchestraitor-codemode-max-output N` sets another cap, and `0` keeps Pi's 10,000. The transcript keeps the original script. See the [codemode output budget](performance.md#codemode-output-budget). |
-| `@heyhuynhgiabuu/pi-pretty@0.6.30` | Separately installed companion: highlighted reads, FFF-backed find/grep, prompt editor and activity indicators. Its bash tool is disabled for harness ownership. |
-| `pi-claude-bridge@0.9.2` | Separately installed companion through `install:pi`; Claude Code bridge. Authentication and model selection remain user-controlled. |
-| `extensions/btw/index.ts` | Temporary 70% side-conversation panel; no tools or local history, explicit `/bring` imports only. |
-| `extensions/instructions.ts` | Adds core, execution, and personality sections while preserving Pi and project instructions. Only Pi's docs rule changes, from reading whole files to reading the relevant sections. |
-| `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. Engram is skipped when another package already provides its `mem_search` tool. |
+| `@heyhuynhgiabuu/pi-pretty@0.7.0` | Separately installed companion: highlighted reads, FFF-backed find/grep, prompt editor and activity indicators. Its bash tool is disabled so Pi's bash keeps the user's shell settings. |
+| `extensions/pretty-theme.ts` | Maps Pi's built-in `dark`/`light` themes to Pretty's `github-dark`/`github-light` through `PRETTY_THEME` on each start or reload; writes no files and yields to any theme set for Pretty. See [highlight theme](pi-pretty.md#highlight-theme). |
+| `pi-claude-bridge@0.9.3` | Separately installed companion through `install:pi`; Claude Code bridge. Authentication and model selection remain user-controlled. |
+| `extensions/btw/index.ts` | Temporary 70% side-conversation panel; no tools or local history, manual clipboard copying only. |
+| `extensions/instructions.ts` | Adds core and personality sections while preserving Pi and project instructions. Only Pi's docs rule changes, from reading whole files to reading the relevant sections. |
+| `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. Engram exposes only four memory tools, through codemode. |
 | `extensions/nan.ts` | Native NaN API-key login/environment fallback and seven documented chat models; no default changes or startup requests. |
 | `extensions/subagents.ts` | Model profiles, bounded sync/background readers, child guards, collection and native usage. |
-| `extensions/skill-registry.ts` | Bounded search/load, native snapshot refresh and atomic diagnostic publication; lazy/native exposure. |
-| `extensions/status-ui.ts` | One owner for agents/tasks panels, unified questions, compact work-header/native-footer chrome and a warning before a model or thinking switch re-bills cached context. |
-| `skills/` | 56 unique skills and their supporting resources, with short `jag-*` names. |
+| `extensions/skill-registry.ts` | Bounded search/load, in-memory native snapshot refresh; lazy/native exposure. |
+| `extensions/status-ui.ts` | One owner for the agents panel, unified questions, native-footer status and a warning before a model or thinking switch re-bills cached context. |
+| `extensions/footer.ts` | Replaces Pi's terminal footer with a project/branch line and a metrics line: context bar, compact token totals, provider, model name and effort. See [footer](interactive-ui.md#footer). |
+| `extensions/quota.ts` | `/quota` lists the plan usage each provider reported with its latest response in this Pi process. See [plan usage](interactive-ui.md#plan-usage). |
+| `skills/` | 37 unique skills and their supporting resources, with short `jag-*` names. |
 | `prompts/` | `/orchestraitor`, `/plan`, `/review`, and `/absorb`, with explicit arguments. |
 | `scripts/install-pi.mjs` | Migration, native package registration, verification, and restoration. |
 
@@ -109,21 +113,39 @@ The harness preserves personal model, theme, editor, credentials, and MCP overri
 
 Reload Pi, run `/login nan`, and enter a key generated in NAN Cloud's API Keys settings into Pi's native secret prompt. Alternatively provide `NAN_API_KEY` before starting Pi. Select **NaN / GLM 5.3 Flash** through `/model` for coding; no default-provider change is required. Keys remain in Pi's private credential storage or process environment, never in this package. `glm5.3` requires premium membership; the model list is static and Pi's zero per-token cost display does not account for membership fees or quota. See [NaN setup, overrides, and limits](nan.md).
 
+## Automatic compaction
+
+```text
+/auto-compact 150k
+/auto-compact 0.5m
+/auto-compact 300000
+/auto-compact
+/auto-compact default
+```
+
+The argument is variable: `k` means 1,000 tokens and `m` means 1,000,000; suffixes are case-insensitive and exact decimals are accepted. It measures **estimated active-context tokens**, not cumulative session usage. Pi compacts when context **exceeds** the threshold at its normal request boundaries, not immediately when the command is entered. The amount must resolve to a positive safe integer, exceed the effective `keepRecentTokens`, and be at most the current model's context window minus 16,384 tokens, Pi's default reserve. Pi also uses the reserve as response room for providers that send a token limit and as the compaction summary budget, so a smaller one would cut both short. Without an argument, the command warns when an existing reserve is below that default.
+
+The command persists `compaction.modelOverrides["provider/modelId"].reserveTokens = contextWindow - threshold` in Pi's personal `settings.json` (`getAgentDir()`, respecting `PI_CODING_AGENT_DIR`). It preserves retained-history settings and other models' thresholds, and enables Pi's global automatic-compaction flag. Without an argument it reports the effective setting without writing. `default` removes only this model's personal reserve override, restoring inheritance; it does not disable compaction.
+
+Saving waits for the parent run to finish, then **reloads Pi**, closing active readers and panels. Trusted project `.pi/settings.json` settings take precedence; if they disable compaction or override this model's reserve, the command refuses to modify personal settings. Adjust that project setting first. When project trust is disabled, that project layer is ignored.
+
+This uses the native scheduler, summary generation and overflow recovery, with no second compaction loop. Native `reserveTokens` also affects the summary output budget. If you later change a model's context-window definition, rerun the command to maintain the same absolute threshold. The writer uses Pi 1.3.0's installed `FileSettingsStorage` lock protocol; recheck this internal storage integration when upgrading Pi. Original session history remains stored.
+
 ## Temporary side conversations
 
-Use `/btw` or `/btw <question>` without continuing the main task. Closing cancels and discards the conversation. Submit `/bring latest|N+|N-M|all` **inside BTW** to explicitly copy a selection into the parent without triggering a turn. The panel uses the parent's current model and thinking level; it has no tools. See [BTW controls, isolation, and migration](btw.md).
+Use `/btw` or `/btw <question>` without continuing the main task. Closing cancels and discards the conversation. Use **Ctrl+X** to copy the latest finished answer, then paste it manually if needed. BTW never appends messages to the parent. The panel uses the parent's current model and thinking level; it has no tools. See [BTW controls, isolation, and migration](btw.md).
 
 ## Optional work UI
 
-Open `/orchestraitor:agents` or `/orchestraitor:tasks`; use `tasks expand|collapse` for detail and `/orchestraitor:ui hide|show` for passive chrome. The model-only task/question tools do not replace execution or permissions. Pi keeps its native editor/header/footer and counters.
+Open `/orchestraitor:agents` for detail and `/orchestraitor:ui hide|show` for passive chrome. The model-only question tool does not replace execution or permissions. Pi keeps its native editor and header; the separate [footer extension](interactive-ui.md#footer) restyles the footer and keeps its counters.
 
-See the [interactive UI guide](interactive-ui.md) for schemas, task replay versus recovery, native keybindings, synthetic/live checks and limitations. Exclude `extensions/status-ui.ts` through `pi config` to disable the work UI without disabling the launcher or BTW. For one invocation, `--exclude-tools orchestraitor_tasks,orchestraitor_ask` persistently excludes just the model tools; `hide` only changes presentation.
+See the [interactive UI guide](interactive-ui.md) for the question schema, native keybindings, synthetic/live checks and limitations. Exclude `extensions/status-ui.ts` through `pi config` to disable the work UI without disabling the launcher or BTW. For one invocation, `--exclude-tools orchestraitor_ask` persistently excludes just the model tool; `hide` only changes presentation.
 
 ## MCP and memory
 
-Context7 uses `https://mcp.context7.com/mcp`. Engram runs `engram mcp --tools=agent` with the session project's cwd. Both use `codemode` exposure. Pi owns connection errors and shutdown; the package never installs missing services.
+Context7 uses `https://mcp.context7.com/mcp` with `codemode` exposure. Engram runs `engram mcp --tools=agent` with the session project's cwd. Its server is `hidden`: only `mem_search`, `mem_save`, `mem_context` and `mem_get_observation` are reachable, through codemode, so no memory schema enters the prompt. Pi owns connection errors and shutdown; the package never installs missing services.
 
-Engram registers when the session starts, unless another package, such as gentle-engram, already provides Engram's `mem_search` tool: a second route to the same memory would only duplicate its tools. To keep this package's route as well, add the `engram` entry below to `mcp.json`.
+This package is the only memory route. Remove other Engram packages, such as gentle-engram, from your Pi settings: they add their own memory rules and declare every Engram tool. Likewise, drop `context7` from your `mcp.json` unless you need different settings, since a file entry replaces the package's.
 
 An entry with the same server name in personal or project `mcp.json` overrides the complete default. Fields are not merged. For an explicit project identity, use trusted project configuration:
 
@@ -134,7 +156,8 @@ An entry with the same server name in personal or project `mcp.json` overrides t
       "command": "engram",
       "args": ["mcp", "--tools=agent", "--project", "project-name"],
       "cwd": ".",
-      "exposure": "codemode"
+      "exposure": "hidden",
+      "toolExposure": { "mem_search": "codemode", "mem_save": "codemode", "mem_context": "codemode", "mem_get_observation": "codemode" }
     }
   }
 }
@@ -144,7 +167,7 @@ Do not set one fixed project globally across repositories. An inherited `ENGRAM_
 
 Run `/mcp` inside the session to inspect extension registrations. `pi mcp list` does not load extensions. To persistently disable a server, provide its complete configuration with `enabled: false`, or exclude the package's MCP extension through `pi config` to disable both defaults.
 
-Memory instructions restrict saves to useful, verified project decisions and exclude secrets, personal information, raw transcripts, and sensitive code. They do not implement automatic capture or a data filter. Engram inherits its environment; review autosync configuration before connecting your usual database. The package does not enable cloud sync.
+Memory instructions ask for few saves of verified decisions and exclude secrets, credentials, personal data and transcripts. They do not implement automatic capture or a data filter. Engram inherits its environment; review autosync configuration before connecting your usual database. The package does not enable cloud sync.
 
 ## Try without registration
 
@@ -158,7 +181,7 @@ This changes only that invocation. Personal and project MCP settings still apply
 
 ## Development security
 
-Use pnpm 12.9.1 with the committed lockfile. Pi 1.2.0 is a development dependency only; runtime peers remain host-provided and neither the host nor `node_modules` is packed. BTW's pinned `beautiful-mermaid@1.1.3` is a separate runtime dependency; local checkouts install it here, while Pi installs it for native Git/npm sources.
+Use pnpm 12.9.1 with the committed lockfile. Pi 1.2.0 is a development dependency only; runtime peers remain host-provided and neither the host nor `node_modules` is packed. BTW's pinned `beautiful-mermaid@1.1.3` is a separate runtime dependency; local checkouts install it here, while Pi installs it for native Git/npm sources. Subagent search's pinned `@vscode/ripgrep@1.18.0` is also a runtime dependency; it runs no install scripts and installs only the current platform's ripgrep binary through optional dependencies.
 
 ```bash
 pnpm install --frozen-lockfile
@@ -179,7 +202,7 @@ Do not run blanket `approve-builds`, add wildcard approvals, or regenerate the l
 
 ## Verify
 
-The [efficiency guide](performance.md) documents compact model-facing task/child handoffs, projection reuse, the offline benchmark and the recorded-usage report. Run `pnpm run bench --samples 7 --output /tmp/pi-benchmark.json` from a checkout; it makes no model/MCP requests. `pnpm run usage` summarizes recorded Pi sessions from metadata only. Observed character reductions are distinct from measured provider-token savings.
+The [efficiency guide](performance.md) documents compact model-facing child handoffs, the offline benchmark and the recorded-usage report. Run `pnpm run bench --samples 7 --output /tmp/pi-benchmark.json` from a checkout; it makes no model/MCP requests. `pnpm run usage` summarizes recorded Pi sessions from metadata only. Observed character reductions are distinct from measured provider-token savings.
 
 ```bash
 pnpm test
@@ -202,10 +225,10 @@ See [verification evidence](verification.md) and [attribution](../THIRD_PARTY_NO
 
 ## Subagents and verification
 
-Use `/models-profiles` to configure named profiles per role and scope. Use `subagent_run` for up to two pending readers or one exclusive synchronous implementer, and `subagent_collect` to retrieve background results. Each task gets a fresh process/session; the parent runs commands and checks the result. See [subagent input, isolation and lifecycle](subagents.md) for file restrictions, model selection, cancellation, output fields and pending real-model checks.
+Use `/models-profiles` to configure named profiles per role and scope: model, effort, mode, time limit (5–60 minutes or no limit; ten by default) and how many subagents of that role run at once (1–10; five by default). Use `subagent_run` for up to ten readers (and up to ten pending across calls) or up to ten synchronous implementers that own disjoint files, within the profile's limits, and `subagent_collect` to retrieve background results; a notice tells the parent when background readers finish. Each task gets a fresh process/session; the parent runs commands and checks the result. See [subagent input, isolation and lifecycle](subagents.md) for file restrictions, model selection, cancellation, output fields and pending real-model checks.
 
 Normal tools use one unboxed line. `codemode` shows nested-call counts and the currently running tool, and `subagent_run` shows task counts, roles and completion counts. Script source, nested-call arguments and successful output stay hidden until Pi's configurable `app.tools.expand` action (`Ctrl+O` by default) expands the tool. Expansion restores codemode's native code/result view and the complete subagent response.
 
 Errors remain visible: the header plus up to three visual rows, including caught nested-call failures and failed, timed-out or cancelled children. Codemode shows the start of the error cause; other tools show the error tail. Normal rows have no filled background; error rows keep the error background. Presentation does not truncate or change model-facing results. Codemode is decorated through Pi's public factory only when its native tool is present, preserves inactive/disabled selection, and leaves foreign tools with a different parameter schema unchanged. Restart Pi or run `/reload` after changing the package.
 
-Reviews identify repository/base/scope and content fingerprints, including relevant new files, and recheck them before the verdict. Findings distinguish observed/inferred evidence and introduced/aggravated/pre-existing/unknown origin. Behavior changes use observed failing and passing checks where appropriate; the final diff alone does not prove RED/GREEN execution.
+Reviews report findings with path:line, severity, the concrete failure and fix intent, separating defects from preferences. They do not fingerprint the scope, so files that change during a review are not detected. Behavior changes use observed failing and passing checks where appropriate; the final diff alone does not prove RED/GREEN execution.

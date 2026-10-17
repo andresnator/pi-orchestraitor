@@ -57,30 +57,29 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "c98e09a9fddc3c41b2c5f111ab040c65e8bc464508050c637a770b7b3319430e"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-arch-impact",
-      "upstreamName": "architecture-impact-review",
-      "upstreamPaths": [
-        "domains/plan/skills/architecture-impact-review/SKILL.md"
-      ],
-      "upstreamVersion": "1.1.3",
-      "license": "Apache-2.0",
-      "upstreamSha256": "10e2ff3667d1f541f8e567aeb49274f6742e7f0383b1acc9e68454718f2072a0",
-      "resources": [
+          "sha256": "f3a15e195227e73ea71ef9fcec73a208eac5f217e17b14aa5c48f96d5010e42d"
+        },
         {
-          "path": "SKILL.md",
-          "sha256": "5898ead9bd566cbc27c21d0656dc262b493ad5035c05fd2bd6c365937b12176f"
+          "path": "references/candidate-survey.md",
+          "sha256": "cc174ad886e209f9b44e0e3c3a920c8360a686a1fb60a4ec5860e096fec3bfd7"
         }
       ],
       "adaptations": [
-        "SKILL.md"
+        "SKILL.md",
+        "references/candidate-survey.md"
+      ],
+      "sourceConsultations": [
+        {
+          "upstreamRepository": "https://github.com/mattpocock/skills",
+          "upstreamRevision": "49dd158d1076134a641b33efb035946536778336",
+          "purpose": "Consulted for a bounded candidate-survey mode; original design workflow retained, without automatic artifacts or external HTML.",
+          "resources": [
+            {
+              "path": "skills/engineering/improve-codebase-architecture/SKILL.md",
+              "sha256": "552240a5ab5cec6b67c15dd1ad6e9f6962b1bca6ce870059a8c2713760c20392"
+            }
+          ]
+        }
       ]
     },
     {
@@ -126,26 +125,6 @@
       ]
     },
     {
-      "name": "jag-behavior",
-      "upstreamName": "behavior-characterization",
-      "upstreamPaths": [
-        "domains/orchestration/skills/behavior-characterization/SKILL.md",
-        "domains/plan/skills/behavior-characterization/SKILL.md"
-      ],
-      "upstreamVersion": "1.1.0",
-      "license": "Apache-2.0",
-      "upstreamSha256": "8c884e1d3f0e7786e032be7ccc46d53283805426a9450732daa28886b97a792f",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "4fbbef7a524f4dad5c80bbcc11896048947a690d5361bcb7afd87f4a5c6e30b9"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "jag-issue",
       "upstreamName": "buildable-issue",
       "upstreamPaths": [
@@ -157,30 +136,24 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "2b92c63ea2a4073e0128cd0014da6c099fd95e5204c6ccd0a41c2c3c6344da28"
+          "sha256": "4864d2990c9c8f4623ecbeedc5022e9de358325dd80061da3290479acd79bcd8"
         }
       ],
       "adaptations": [
         "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-test-scope",
-      "upstreamName": "characterization-test-scoping",
-      "upstreamPaths": [
-        "domains/plan/skills/characterization-test-scoping/SKILL.md"
       ],
-      "upstreamVersion": "2.2.1",
-      "license": "Apache-2.0",
-      "upstreamSha256": "a3d04035d842c21149ea771daec9cdcab05b2a85cecd11b19068662ab223cec3",
-      "resources": [
+      "sourceConsultations": [
         {
-          "path": "SKILL.md",
-          "sha256": "46aaa55d3071d58eeb84839a3f4705cfaec895144a3958c125167b4a8b912f89"
+          "upstreamRepository": "https://github.com/affaan-m/ECC",
+          "upstreamRevision": "76aaa77df6adc5b889e689007bf99b9a4f74af34",
+          "purpose": "Consulted for business-constraint and observable-acceptance guidance; wording rewritten and original import identity retained.",
+          "resources": [
+            {
+              "path": "pi/core/skills/intent-driven-development/SKILL.md",
+              "sha256": "e34045f7b3bf6a6fbd364f85c7bc81d8208e18bb929ceff80bbc987f78aadea8"
+            }
+          ]
         }
-      ],
-      "adaptations": [
-        "SKILL.md"
       ]
     },
     {
@@ -199,7 +172,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "b0fd1eb1156a1d9ceef5f0039f5bd483f221c27b3976f37c7e60bc39c37991ab"
+          "sha256": "83c44352bc2b5efd491964fac0441ea0241a8f93512fd5f2b77d521145873c7f"
         },
         {
           "path": "assets/examples/OrderServiceTest.java",
@@ -234,69 +207,6 @@
       ],
       "adaptations": [
         "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-refine",
-      "upstreamName": "cognitive-output-refiner",
-      "upstreamPaths": [
-        "domains/common/skills/cognitive-output-refiner/SKILL.md"
-      ],
-      "upstreamVersion": "2.0.0",
-      "license": "MIT",
-      "upstreamSha256": "9a89a17f47cd3b469a7136a71ac5de866689dd8af663da59f12164cf513e0c9a",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "a50ae7897914b5a82454f49693927f277004abf02b5ae8790aae94b09a529318"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-big-o",
-      "upstreamName": "complexity-big-o",
-      "upstreamPaths": [
-        "domains/common/skills/complexity-big-o/SKILL.md",
-        "domains/plan/skills/complexity-big-o/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.0",
-      "license": "Apache-2.0",
-      "upstreamSha256": "a0bc5d2f0812e8b81871cb47674c9b0e2ccd9c5b9fadaf96eca15ac57d8f90e3",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "88db9b54ac905d0e5e36bd650081b560f07eeb91f575353d4e11b0ab3f70269c"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-seams",
-      "upstreamName": "dependency-seam-detection",
-      "upstreamPaths": [
-        "domains/plan/skills/dependency-seam-detection/SKILL.md"
-      ],
-      "upstreamVersion": "1.1.1",
-      "license": "Apache-2.0",
-      "upstreamSha256": "8758abd1400c54b467fd21f8cacc918c6abe41538300c6b909fb70747e59e62d",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "6c3d0a6cd206978dc2dc7ab72e59a09a35fc4fed7e1f482959f019ef1c90e6b4"
-        },
-        {
-          "path": "references/dependency-breaking-catalog.md",
-          "sha256": "beb04b3d6d7f30ea76216f4b54ab7ecd0abdd877675a5dbfc85128eb7aba1b87"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md",
-        "references/dependency-breaking-catalog.md"
       ]
     },
     {
@@ -419,11 +329,11 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "f1edc859f5d516bda6d9965425ae841f17698c0454b7c0d04eff89374c24fbd8"
+          "sha256": "8bf1359d2600eca6d38e681685c45d44b952d84830e1fe89cb7c32ccf90249f6"
         },
         {
           "path": "assets/discovery-template.md",
-          "sha256": "11c3e7035307f737334b11964a47e016e097fc66032bdfa8088b7926183aeb80"
+          "sha256": "7d8453ddbe5208e65a2f043a54ae8bc3a032b54fcfdcfaa08eaad3b9d1fbb771"
         },
         {
           "path": "references/edge-validation.md",
@@ -431,12 +341,37 @@
         },
         {
           "path": "references/question-economy.md",
-          "sha256": "3aaf8d729e022a7c231f50ae045575e91bf6f7fbd95926c442d62d074aa08194"
+          "sha256": "804541337243511fbc8aca6beb763aabb43e957ca606bf1ff38959a3e43467b7"
         }
       ],
       "adaptations": [
         "SKILL.md",
-        "references/question-economy.md"
+        "references/question-economy.md",
+        "assets/discovery-template.md"
+      ],
+      "sourceConsultations": [
+        {
+          "upstreamRepository": "https://github.com/affaan-m/ECC",
+          "upstreamRevision": "76aaa77df6adc5b889e689007bf99b9a4f74af34",
+          "purpose": "Consulted for business-constraint and observable-acceptance guidance; wording rewritten and original import identity retained.",
+          "resources": [
+            {
+              "path": "pi/core/skills/intent-driven-development/SKILL.md",
+              "sha256": "e34045f7b3bf6a6fbd364f85c7bc81d8208e18bb929ceff80bbc987f78aadea8"
+            }
+          ]
+        },
+        {
+          "upstreamRepository": "https://github.com/mattpocock/skills",
+          "upstreamRevision": "49dd158d1076134a641b33efb035946536778336",
+          "purpose": "Consulted for precise blocked questions, unspecified in-scope areas and exclusions; original import identity retained, without tracker machinery.",
+          "resources": [
+            {
+              "path": "skills/engineering/wayfinder/SKILL.md",
+              "sha256": "9be7b478c389605a24517d27752f278933588da97a1b5921b165f455edf4c5b7"
+            }
+          ]
+        }
       ]
     },
     {
@@ -453,16 +388,29 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "dae6b009152fe51e8093be89738522e2dab569d7f30c3c0b37f48351bb89fcfc"
+          "sha256": "1eec4142665f4aef83ed451e05ccb4af677c3c3b1bd78f98496be1aa183d4a14"
         },
         {
           "path": "assets/plan-template.md",
-          "sha256": "0347dcb2cea5660538c9e68e95bc168537d55a0a8d879848e06cabb445c9bf76"
+          "sha256": "36504f574ab542a0e16114bf2423f400b3abe525ff05071124692b74ddbb5c92"
         }
       ],
       "adaptations": [
         "SKILL.md",
         "assets/plan-template.md"
+      ],
+      "sourceConsultations": [
+        {
+          "upstreamRepository": "https://github.com/affaan-m/ECC",
+          "upstreamRevision": "76aaa77df6adc5b889e689007bf99b9a4f74af34",
+          "purpose": "Consulted for business-constraint and observable-acceptance guidance; wording rewritten and original import identity retained.",
+          "resources": [
+            {
+              "path": "pi/core/skills/intent-driven-development/SKILL.md",
+              "sha256": "e34045f7b3bf6a6fbd364f85c7bc81d8208e18bb929ceff80bbc987f78aadea8"
+            }
+          ]
+        }
       ]
     },
     {
@@ -523,137 +471,6 @@
       ]
     },
     {
-      "name": "jag-validation",
-      "upstreamName": "input-validation-preconditions",
-      "upstreamPaths": [
-        "domains/common/skills/input-validation-preconditions/SKILL.md",
-        "domains/plan/skills/input-validation-preconditions/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.0",
-      "license": "Apache-2.0",
-      "upstreamSha256": "c064cbc0b0eb56069f179f71871bc74501a285ba19f4e87b71fed71970556fa8",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "baf48d9af0fd2b8a8684d4fa8d653532eff59fe223d635a8514bc80432081fc1"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-java-api",
-      "upstreamName": "java-api-design",
-      "upstreamPaths": [
-        "domains/plan/skills/java-api-design/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.4",
-      "license": "MIT",
-      "upstreamSha256": "c220cd03e713f30da95090354f3414bbe7723bd4a7af984364ab4ce5ff602841",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "d5fce642dbe0118e9796200b275bf8ea1a5179584f333368680e5a0dbe9660d7"
-        },
-        {
-          "path": "references/java-api-boundaries.md",
-          "sha256": "8a41414100ac7c3165675f1d06507dd7d2b0c3257dbed237daf2872620cceb36"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-java-errors",
-      "upstreamName": "java-exception-robustness",
-      "upstreamPaths": [
-        "domains/plan/skills/java-exception-robustness/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.4",
-      "license": "MIT",
-      "upstreamSha256": "bdf53102b1f5dfa6dd763c133debb7f7daa35207d4bd27038aefbed8897cbb3b",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "c089ff59074d6878f46573ce1545c5500d5e0b49e473cce9862632a4427834eb"
-        },
-        {
-          "path": "references/java-exception-guidance.md",
-          "sha256": "2fa84699588895ff99c5ed772a841e78dfa158985b8243e41982474c2089d7de"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-java-model",
-      "upstreamName": "java-immutability-modeling",
-      "upstreamPaths": [
-        "domains/plan/skills/java-immutability-modeling/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.4",
-      "license": "MIT",
-      "upstreamSha256": "e06e382dd881ce0b1bfffbb7d19e896a54fcc5d51127342daa5227b1ccfb10a4",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "216258206d067cd675eca7f3cb50d902a2129c61ab41d418e4bf002f259b3223"
-        },
-        {
-          "path": "references/java-immutability.md",
-          "sha256": "c06f1d68e6d895cf2c568cbe23c35e84bbe491b65f72dbb08e4d5f3bf5eb4ab7"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-java-naming",
-      "upstreamName": "java-naming-readability",
-      "upstreamPaths": [
-        "domains/plan/skills/java-naming-readability/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.1",
-      "license": "Apache-2.0",
-      "upstreamSha256": "6d4409f3d94a75305206a0fb3581015263d2fa81f52af19c57c4f83cea724514",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "a504d52ba51fce65f761f8250a915504e6007ee5ddaf41781ce29e2735cb813c"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-java-secure",
-      "upstreamName": "java-secure-coding",
-      "upstreamPaths": [
-        "domains/plan/skills/java-secure-coding/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.4",
-      "license": "MIT",
-      "upstreamSha256": "29f274f1edada2cc211d976f0ecd93db9fec34e54b43651613d6509ad102af03",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "f58d2c8c0a95c9ab474c1c9e4422d20332abb75afb6abe2137509b656df34263"
-        },
-        {
-          "path": "references/java-secure-coding-guidance.md",
-          "sha256": "1825baab6672bb174d5725e5d5999615a7b0fcb23ac8e81ff797667064aafa3e"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "jag-java-test",
       "upstreamName": "java-testing",
       "upstreamPaths": [
@@ -667,7 +484,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "0e09744f98d392f76dc0eb76ad73ba16ed615decbe2836fa8fd83dd3f606805b"
+          "sha256": "149ea6297d04fca1ff9a7f0f0867adf458b41d6a4aa51358005b3a3d1feee003"
         },
         {
           "path": "assets/examples/ExampleCacheTest.java",
@@ -690,118 +507,25 @@
           "sha256": "0033f392f6e545b284a082a97b7de0afdab6f5a963c1048225c3fa7500ceebfc"
         },
         {
-          "path": "references/advanced-patterns.md",
-          "sha256": "1aebf9bb7920480fa1ca05a46e21003ee0012ae43e2bd42a9ac796c9ad06cb60"
-        },
-        {
           "path": "references/approvaltests-setup.md",
           "sha256": "15fdf9753c7e990d4938f3e1417f4d1ca2f7da1c9d10ba812e587ec033a8f7ce"
-        },
-        {
-          "path": "references/characterization-tests.md",
-          "sha256": "516fc25741a24bb60d6cb3cf6789095edccfe348e6717e307b00e200ac5cf180"
-        },
-        {
-          "path": "references/dependency-breaking.md",
-          "sha256": "0db40051aa140c77813e5bc66c710abb4e772f417c01fd635ec8a2f3714f0d93"
         },
         {
           "path": "references/dependency-setup.md",
           "sha256": "b55ea0075f69be15ffbd3fe92bbbbaad2a560e26d7f903f09ff357bbc291b485"
         },
         {
-          "path": "references/method-object-skin-wrap.md",
-          "sha256": "1bdb1959b406e6f828cc6ebe65e36bc6c2c07291d07a062d5ef7f1a3d5440e38"
-        },
-        {
-          "path": "references/mockito-patterns.md",
-          "sha256": "528d60fc9f16cc4c1be8943daddf309abbafc07170e0b3ba5b53034e9e9a0327"
-        },
-        {
-          "path": "references/pass-null-subclass-override.md",
-          "sha256": "9b47dccf981b09a45d66a5eb7c918b1c1208ed1d9b6eec3ba1de88e00d6ee76d"
-        },
-        {
           "path": "references/quick-decision-flow.md",
-          "sha256": "a76d0f0c040ea65eb470e835335c30edb65abe43fed9892e157515f270f7e175"
-        },
-        {
-          "path": "references/seam-model.md",
-          "sha256": "d47c89ca908f1c58e670ac1078fce9bd7a729436770a41b79d3f3d2c307cfb15"
-        },
-        {
-          "path": "references/sensing-separation.md",
-          "sha256": "b2b9641b560b0edab43d41c733f3fff4545e246cf18399f5c1c430129c676081"
-        },
-        {
-          "path": "references/sprout-wrap-techniques.md",
-          "sha256": "60157b8197e919e78636f6dca11a6ff333b2e25be1a32010782905ed6aa1b033"
-        },
-        {
-          "path": "references/tdd-legacy.md",
-          "sha256": "a81928149da61f5a9536d3f483efaea4be7fce312de703b36b9b0867f58c4097"
+          "sha256": "021f71b50d0be8af9751619580b2eebe34075ce3f065c29f82307caf81581a7c"
         }
       ],
       "adaptations": [
-        "SKILL.md"
+        "SKILL.md",
+        "references/quick-decision-flow.md"
       ]
     },
     {
-      "name": "jag-jira-spike",
-      "upstreamName": "jira-spike",
-      "upstreamPaths": [
-        "domains/docs/skills/jira-spike/SKILL.md"
-      ],
-      "upstreamVersion": "2.0.0",
-      "license": "MIT",
-      "upstreamSha256": "cda23f059ac1543a086b04e90302e47dbefe991359b89b0346f547cc47747983",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "9410ba1481ba7eb5dd1d917e37cc081985774d0970211c72020442e977888f21"
-        },
-        {
-          "path": "assets/quick-creation-template.md",
-          "sha256": "274498392170d7967b96d6539f22a7fc2939de8721db677916ba6140fb5f7986"
-        },
-        {
-          "path": "assets/refinement-template.md",
-          "sha256": "63c67357e42191222f5ee4a701f79502419afcac723f070bbf8921b2abf90cd9"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-jira-task",
-      "upstreamName": "jira-task",
-      "upstreamPaths": [
-        "domains/docs/skills/jira-task/SKILL.md"
-      ],
-      "upstreamVersion": "2.0.0",
-      "license": "MIT",
-      "upstreamSha256": "b02adc5ac57707fafa08baa65e3ba718cc1c2660b4bd0a2c0a2c45f9993b1c45",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "3dbadf05e6e76a1518a6718c08c42c860bb745ad67309814a9e92f5c90a3ff6a"
-        },
-        {
-          "path": "assets/quick-creation-template.md",
-          "sha256": "683abc432ccfaf923ef2f26a8f767319135e2caff15fb50a5cc898706bf05ea4"
-        },
-        {
-          "path": "assets/refinement-template.md",
-          "sha256": "26f508f55690c47036f3aa4f1a5fc0f37aad2477ecdf67572071d1f740ba577d"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-jira-story",
+      "name": "jag-jira",
       "upstreamName": "jira-user-story",
       "upstreamPaths": [
         "domains/docs/skills/jira-user-story/SKILL.md"
@@ -812,78 +536,33 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "483807baa929bbf7de4d143fad2e5c6d2860601c48b196fb74b7ed0a11a2820b"
+          "sha256": "d3232ad202a5d41b430d1455701a7a8a8dbd9eb16a2b64e6b6082240187d537f"
         },
         {
-          "path": "assets/quick-creation-template.md",
-          "sha256": "653c6155b37a362bb188bf73d365109ba3994a20059fb7292bd9aa417e4cc863"
+          "path": "assets/quick.md",
+          "sha256": "60048623535b47a772caaa0cf1b432670f4777bb4667ce5ec324c096d7785c31"
         },
         {
-          "path": "assets/refinement-template.md",
+          "path": "assets/spike-refinement.md",
+          "sha256": "63c67357e42191222f5ee4a701f79502419afcac723f070bbf8921b2abf90cd9"
+        },
+        {
+          "path": "assets/story-refinement.md",
           "sha256": "0ad247a8624013ada32da655c21d4dd97dc7486fbfba956c97f330f5e03649a2"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-legacy",
-      "upstreamName": "legacy-code-safety",
-      "upstreamPaths": [
-        "domains/orchestration/skills/legacy-code-safety/SKILL.md",
-        "domains/plan/skills/legacy-code-safety/SKILL.md"
-      ],
-      "upstreamVersion": "1.1.1",
-      "license": "Apache-2.0",
-      "upstreamSha256": "aaabc7a9ab4465bd71cf09b28aa609e8a91d8800d632f99b3c9e64d46123d95c",
-      "resources": [
+        },
         {
-          "path": "SKILL.md",
-          "sha256": "62cff9c47be3e8a18dbab23632b5e84d09ffed5ff4d611ea63ff110c20a2ddd9"
+          "path": "assets/task-refinement.md",
+          "sha256": "26f508f55690c47036f3aa4f1a5fc0f37aad2477ecdf67572071d1f740ba577d"
         }
       ],
       "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-logs",
-      "upstreamName": "logging-observability",
-      "upstreamPaths": [
-        "domains/common/skills/logging-observability/SKILL.md",
-        "domains/plan/skills/logging-observability/SKILL.md"
+        "SKILL.md",
+        "assets/quick.md"
       ],
-      "upstreamVersion": "1.0.0",
-      "license": "Apache-2.0",
-      "upstreamSha256": "091d7b960274be8c151e30298bff81af140cc3b378796d16d9e15a4d7536e89d",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "fe86c33e8624444236d3386c0f6a6d239cbd86cb12bd0de7d256f946f3bd5c46"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-nulls",
-      "upstreamName": "null-safety",
-      "upstreamPaths": [
-        "domains/plan/skills/null-safety/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.1",
-      "license": "Apache-2.0",
-      "upstreamSha256": "1eb9d679f26e3de12f39f29dfdb78ee1fd272eb7a6935bdca3f6fdfedf715025",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "254b1c9dbbe8f90a0da5da58f46b7910c5fea169fbb55d37e90002c71e2506d1"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
+      "mergedFrom": [
+        "jag-jira-story",
+        "jag-jira-task",
+        "jag-jira-spike"
       ]
     },
     {
@@ -962,25 +641,6 @@
       ]
     },
     {
-      "name": "jag-prompts",
-      "upstreamName": "prompt-structure-writer",
-      "upstreamPaths": [
-        "domains/meta/skills/prompt-structure-writer/SKILL.md"
-      ],
-      "upstreamVersion": "1.1.0",
-      "license": "MIT",
-      "upstreamSha256": "c3719173e0c62666390364ae07ffb0c3896fa6dc44323d0ca2c01f9c5e0406e2",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "db190d0eaff4cc5d7ba450c98e788fbc394a49129937c660ebed2dda861f6a50"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "jag-refactor",
       "upstreamName": "refactor",
       "upstreamPaths": [
@@ -992,294 +652,25 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "9c5674da56bb8e9e6945a53000241bb5213de178458291e0663c7efa4c0867b6"
+          "sha256": "7f5be8e58f52574e597e11b2dfa402226a262f202aa014022ae69aea758c8c36"
         },
         {
           "path": "references/java-notes.md",
           "sha256": "e364a0d3ed5399c00a88cb696d889a81f96d84133c2118eb8dfe910c332c19ab"
         },
         {
-          "path": "references/language-applicability.md",
-          "sha256": "18785c3455e7f68fae4bd17a1dc0ee10950fd8689bd1d95cca0d3425e4fa1789"
-        },
-        {
-          "path": "references/language-idioms.md",
-          "sha256": "e2738aa7bca42a6c5de8f5272ca1565a3a123dd66a3c3b0d1220ec7677cb214e"
-        },
-        {
           "path": "references/selection-heuristics.md",
-          "sha256": "cdf05606e0b40d1b1dda2dc244e68029ca4326160460ba0133cf1ea00e1dddb5"
-        },
-        {
-          "path": "references/technique-to-pattern.md",
-          "sha256": "44a1c952b58f239ce651c9ebd0dc38c21d113390be6e189000f5be3db75f95b4"
-        },
-        {
-          "path": "techniques/00-code-smells-diagnostic.md",
-          "sha256": "078d706e101d371e32e0fb0fb41d8259d13c3a5be542424d95f6338726e55e1d"
-        },
-        {
-          "path": "techniques/01-extract-method.md",
-          "sha256": "c44a5b1b3d294816cf5df34a29bbbb3fbfec42cde300f01315c82ffd3fd71978"
-        },
-        {
-          "path": "techniques/02-inline-method.md",
-          "sha256": "cc2cdc170832e15f148746e6e5da314a897215094c8776a382f3073d84858ae9"
-        },
-        {
-          "path": "techniques/03-extract-variable.md",
-          "sha256": "3fd5b82e718133ac1699797119c2e9569f9e017d93e13fc8fd40a393efa99ab1"
-        },
-        {
-          "path": "techniques/04-inline-variable.md",
-          "sha256": "fb42f86fcb3d8849c007889204a0583c8235116d05ccd27f5141cb21d2c2caaa"
-        },
-        {
-          "path": "techniques/05-replace-temp-with-query.md",
-          "sha256": "fadbf6cd90d3a5b1a2b8d4f168ae60ea0b79974e321bcb6f9efece2b0b5df0f3"
-        },
-        {
-          "path": "techniques/06-replace-method-with-method-object.md",
-          "sha256": "e7e80e8c0670f3cf3eb9f4fc0126e023f1ec621a14af4f7189cca3944db374d2"
-        },
-        {
-          "path": "techniques/07-substitute-algorithm.md",
-          "sha256": "c075dca28a8bc6472eed45de58d5bb1c4d1ba98ff7570723f7d20d8139df10da"
-        },
-        {
-          "path": "techniques/08-move-method.md",
-          "sha256": "005a8af029fabcaa3c301dda4a437f589f6808b32246d6406f277f718731ba6d"
-        },
-        {
-          "path": "techniques/09-move-field.md",
-          "sha256": "249bf53e8a8c55bf79b22164a8d88512f0b49769c0c450a7d3b6b10009e2eafd"
-        },
-        {
-          "path": "techniques/10-extract-class.md",
-          "sha256": "56c1798cfd7864bf7e7b8317c0d25057628374f1416d4ea2b1cfa2184e45338a"
-        },
-        {
-          "path": "techniques/11-inline-class.md",
-          "sha256": "2a06af82ac2cd5308a5bbfb1771abaf4940471a4561a7dd3c414fe003783567a"
-        },
-        {
-          "path": "techniques/12-hide-delegate.md",
-          "sha256": "142b462950c7e299494740bfcf384aee8f21706e7ce77b863b0845f60f09e8d0"
-        },
-        {
-          "path": "techniques/13-remove-middle-man.md",
-          "sha256": "413edcd8ed40342bd163f30e98dcab26d68379f58ad1f6d2f46db69b44f7b8e5"
-        },
-        {
-          "path": "techniques/14-move-statements.md",
-          "sha256": "f12d0c37eddf2334fd52aceddadfbd5fb21861ab5c446b97e969000deb547911"
-        },
-        {
-          "path": "techniques/15-split-loop.md",
-          "sha256": "11e3046968a8d2279d073756071a302c6d3f40239b5c4d8d4f7fce0ea31f2c6f"
-        },
-        {
-          "path": "techniques/16-replace-loop-with-pipeline.md",
-          "sha256": "1d38f8e934c662a65a072a57f97332b45bab5afb428ebfd6f2d507bbfd4c5d75"
-        },
-        {
-          "path": "techniques/17-remove-dead-code.md",
-          "sha256": "741a9b1d9bc38270078b753a8fac252ae5a4892e39a1164f965521bf401d166f"
-        },
-        {
-          "path": "techniques/18-encapsulate-variable.md",
-          "sha256": "dd082f10f482103d387ac3c011e51d2eb2d74ba86bd69f7c7b680ff2e619f56d"
-        },
-        {
-          "path": "techniques/19-encapsulate-record.md",
-          "sha256": "f3356ba846e2dfebfaadb78e350b7b3b8d3cf801b6ca130c7efec19ae00b2e06"
-        },
-        {
-          "path": "techniques/20-encapsulate-collection.md",
-          "sha256": "f14671140e39c34af00dc0ccba9d56f8c3cee3c60951f6fd990cc746a89c3bed"
-        },
-        {
-          "path": "techniques/21-replace-primitive-with-object.md",
-          "sha256": "26ff0097f8a3e20189d9682543ddb0976b2a8efd6c138d6afc0717870c9f8fcb"
-        },
-        {
-          "path": "techniques/22-split-variable.md",
-          "sha256": "8c220526cb73d7b5fc9ea9b4df749c186b8f0a1197dcdf83ebe25f10fbbd3ffb"
-        },
-        {
-          "path": "techniques/23-rename-field.md",
-          "sha256": "d3e6b7b816b7733c46c09b4a49ba924be84294547be5cc35d9d82dfc83db5062"
-        },
-        {
-          "path": "techniques/24-replace-derived-variable-with-query.md",
-          "sha256": "905bb4e7224a2f88a96057f7f72cac70184dbe432dbe31c13e679f5e5406f73d"
-        },
-        {
-          "path": "techniques/25-change-reference-to-value.md",
-          "sha256": "8964830f9690179b95076d6805223f642b7c1847249f919a4cf27a539d1ac03b"
-        },
-        {
-          "path": "techniques/26-change-value-to-reference.md",
-          "sha256": "9cb18e8900ba2b7215a407f9225f36174002ce2eac94e3ddee4479c9cefe4108"
-        },
-        {
-          "path": "techniques/27-replace-type-code-with-subclasses.md",
-          "sha256": "0cec863a254bd7a0a4609a1249c7a5797a6263e9690a4f54a46a2266573567e5"
-        },
-        {
-          "path": "techniques/28-decompose-conditional.md",
-          "sha256": "77512422c22f46f040a71bbd62415d6d5e8430d838e5c35f0f1d3602104f38e9"
-        },
-        {
-          "path": "techniques/29-consolidate-conditional.md",
-          "sha256": "a5d1e4e3519a75e3f676a025f4bf2ca88895a436de675131510815af73c6e5e1"
-        },
-        {
-          "path": "techniques/30-replace-nested-conditional-with-guard-clauses.md",
-          "sha256": "534d9cb0fb7bfe5790370ff637476c2246eb81c79347e4177221bd0be8360783"
-        },
-        {
-          "path": "techniques/31-replace-conditional-with-polymorphism.md",
-          "sha256": "15aab269446b465bc6d6865b50251ae63298f311b3bc7ff731629f255fc9588d"
-        },
-        {
-          "path": "techniques/32-introduce-special-case.md",
-          "sha256": "72be016ade87a75bd7052a85ee99468bb90ab74c0df21ff4bec9376b6a55d29b"
-        },
-        {
-          "path": "techniques/33-introduce-assertion.md",
-          "sha256": "21ff088523cb0dcbb41ab2ba26db93042baf51eb2b4d93d48d8b1d22e432ef8d"
-        },
-        {
-          "path": "techniques/34-replace-control-flag.md",
-          "sha256": "1b697dde4cbe5aba88ab39e54c11937e72fd0a117dcecf52565b236f44c5b9d8"
-        },
-        {
-          "path": "techniques/35-change-function-declaration.md",
-          "sha256": "47d064cb6f3c2ff37523f092f0cb874ea474728cf0f76363f606f6696278cb6e"
-        },
-        {
-          "path": "techniques/36-introduce-parameter-object.md",
-          "sha256": "8573b3eb785b8efd30ce4da6655df696c81b5a41dfad98d98747ad13f5b00097"
-        },
-        {
-          "path": "techniques/37-parameterize-function.md",
-          "sha256": "a409d4acdcd33673e2a185b4405ebfc69f842dff7bed02a5981e4cb1728a14c3"
-        },
-        {
-          "path": "techniques/38-remove-flag-argument.md",
-          "sha256": "2444c3a80fd64569838e546051c24786371552ee1a815f4b204124ceb6f7d6da"
-        },
-        {
-          "path": "techniques/39-preserve-whole-object.md",
-          "sha256": "4ac7e028c55bc4ba54f5adb71f159045f070a4633a9d6a1f386b7fd7b10837e3"
-        },
-        {
-          "path": "techniques/40-replace-parameter-with-query.md",
-          "sha256": "3f5bf149e90bde5a2e01c1727a4483aa21e9553dd4a574cc578bf8e16c86df22"
-        },
-        {
-          "path": "techniques/41-replace-query-with-parameter.md",
-          "sha256": "f34be6d5394c9ff93c937f513adb39d2ec826b2818b3a0ba290b34db65611daa"
-        },
-        {
-          "path": "techniques/42-remove-setting-method.md",
-          "sha256": "145e3f25f2d89422934f7c0a04a56afb9de746b746ad6bed29370545aff3ba35"
-        },
-        {
-          "path": "techniques/43-replace-constructor-with-factory.md",
-          "sha256": "91719e74e370ffd4f0be9ea698eff46d3e7d0494dedab35b142bde378132e116"
-        },
-        {
-          "path": "techniques/44-replace-function-with-command.md",
-          "sha256": "0beb87495cd2c0a771aca4c2b88aace0e58f670b9bf2bebcd8d59169dea8dfb8"
-        },
-        {
-          "path": "techniques/45-separate-query-from-modifier.md",
-          "sha256": "a502070ddf7f877a7b7146d086ee310c87420d0d8a4750c9473a306d2e2fa0a3"
-        },
-        {
-          "path": "techniques/46-pull-up-method.md",
-          "sha256": "1ab7bd271662c46a4847d0f31239ea2a76b3c900eedb741f7b504b573ed57cc3"
-        },
-        {
-          "path": "techniques/47-push-down-method.md",
-          "sha256": "8083d30149ae1278faeb374dfaf6df6a7cf100f1714a12c2d827321a60683b28"
-        },
-        {
-          "path": "techniques/48-pull-up-constructor-body.md",
-          "sha256": "d7d8936843cf13c062a9c1cc3d5b8c9c29cfb1d1c17083da5d2cc77deb7f867a"
-        },
-        {
-          "path": "techniques/49-extract-superclass.md",
-          "sha256": "5f36e64cee5222896dd97096dbc7279d2077b17418161a8e5de659a8ec6c3d31"
-        },
-        {
-          "path": "techniques/50-extract-interface.md",
-          "sha256": "8f6be65479b475e469630ee441daff1b46eb32c5bd9cf724556b76e3f0506013"
-        },
-        {
-          "path": "techniques/51-collapse-hierarchy.md",
-          "sha256": "a67ec8cb4770b6b6f221a1f1db618a44b17b57f3c47151ab2032b4200c5c40ec"
-        },
-        {
-          "path": "techniques/52-form-template-method.md",
-          "sha256": "55861562bd29e7778c322282e0bb165887b512f2753ce2d2dd3bb0a319b6f087"
-        },
-        {
-          "path": "techniques/53-replace-subclass-with-delegate.md",
-          "sha256": "9aaf378d971bdd39a843e688bb22a4c6d4d6d26fb0eb7ef18aea1e1f5ed2bcdc"
-        },
-        {
-          "path": "techniques/54-replace-superclass-with-delegate.md",
-          "sha256": "0ad7780c4c4557808630476c8221690336ffb9594666bd9be608375e7af8ad3e"
-        },
-        {
-          "path": "techniques/55-replace-inheritance-with-delegation.md",
-          "sha256": "c5e9780b31112aead56c3906dc474085645212e3f515f52703ab298f3714417e"
-        },
-        {
-          "path": "techniques/56-combine-functions-into-class.md",
-          "sha256": "abc1c852949b21bba509b6b13aea49b54dae3a861128e19832e760a0959e3c7b"
-        },
-        {
-          "path": "techniques/57-combine-functions-into-transform.md",
-          "sha256": "64c23b7cc3c1d65d0d96863167d9cc0828859595981dd2a748aa084d22c33457"
-        },
-        {
-          "path": "techniques/58-split-phase.md",
-          "sha256": "5feffebfd621c8735496af2fb9aa97d62f8109edf6e2c2d9fc5ec22b572d9fe5"
-        },
-        {
-          "path": "techniques/59-introduce-foreign-method.md",
-          "sha256": "71483a8a857ea41256bf3a27d9f911db2f3cdf747000b98ec1f4ab2dfbe321d2"
-        },
-        {
-          "path": "techniques/60-introduce-local-extension.md",
-          "sha256": "0edae50ccb7c8f68bd90977116d0d2f4327b59cbf4a3d6e5805c38c2c6235bf0"
-        },
-        {
-          "path": "techniques/61-replace-error-code-with-exception.md",
-          "sha256": "e505edb2dd32cc58fdb50d754bc099757fd74f307f5fa0e08da985a4fe5719e3"
-        },
-        {
-          "path": "techniques/62-replace-exception-with-test.md",
-          "sha256": "85967ef0dc1da8ea5c9ec7ca547e1d0473827cbd8a90b8ea9c95a67b1c9fc2fc"
+          "sha256": "408ed2bfb42daf7050e23fd66da21bd3b6a796ddd51e655532fc792075e594b4"
         },
         {
           "path": "references/smell-lenses.md",
           "sha256": "da56cfd622ae51bfe230141a75ec4b5a934f2a18d0441aa9d604b4ac31c68bd3"
-        },
-        {
-          "path": "references/technique-catalog.md",
-          "sha256": "237c795448b37b6dda0b64d9e879807a5fc2df3874ce037cf70b0491e7e97968"
         }
       ],
       "adaptations": [
         "SKILL.md",
-        "references/technique-to-pattern.md",
-        "references/smell-lenses.md",
-        "references/technique-catalog.md"
+        "references/selection-heuristics.md",
+        "references/smell-lenses.md"
       ]
     },
     {
@@ -1329,45 +720,6 @@
       ]
     },
     {
-      "name": "jag-risk",
-      "upstreamName": "risk-assessment",
-      "upstreamPaths": [
-        "domains/common/skills/risk-assessment/SKILL.md",
-        "domains/plan/skills/risk-assessment/SKILL.md"
-      ],
-      "upstreamVersion": "1.1.0",
-      "license": "Apache-2.0",
-      "upstreamSha256": "0fc6da12e7b76b59a35043e5d59c8ae8809947039318c4d11c1a4ad5c1b649a5",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "3c11976e664ac7a9249e3970b770ced1efa9d5d32be5c3381a5b9e62f1b9295c"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-scope",
-      "upstreamName": "scope-analysis",
-      "upstreamPaths": [
-        "domains/plan/skills/scope-analysis/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.2",
-      "license": "Apache-2.0",
-      "upstreamSha256": "7d61cb49c036df629b30d0e46438bb63f99d86788555bb9da47fee2100bba73d",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "882b77a702d9d64ec9b7273a3533f6915d1192de3fd5c767fb70ad65ef209700"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "jag-boundaries",
       "upstreamName": "service-boundary-analysis",
       "upstreamPaths": [
@@ -1398,11 +750,11 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "02614d570a8fec0723c46dd4fbef13a224286f29c36ce66492d4ba5dc34b5c14"
+          "sha256": "a6dcd6adaa6eb602f45efccbbd7251d07041f41a156430a9fb30a85dddeece63"
         },
         {
           "path": "assets/skill-template.md",
-          "sha256": "d5ee46a9c483ed156ab510dcba4326eb18c197ff9857707485bc2460ee9818a0"
+          "sha256": "daf48f1d0092b275cc3c096b23cb365bd79e231eb6479631bad6cc2cb41b3370"
         },
         {
           "path": "references/behavioral-evaluation.md",
@@ -1467,63 +819,6 @@
       ]
     },
     {
-      "name": "jag-tools",
-      "upstreamName": "tooling-audit",
-      "upstreamPaths": [
-        "domains/plan/skills/tooling-audit/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.3",
-      "license": "Apache-2.0",
-      "upstreamSha256": "ee33d68e4f87fb319b1085545bc95770418e53816cd2506a96da2659d0e575bd",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "9aa93a12005a8120bdd37cc508830153afa87289b102af10643fef8faa3cf487"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-tool-matrix",
-      "upstreamName": "tooling-compatibility-matrix",
-      "upstreamPaths": [
-        "domains/plan/skills/tooling-compatibility-matrix/SKILL.md"
-      ],
-      "upstreamVersion": "1.1.1",
-      "license": "Apache-2.0",
-      "upstreamSha256": "3a5053ebfb9628094a5c4faa7368e96437277d9922175ce7e1ecc9ed27c12fae",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "35d7821c0042312176eef92e1f41eb8e95699c9af4abde65402a2d48a1c66c98"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-types",
-      "upstreamName": "type-contracts",
-      "upstreamPaths": [
-        "domains/plan/skills/type-contracts/SKILL.md"
-      ],
-      "upstreamVersion": "1.0.1",
-      "license": "Apache-2.0",
-      "upstreamSha256": "d30456408ccfc6b44f8c925da9a5a645c28b98560430700efae08e91142bd20a",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "205c1bd7547a94f401c30ce01ed1badbc1f1948379a09556c4e8beeb348c0f38"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "jag-usm",
       "upstreamName": "usm",
       "upstreamPaths": [
@@ -1572,15 +867,15 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "e096a1b622aa69e7c7b31954fe1f409e73e4d8443ce6031dfbd280390c556635"
+          "sha256": "780e1294d8183d0eb4e2cd738675be12f0046b70457adb5cb43b7e6393c773a3"
         },
         {
           "path": "assets/audit-template.md",
-          "sha256": "58ba340e0f2ea92534c678cab502ac2cb531151f0c088258eedb0b8efb4c4f81"
+          "sha256": "5062b2dae2fa288b724618a477560224a77a47978bccbcde7590d28b19494c0a"
         },
         {
           "path": "references/agent-writing.md",
-          "sha256": "bd268d65f3c393a19d2bfe52cd51ed521a26d2827a6b30d857748ddc5149d12d"
+          "sha256": "11269128072d3c7ca8fbd04a761be1bfb2c76034f88104a4743814d0d55924b4"
         },
         {
           "path": "references/pi-mechanics.md",
@@ -1592,6 +887,19 @@
         "assets/audit-template.md",
         "references/agent-writing.md",
         "references/pi-mechanics.md"
+      ],
+      "sourceConsultations": [
+        {
+          "upstreamRepository": "https://github.com/mattpocock/skills",
+          "upstreamRevision": "49dd158d1076134a641b33efb035946536778336",
+          "purpose": "Consulted for evidence-based remedy classification and check wiring; original writing-for-agents identity retained.",
+          "resources": [
+            {
+              "path": "skills/engineering/retro/SKILL.md",
+              "sha256": "33fbc28568e3146f20fd908b12998bc0ab30aa4f4c87288199a40793efa94696"
+            }
+          ]
+        }
       ]
     },
     {
@@ -1829,6 +1137,236 @@
       "adaptations": [
         "SKILL.md"
       ]
+    },
+    {
+      "name": "jag-slidev",
+      "upstreamName": "slidev-retro-deck",
+      "upstreamPaths": [
+        "domains/docs/skills/slidev-retro-deck/SKILL.md"
+      ],
+      "upstreamVersion": "1.2.0",
+      "license": "MIT",
+      "author": "andresnator",
+      "adaptedBy": "pi-orchestraitor",
+      "upstreamRepository": "https://github.com/andresnator/agents-orchestrator",
+      "upstreamRevision": "ea3158595b56d832e79b41c4c16175f45cd67ea2",
+      "upstreamSha256": "e0369d54093b4e6d829610bdd4e4a6768b0bd7fa08f9b683c11f736315313811",
+      "upstreamResources": [
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/SKILL.md",
+          "sha256": "e0369d54093b4e6d829610bdd4e4a6768b0bd7fa08f9b683c11f736315313811"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/global-bottom.vue",
+          "sha256": "3423eaaeea3d966125ed25955075cdac6ec9599eccf9d6d00387787f625c8982"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/mermaid-check/check.mjs",
+          "sha256": "54dbf8af20dda0a740c52f2e6b94652ec575d5a590c77349cb20f2cbc930f70a"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/mermaid-check/package.json",
+          "sha256": "5feae59a26e29cf1a17b80a7dabbd4f198e4fcc27b913e0ca082c47468cf784c"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/scaffold/package.json",
+          "sha256": "561263874940f60d39db6a1f89f58133a112ac2b03b377942759a7d25a893f93"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/scaffold/pnpm-workspace.yaml",
+          "sha256": "8063614c40befaa0ec8d92615d6b9a2d6f53c89c794ea20576b3b6fcef8fcd92"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/slides-skeleton.md",
+          "sha256": "dc2621ff488e5bedabcfc132f82ee7e8542ad2919b2b0dcfd6a2c1d2d1ee288d"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/themes/crt-phosphor/mermaid-setup.ts",
+          "sha256": "730ad8ce440874b578ffa257901bc9356727e77e0621c2c12c3b80c9c4a823df"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/themes/crt-phosphor/style.css",
+          "sha256": "5684f3e2ed487ebbc7f50a0de81385d6250380ca0a28192a54ce2f3c4b2b60ab"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/themes/dos-terminal/mermaid-setup.ts",
+          "sha256": "fd5e4a1472bf7f788c53a8eb36ad9891fe5ffaff8c2c52ea6e6c8e8563cb2729"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/themes/dos-terminal/style.css",
+          "sha256": "2ea8d12885f2044b7ce0774c589ac26595586bacacad8bbc0a539fdaaab4486c"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/themes/synthwave-arcade/mermaid-setup.ts",
+          "sha256": "ad3d843581cc64e9370c3d0f5751353657342c1d37ed922743be561a7093b9a4"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/assets/themes/synthwave-arcade/style.css",
+          "sha256": "80e00815684be1358fa0c55a2e7d003af24482c4b32a90a945c3cfd15d3a9c60"
+        },
+        {
+          "path": "domains/docs/skills/slidev-retro-deck/references/troubleshooting.md",
+          "sha256": "07045f6a2a8c2df2e5483ceb0983da8e8657f75d302deb719cf03e5198d0aedc"
+        }
+      ],
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "3f26d29820e025443e72684f515a9ce4543d2d5d391eec4d4c93c36de8317ed7"
+        },
+        {
+          "path": "assets/global-bottom.vue",
+          "sha256": "0727a8589a37dbb8f8621369537cff2bb0f7e67291a9cbd1fece390997de3afc"
+        },
+        {
+          "path": "assets/mermaid-check/check.mjs",
+          "sha256": "37bdece55ed1f9703c4a0aaff73f72b5c37c5af95b1b0c8707a9d7b77ade3ac9"
+        },
+        {
+          "path": "assets/mermaid-check/package.json",
+          "sha256": "de3bdc4a28af5c22f2d72a2a8cf6dbf7255dd69979a24cb1949b353b09340834"
+        },
+        {
+          "path": "assets/scaffold/package.json",
+          "sha256": "7bd98a396a6c5bd870ffd7189bb44a7dbe572712162202c1f5cdbed2f41f0735"
+        },
+        {
+          "path": "assets/scaffold/pnpm-workspace.yaml",
+          "sha256": "18d22717eb77a9e8a43cfe4fa9a18bf421bdfd740aeb20d3fb87d96ad90f88fd"
+        },
+        {
+          "path": "assets/slides-skeleton.md",
+          "sha256": "dc2621ff488e5bedabcfc132f82ee7e8542ad2919b2b0dcfd6a2c1d2d1ee288d"
+        },
+        {
+          "path": "assets/themes/crt-phosphor/mermaid-setup.ts",
+          "sha256": "0edc484a08f52d2f94ba7efef0fbb8d84d2ec05d0d92785b74d91ada000109ee"
+        },
+        {
+          "path": "assets/themes/crt-phosphor/style.css",
+          "sha256": "5684f3e2ed487ebbc7f50a0de81385d6250380ca0a28192a54ce2f3c4b2b60ab"
+        },
+        {
+          "path": "assets/themes/dos-terminal/mermaid-setup.ts",
+          "sha256": "3f16c9efb8a5b98f7981324509d82f722bae56b5ee079ee1e1af2b55d348cba7"
+        },
+        {
+          "path": "assets/themes/dos-terminal/style.css",
+          "sha256": "2ea8d12885f2044b7ce0774c589ac26595586bacacad8bbc0a539fdaaab4486c"
+        },
+        {
+          "path": "assets/themes/synthwave-arcade/mermaid-setup.ts",
+          "sha256": "774b9e79f7bf040f9968134537b6870c78eafad285cc6c250b087cfdb5c4f850"
+        },
+        {
+          "path": "assets/themes/synthwave-arcade/style.css",
+          "sha256": "80e00815684be1358fa0c55a2e7d003af24482c4b32a90a945c3cfd15d3a9c60"
+        },
+        {
+          "path": "references/layout.md",
+          "sha256": "dd6638a3afa0ae0ee4d7b517176c1cd57bfb591211cc27fd4a28e338926935fa"
+        },
+        {
+          "path": "references/setup.md",
+          "sha256": "67d0607e8a549310f3596fc90dd667ab087b61e081254932b5058f4e2eda6a20"
+        },
+        {
+          "path": "references/troubleshooting.md",
+          "sha256": "334dff63b922a21867117b0e1d329c0d0896e6e0a9180d90319081a7a5cb3a30"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md",
+        "assets/global-bottom.vue",
+        "assets/mermaid-check/check.mjs",
+        "assets/mermaid-check/package.json",
+        "assets/scaffold/package.json",
+        "assets/scaffold/pnpm-workspace.yaml",
+        "assets/themes/crt-phosphor/mermaid-setup.ts",
+        "assets/themes/dos-terminal/mermaid-setup.ts",
+        "assets/themes/synthwave-arcade/mermaid-setup.ts",
+        "references/layout.md",
+        "references/setup.md",
+        "references/troubleshooting.md"
+      ]
+    },
+    {
+      "name": "jag-whisper",
+      "upstreamName": "whisper-extract",
+      "upstreamPaths": [
+        "domains/docs/skills/whisper-extract/SKILL.md"
+      ],
+      "upstreamVersion": "1.1.1",
+      "license": "MIT",
+      "author": "andresnator",
+      "adaptedBy": "pi-orchestraitor",
+      "upstreamRepository": "https://github.com/andresnator/agents-orchestrator",
+      "upstreamRevision": "ea3158595b56d832e79b41c4c16175f45cd67ea2",
+      "upstreamSha256": "aafe1e855749b874476014011dbdb4dff9f4c48bd196effd36edcdced39a0d0c",
+      "upstreamResources": [
+        {
+          "path": "domains/docs/skills/whisper-extract/SKILL.md",
+          "sha256": "aafe1e855749b874476014011dbdb4dff9f4c48bd196effd36edcdced39a0d0c"
+        }
+      ],
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "97f5304994904ce64b52d2d908a0c783a462e872eb968a8924bdb1d0b14e2425"
+        },
+        {
+          "path": "assets/transcript-template.md",
+          "sha256": "aa0392410b0aa079f5d2912c5376d95f88b66efef936b980ceba9003ec072577"
+        },
+        {
+          "path": "references/cli.md",
+          "sha256": "4fdea6af5a05945114491a84c35d1831eb254b3c568c79d4ecb0f398a0ae1b86"
+        },
+        {
+          "path": "scripts/assemble.mjs",
+          "sha256": "a3ba457115fbc6437e9aba72314641b44993730a39e96930a08ba975bf3c295a"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md",
+        "assets/transcript-template.md",
+        "references/cli.md",
+        "scripts/assemble.mjs"
+      ]
+    },
+    {
+      "name": "jag-retro",
+      "upstreamName": "retro",
+      "upstreamPaths": [
+        "skills/engineering/retro/SKILL.md"
+      ],
+      "upstreamVersion": null,
+      "license": "MIT",
+      "author": "Matt Pocock",
+      "adaptedBy": "pi-orchestraitor",
+      "upstreamRepository": "https://github.com/mattpocock/skills",
+      "upstreamRevision": "49dd158d1076134a641b33efb035946536778336",
+      "upstreamSha256": "33fbc28568e3146f20fd908b12998bc0ab30aa4f4c87288199a40793efa94696",
+      "upstreamResources": [
+        {
+          "path": "skills/engineering/retro/SKILL.md",
+          "sha256": "33fbc28568e3146f20fd908b12998bc0ab30aa4f4c87288199a40793efa94696"
+        }
+      ],
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "ba8d797af42434075e0b6bb91a1e18af19097bd6cc78563466d721c5d2888170"
+        },
+        {
+          "path": "assets/retrospective-template.md",
+          "sha256": "92e6ff183d2989d328a6de6a1c4c239bccfac3c44200960dc885aa40241574fe"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md",
+        "assets/retrospective-template.md"
+      ]
     }
   ],
   "consolidatedSkills": [
@@ -2031,6 +1569,392 @@
         "path": "references/smell-lenses.md",
         "section": "spaghetti-code"
       }
+    }
+  ],
+  "retiredSkills": [
+    {
+      "name": "jag-arch-impact",
+      "upstreamName": "architecture-impact-review",
+      "upstreamPaths": [
+        "domains/plan/skills/architecture-impact-review/SKILL.md"
+      ],
+      "upstreamVersion": "1.1.3",
+      "license": "Apache-2.0",
+      "upstreamSha256": "10e2ff3667d1f541f8e567aeb49274f6742e7f0383b1acc9e68454718f2072a0",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "5898ead9bd566cbc27c21d0656dc262b493ad5035c05fd2bd6c365937b12176f",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-behavior",
+      "upstreamName": "behavior-characterization",
+      "upstreamPaths": [
+        "domains/orchestration/skills/behavior-characterization/SKILL.md",
+        "domains/plan/skills/behavior-characterization/SKILL.md"
+      ],
+      "upstreamVersion": "1.1.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "8c884e1d3f0e7786e032be7ccc46d53283805426a9450732daa28886b97a792f",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "4fbbef7a524f4dad5c80bbcc11896048947a690d5361bcb7afd87f4a5c6e30b9",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-test-scope",
+      "upstreamName": "characterization-test-scoping",
+      "upstreamPaths": [
+        "domains/plan/skills/characterization-test-scoping/SKILL.md"
+      ],
+      "upstreamVersion": "2.2.1",
+      "license": "Apache-2.0",
+      "upstreamSha256": "a3d04035d842c21149ea771daec9cdcab05b2a85cecd11b19068662ab223cec3",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "46aaa55d3071d58eeb84839a3f4705cfaec895144a3958c125167b4a8b912f89",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-refine",
+      "upstreamName": "cognitive-output-refiner",
+      "upstreamPaths": [
+        "domains/common/skills/cognitive-output-refiner/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.0",
+      "license": "MIT",
+      "upstreamSha256": "9a89a17f47cd3b469a7136a71ac5de866689dd8af663da59f12164cf513e0c9a",
+      "author": "andresnator",
+      "previousInstructionSha256": "a50ae7897914b5a82454f49693927f277004abf02b5ae8790aae94b09a529318",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-big-o",
+      "upstreamName": "complexity-big-o",
+      "upstreamPaths": [
+        "domains/common/skills/complexity-big-o/SKILL.md",
+        "domains/plan/skills/complexity-big-o/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "a0bc5d2f0812e8b81871cb47674c9b0e2ccd9c5b9fadaf96eca15ac57d8f90e3",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "88db9b54ac905d0e5e36bd650081b560f07eeb91f575353d4e11b0ab3f70269c",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-seams",
+      "upstreamName": "dependency-seam-detection",
+      "upstreamPaths": [
+        "domains/plan/skills/dependency-seam-detection/SKILL.md"
+      ],
+      "upstreamVersion": "1.1.1",
+      "license": "Apache-2.0",
+      "upstreamSha256": "8758abd1400c54b467fd21f8cacc918c6abe41538300c6b909fb70747e59e62d",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "6c3d0a6cd206978dc2dc7ab72e59a09a35fc4fed7e1f482959f019ef1c90e6b4",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-validation",
+      "upstreamName": "input-validation-preconditions",
+      "upstreamPaths": [
+        "domains/common/skills/input-validation-preconditions/SKILL.md",
+        "domains/plan/skills/input-validation-preconditions/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "c064cbc0b0eb56069f179f71871bc74501a285ba19f4e87b71fed71970556fa8",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "baf48d9af0fd2b8a8684d4fa8d653532eff59fe223d635a8514bc80432081fc1",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-java-api",
+      "upstreamName": "java-api-design",
+      "upstreamPaths": [
+        "domains/plan/skills/java-api-design/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.4",
+      "license": "MIT",
+      "upstreamSha256": "c220cd03e713f30da95090354f3414bbe7723bd4a7af984364ab4ce5ff602841",
+      "author": "andresnator",
+      "previousInstructionSha256": "d5fce642dbe0118e9796200b275bf8ea1a5179584f333368680e5a0dbe9660d7",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-java-errors",
+      "upstreamName": "java-exception-robustness",
+      "upstreamPaths": [
+        "domains/plan/skills/java-exception-robustness/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.4",
+      "license": "MIT",
+      "upstreamSha256": "bdf53102b1f5dfa6dd763c133debb7f7daa35207d4bd27038aefbed8897cbb3b",
+      "author": "andresnator",
+      "previousInstructionSha256": "c089ff59074d6878f46573ce1545c5500d5e0b49e473cce9862632a4427834eb",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-java-model",
+      "upstreamName": "java-immutability-modeling",
+      "upstreamPaths": [
+        "domains/plan/skills/java-immutability-modeling/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.4",
+      "license": "MIT",
+      "upstreamSha256": "e06e382dd881ce0b1bfffbb7d19e896a54fcc5d51127342daa5227b1ccfb10a4",
+      "author": "andresnator",
+      "previousInstructionSha256": "216258206d067cd675eca7f3cb50d902a2129c61ab41d418e4bf002f259b3223",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-java-naming",
+      "upstreamName": "java-naming-readability",
+      "upstreamPaths": [
+        "domains/plan/skills/java-naming-readability/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.1",
+      "license": "Apache-2.0",
+      "upstreamSha256": "6d4409f3d94a75305206a0fb3581015263d2fa81f52af19c57c4f83cea724514",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "a504d52ba51fce65f761f8250a915504e6007ee5ddaf41781ce29e2735cb813c",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-java-secure",
+      "upstreamName": "java-secure-coding",
+      "upstreamPaths": [
+        "domains/plan/skills/java-secure-coding/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.4",
+      "license": "MIT",
+      "upstreamSha256": "29f274f1edada2cc211d976f0ecd93db9fec34e54b43651613d6509ad102af03",
+      "author": "andresnator",
+      "previousInstructionSha256": "f58d2c8c0a95c9ab474c1c9e4422d20332abb75afb6abe2137509b656df34263",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-jira-spike",
+      "upstreamName": "jira-spike",
+      "upstreamPaths": [
+        "domains/docs/skills/jira-spike/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.0",
+      "license": "MIT",
+      "upstreamSha256": "cda23f059ac1543a086b04e90302e47dbefe991359b89b0346f547cc47747983",
+      "author": "andresnator",
+      "previousInstructionSha256": "9410ba1481ba7eb5dd1d917e37cc081985774d0970211c72020442e977888f21",
+      "reason": "merged",
+      "replacement": {
+        "skill": "jag-jira",
+        "path": "SKILL.md",
+        "section": "spike"
+      }
+    },
+    {
+      "name": "jag-jira-task",
+      "upstreamName": "jira-task",
+      "upstreamPaths": [
+        "domains/docs/skills/jira-task/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.0",
+      "license": "MIT",
+      "upstreamSha256": "b02adc5ac57707fafa08baa65e3ba718cc1c2660b4bd0a2c0a2c45f9993b1c45",
+      "author": "andresnator",
+      "previousInstructionSha256": "3dbadf05e6e76a1518a6718c08c42c860bb745ad67309814a9e92f5c90a3ff6a",
+      "reason": "merged",
+      "replacement": {
+        "skill": "jag-jira",
+        "path": "SKILL.md",
+        "section": "task"
+      }
+    },
+    {
+      "name": "jag-jira-story",
+      "upstreamName": "jira-user-story",
+      "upstreamPaths": [
+        "domains/docs/skills/jira-user-story/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.0",
+      "license": "MIT",
+      "upstreamSha256": "de47b4bf7fc53d4829efbba8b7a89b4e75348253d1cfa9ce974cad3567ec770a",
+      "author": "andresnator",
+      "previousInstructionSha256": "483807baa929bbf7de4d143fad2e5c6d2860601c48b196fb74b7ed0a11a2820b",
+      "reason": "merged",
+      "replacement": {
+        "skill": "jag-jira",
+        "path": "SKILL.md",
+        "section": "user-story"
+      }
+    },
+    {
+      "name": "jag-legacy",
+      "upstreamName": "legacy-code-safety",
+      "upstreamPaths": [
+        "domains/orchestration/skills/legacy-code-safety/SKILL.md",
+        "domains/plan/skills/legacy-code-safety/SKILL.md"
+      ],
+      "upstreamVersion": "1.1.1",
+      "license": "Apache-2.0",
+      "upstreamSha256": "aaabc7a9ab4465bd71cf09b28aa609e8a91d8800d632f99b3c9e64d46123d95c",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "62cff9c47be3e8a18dbab23632b5e84d09ffed5ff4d611ea63ff110c20a2ddd9",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-logs",
+      "upstreamName": "logging-observability",
+      "upstreamPaths": [
+        "domains/common/skills/logging-observability/SKILL.md",
+        "domains/plan/skills/logging-observability/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "091d7b960274be8c151e30298bff81af140cc3b378796d16d9e15a4d7536e89d",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "fe86c33e8624444236d3386c0f6a6d239cbd86cb12bd0de7d256f946f3bd5c46",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-nulls",
+      "upstreamName": "null-safety",
+      "upstreamPaths": [
+        "domains/plan/skills/null-safety/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.1",
+      "license": "Apache-2.0",
+      "upstreamSha256": "1eb9d679f26e3de12f39f29dfdb78ee1fd272eb7a6935bdca3f6fdfedf715025",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "254b1c9dbbe8f90a0da5da58f46b7910c5fea169fbb55d37e90002c71e2506d1",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-prompts",
+      "upstreamName": "prompt-structure-writer",
+      "upstreamPaths": [
+        "domains/meta/skills/prompt-structure-writer/SKILL.md"
+      ],
+      "upstreamVersion": "1.1.0",
+      "license": "MIT",
+      "upstreamSha256": "c3719173e0c62666390364ae07ffb0c3896fa6dc44323d0ca2c01f9c5e0406e2",
+      "author": "andresnator",
+      "previousInstructionSha256": "db190d0eaff4cc5d7ba450c98e788fbc394a49129937c660ebed2dda861f6a50",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-risk",
+      "upstreamName": "risk-assessment",
+      "upstreamPaths": [
+        "domains/common/skills/risk-assessment/SKILL.md",
+        "domains/plan/skills/risk-assessment/SKILL.md"
+      ],
+      "upstreamVersion": "1.1.0",
+      "license": "Apache-2.0",
+      "upstreamSha256": "0fc6da12e7b76b59a35043e5d59c8ae8809947039318c4d11c1a4ad5c1b649a5",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "3c11976e664ac7a9249e3970b770ced1efa9d5d32be5c3381a5b9e62f1b9295c",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-scope",
+      "upstreamName": "scope-analysis",
+      "upstreamPaths": [
+        "domains/plan/skills/scope-analysis/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.2",
+      "license": "Apache-2.0",
+      "upstreamSha256": "7d61cb49c036df629b30d0e46438bb63f99d86788555bb9da47fee2100bba73d",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "882b77a702d9d64ec9b7273a3533f6915d1192de3fd5c767fb70ad65ef209700",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-tools",
+      "upstreamName": "tooling-audit",
+      "upstreamPaths": [
+        "domains/plan/skills/tooling-audit/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.3",
+      "license": "Apache-2.0",
+      "upstreamSha256": "ee33d68e4f87fb319b1085545bc95770418e53816cd2506a96da2659d0e575bd",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "9aa93a12005a8120bdd37cc508830153afa87289b102af10643fef8faa3cf487",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-tool-matrix",
+      "upstreamName": "tooling-compatibility-matrix",
+      "upstreamPaths": [
+        "domains/plan/skills/tooling-compatibility-matrix/SKILL.md"
+      ],
+      "upstreamVersion": "1.1.1",
+      "license": "Apache-2.0",
+      "upstreamSha256": "3a5053ebfb9628094a5c4faa7368e96437277d9922175ce7e1ecc9ed27c12fae",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "35d7821c0042312176eef92e1f41eb8e95699c9af4abde65402a2d48a1c66c98",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-types",
+      "upstreamName": "type-contracts",
+      "upstreamPaths": [
+        "domains/plan/skills/type-contracts/SKILL.md"
+      ],
+      "upstreamVersion": "1.0.1",
+      "license": "Apache-2.0",
+      "upstreamSha256": "d30456408ccfc6b44f8c925da9a5a645c28b98560430700efae08e91142bd20a",
+      "author": "gentle-ai",
+      "adaptedBy": "andresnator",
+      "source": "gentle-ai/plan-refactor",
+      "previousInstructionSha256": "205c1bd7547a94f401c30ce01ed1badbc1f1948379a09556c4e8beeb348c0f38",
+      "reason": "redundant",
+      "replacement": null
     }
   ]
 }

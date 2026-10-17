@@ -1,12 +1,12 @@
 # pi-orchestraitor
 
-A personal [Pi](https://pi.dev) package for practical coding workflows: 57 bundled skills, compact tools, temporary `/btw` conversations, bounded subagents, a bundled NaN model provider, and optional Context7 and Engram integration.
+A personal [Pi](https://pi.dev) package for practical coding workflows: 37 bundled skills, compact tools, temporary `/btw` conversations, bounded subagents, a bundled NaN model provider, and optional Context7 and Engram integration.
 
 **Private GitHub distribution.** No npm publication or automatic releases.
 
 ## Install
 
-Requires **pnpm 12.9.1**, **Node 22.19+**, and GitHub access to this private repository. The checkout uses Pi 1.2.0 from the lockfile.
+Requires **pnpm 12.9.1**, **Node 22.19+**, and GitHub access to this private repository. The checkout uses Pi 1.3.0 from the lockfile.
 
 ```bash
 gh repo clone andresnator/pi-orchestraitor
@@ -16,9 +16,9 @@ pnpm run install:pi --dry-run
 pnpm run install:pi
 ```
 
-Review the preview before installing: the installer moves conflicting standalone skills into a recoverable backup and installs the pinned Pi Pretty and `pi-claude-bridge@0.9.2` companions. Shared `~/.agents/skills` entries may also be used by other agents. Use `--without-pretty` to omit Pretty only; Claude Bridge remains included.
+Review the preview before installing: the installer moves conflicting standalone skills into a recoverable backup and installs the pinned Pi Pretty and `pi-claude-bridge@0.9.3` companions. Shared `~/.agents/skills` entries may also be used by other agents. Use `--without-pretty` to omit Pretty only; Claude Bridge remains included.
 
-Keep the checkout available, then restart Pi or run `/reload`; use `pnpm exec pi` to start the local CLI. The installer registers this directory without replacing your global Pi installation. If an original standalone `compact-tools` or `btw` extension is enabled, disable that copy through `pi config` first; keep its files for recovery.
+Keep the checkout available, then restart Pi; `/reload` is enough only if the running Pi never loaded this package. Use `pnpm exec pi` to start the local CLI. The installer registers this directory without replacing your global Pi installation. If an original standalone `compact-tools` or `btw` extension is enabled, disable that copy through `pi config` first; keep its files for recovery.
 
 For a clean profile without skill migration or either companion, native Git installation is also supported with SSH access:
 
@@ -35,11 +35,14 @@ Do not register both the checkout and the Git source. See [installation, conflic
 /plan prepare change Z
 /review src/module.ts
 /btw explain this without changing the main task
+/auto-compact 150k
 /skill:jag-debug investigate this failure
 /skill:jag-wait-what explain the last answer
 ```
 
 Skills load on demand. Replies follow your language; repository artifacts use English. Changes stay unstaged unless you explicitly authorize Git delivery.
+
+Use `/auto-compact <tokens>` to persist the current model's automatic compaction threshold (`150k`, `0.5m`, or `300000`); no argument shows it, and `default` restores inherited settings. Saving reloads Pi and closes active readers/panels. See [automatic compaction](docs/usage.md#automatic-compaction).
 
 For NaN, run `/reload`, then `/login nan` and enter your API key in Pi's private prompt. Select a NaN model through `/model`; your defaults stay unchanged. See [NaN setup and credential boundaries](docs/nan.md).
 
@@ -47,18 +50,18 @@ Context7 requires network access. Memory requires an existing **Engram 3.0.0** i
 
 ## Update
 
-For the checkout installation, pull changes and refresh dependencies in this directory, then reload Pi:
+For the checkout installation, pull changes and refresh dependencies in this directory, then restart Pi:
 
 ```bash
 git pull --ff-only
 pnpm install --frozen-lockfile
 ```
 
-For native Git installation, use `pi update --extensions`. Recheck compatibility before upgrading Pi; some inventory and integration checks depend on host internals.
+For native Git installation, use `pi update --extensions`, then restart Pi. `/reload` is not enough after a code update: it re-evaluates the TypeScript extensions, but Node keeps the `.mjs` modules it already loaded (`extensions/subagent/`, `extensions/skills/`, `extensions/models/`, `extensions/pretty/`, `extensions/provider-options.mjs`) while each new child process loads the updated files. Recheck compatibility before upgrading Pi; some inventory and integration checks depend on host internals.
 
 ## Verify
 
-For development, use **pnpm 12.9.1** to install the locked Pi 1.2.0 test host:
+For development, use **pnpm 12.9.1** to install the locked Pi 1.3.0 test host:
 
 ```bash
 pnpm install --frozen-lockfile
@@ -77,7 +80,7 @@ GitHub CI uses the same lockfile on Node 22 and 24. It does not publish, call li
 - [Usage, installation recovery, and package resources](docs/usage.md)
 - [Skill catalog](docs/skills.md)
 - [Subagents and their limits](docs/subagents.md)
-- [Temporary BTW conversations and explicit imports](docs/btw.md)
+- [Temporary BTW conversations and clipboard copying](docs/btw.md)
 - [NaN login and model provider](docs/nan.md)
 - [Interactive UI](docs/interactive-ui.md)
 - [Verification evidence](docs/verification.md)

@@ -8,7 +8,7 @@ metadata:
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
   status: in-progress
-  version: "5.0.0"
+  version: "5.0.3"
 ---
 
 ## Contract
@@ -17,7 +17,7 @@ Plan before implementation. Read relevant code and contracts; never edit product
 
 ## Method
 
-1. **Evidence first.** Verify implementations, callers, tests, tool versions, and reusable `path:symbol` elements. Cite `path:line` or mark `hypothesis`.
+1. **Evidence first.** Verify implementations, callers, tests, tool versions, and reusable `path:symbol` elements. Cite `path:line` or mark `hypothesis`. Code proves current behavior, not business requirements. Record business rules, compliance, SLAs, pricing, retention, priorities or target users found in code as open questions until the user or an authoritative product document confirms them.
 2. **Ask only decisions.** Explore repository facts. Ask each unresolved open-ended scope, product, acceptance, or risk choice directly in normal chat and wait. Add `Recommendation: ...` only when useful; use an available Pi UI choice mechanism for closed choices, or ask in chat.
 3. **Validate edges.** Every edge is handled, out of scope, or an open question. Use `references/edge-validation.md`.
 4. **Stay proportional.** Keep only information that changes execution; record meaningful rejected alternatives briefly.
@@ -25,11 +25,11 @@ Plan before implementation. Read relevant code and contracts; never edit product
 
 ## Wayfinder discovery
 
-Use `assets/discovery-template.md`. Write one `.ai/deep-planner/discoveries/<slug>.md`. Do not add status, phase, or readiness markers. Keep evidence, decisions, and unresolved questions current. When the destination is clear, suggest converting the discovery into a plan.
+Use `assets/discovery-template.md`. Write one `.ai/deep-planner/discoveries/<slug>.md`. Do not add status, phase, or readiness markers. Keep evidence and decisions current. A precise question remains an open question even when blocked; record its prerequisite when useful. Put in-scope areas that cannot yet be phrased as a precise question under **Not yet specified**, without prematurely decomposing them. Keep **Out of scope** separate; out-of-scope work returns only through a user-approved scope change. Move a vague area into open questions only when a precise question emerges, without duplicating it. Preserve the three edge dispositions above; no tracker, claims, scheduler or second discovery artifact. Resolve relevant business questions and clarify relevant unspecified areas before proposing a final executable plan. When the destination is clear, suggest converting the discovery into a plan.
 
 ## Deep Plan
 
-Load `jag-plan` and write one `.ai/deep-planner/plans/<slug>.md`. Large efforts remain one plan with work groups and explicit dependencies. Do not create roadmaps, slices, readiness markers, or companion phase documents.
+Load `jag-plan` and write one `.ai/deep-planner/plans/<slug>.md`. Large efforts remain one plan with ordered steps. Do not create roadmaps, slices, readiness markers, or companion phase documents.
 
 ## Outputs
 

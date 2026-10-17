@@ -82,7 +82,7 @@ await loader.reload();
 assert.deepEqual(loader.getExtensions().errors, []);
 assert.deepEqual(loader.getSkills().diagnostics, []);
 assert.deepEqual(loader.getPrompts().prompts.map(({ name }) => name).sort(), ["absorb", "orchestraitor", "plan", "review"]);
-assert.equal(loader.getSkills().skills.length, 56);
+assert.equal(loader.getSkills().skills.length, 37);
 assert.ok(loader.getExtensions().extensions.every(({ path }) => path.startsWith(PACKAGE_DIR)));
 const provenance = JSON.parse(await readFile(join(PACKAGE_DIR, "docs/skills-provenance.json"), "utf8"));
 for (const skill of provenance.skills) {
@@ -105,10 +105,10 @@ try {
   assert.deepEqual(errors, []);
   assert.equal(result.systemPromptOptions.customPrompt, "Host instructions");
   assert.equal(result.systemPromptOptions.sections.existing, "Project-specific instructions");
-  assert.match(result.systemPromptOptions.sections.pi_orchestraitor_execution, /Orchestraitor/);
+  assert.match(result.systemPromptOptions.sections.pi_orchestraitor_core, /Personal harness rules/);
   assert.match(result.systemPromptOptions.sections.pi_orchestraitor_personality, /Colombian software architect/);
   assert.equal(session.modelRuntime.getProvider("nan")?.name, "NaN");
-  for (const tool of ["subagent_run", "subagent_collect", "orchestraitor_tasks", "orchestraitor_ask", "skill_registry"]) {
+  for (const tool of ["subagent_run", "subagent_collect", "orchestraitor_ask", "skill_registry"]) {
     assert.ok(session.getActiveToolNames().includes(tool), `Missing tool: ${tool}`);
   }
   const { BatchController } = await import(pathToFileURL(join(PACKAGE_DIR, "extensions/subagent/controller.mjs")).href);

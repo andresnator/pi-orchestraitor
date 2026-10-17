@@ -1,4 +1,5 @@
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { SettingsManager, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { providerRequestOptions } from "../provider-options.mjs";
 import { buildSideContext } from "./context.ts";
 import { SideConversation } from "./conversation.ts";
 import { BtwPopup } from "./popup.ts";
@@ -22,15 +23,15 @@ export default function (pi: ExtensionAPI) {
 			let conversation: SideConversation | undefined;
 			let popup: BtwPopup | undefined;
 			try {
-				conversation = new SideConversation(ctx, buildSideContext(ctx.sessionManager.getBranch(), ctx.getSystemPrompt()));
+				conversation = new SideConversation(ctx, buildSideContext(ctx.sessionManager.getBranch(), ctx.getSystemPrompt()),
+					(model, sessionId) => providerRequestOptions(SettingsManager.inMemory(pi.getSettings()), model, sessionId));
 				const current = conversation;
-				const imported = await ctx.ui.custom<string | undefined>((tui, theme, keybindings, done) => {
+				await ctx.ui.custom<void>((tui, theme, keybindings, done) => {
 					popup = new BtwPopup(tui, theme, keybindings, current, done);
 					closeDialog = () => popup?.close();
 					if (args.trim()) void popup.submit(args);
 					return popup;
 				}, { overlay: true, overlayOptions: { anchor: "center", width: POPUP_WIDTH, maxHeight: POPUP_MAX_HEIGHT } });
-				if (imported !== undefined) pi.sendMessage({ customType: "btw-import", content: imported, display: true }, { triggerTurn: false });
 			} catch (error) {
 				ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
 			} finally {

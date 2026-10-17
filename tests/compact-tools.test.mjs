@@ -1,15 +1,16 @@
 import { strict as assert } from "node:assert";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { after, test } from "node:test";
 import { stripVTControlCharacters as stripAnsi } from "node:util";
 
-import { importHost, loadExtensions, pi } from "./helpers/pi-host.mjs";
+import { importHost, loadExtensions, pi, renderersFor } from "./helpers/pi-host.mjs";
 
 const { theme } = await importHost("dist/modes/interactive/theme/theme.js");
 const { visibleWidth } = await importHost("node_modules/@earendil-works/pi-tui/dist/index.js");
+const { withBuiltInRenderers } = await importHost("dist/core/tools/renderers/index.js");
 pi.initTheme("dark", false);
 const extensionPath = fileURLToPath(new URL("../extensions/compact-tools.ts", import.meta.url));
 const cwd = await mkdtemp(join(tmpdir(), "pi-compact-tools-test-"));
@@ -19,10 +20,10 @@ assert.deepEqual(loaded.errors, []);
 loaded.runtime.getSettings = () => settings;
 loaded.runtime.getAllTools = () => [];
 const extension = loaded.extensions[0];
-for (const handler of extension.handlers.get("session_start")) {
-	await handler({ type: "session_start", reason: "startup" }, { cwd });
-}
-const tools = new Map([...extension.tools].map(([name, registration]) => [name, registration.definition]));
+// Resolve as interactive mode does when no extension owns the tool.
+const resolveRenderers = (name) => (extension.toolRenderers ?? []).reduceRight((next, resolver) => () => resolver(name, next),
+	() => withBuiltInRenderers(name, undefined))();
+const tools = new Map(["read", "bash", "edit", "write"].map((name) => [name, { name, ...resolveRenderers(name) }]));
 const fakeTheme = {
 	fg: (_token, text) => text,
 	bold: (text) => text,
@@ -138,52 +139,6 @@ test("shouldExpandAndCollapseWhenNativeToolComponentIsToggled", () => {
 	{ collapsedLines: 1, outputVisible: true, restored: true });
 });
 
-test("shouldPreserveNativeMetadataAndToolActivationWhenRegistered", () => {
-	// Given
-	const originals = [pi.createReadToolDefinition(cwd), pi.createBashToolDefinition(cwd),
-		pi.createEditToolDefinition(cwd), pi.createWriteToolDefinition(cwd)];
-	// When
-	const outcomes = originals.map((original) => {
-		const tool = tools.get(original.name);
-		return { name: original.name, disabledByDefault: tool.defaultActive === false,
-			schema: tool.parameters, description: tool.description,
-			promptSnippet: tool.promptSnippet, promptGuidelines: tool.promptGuidelines };
-	});
-	// Then
-	assert.deepEqual(outcomes, originals.map((original) => ({ name: original.name,
-		disabledByDefault: true, schema: original.parameters, description: original.description,
-		promptSnippet: original.promptSnippet, promptGuidelines: original.promptGuidelines })));
-});
-
-test("shouldPreserveResultsAndShellSettingsWhenNativeToolsExecute", async () => {
-	// Given
-	const path = join(cwd, "fixture.txt");
-	await writeFile(path, "old\n");
-	const context = { cwd, sessionManager: pi.SessionManager.inMemory(cwd) };
-	const cases = [
-		["read", pi.createReadToolDefinition(cwd, { autoResizeImages: false }), { path }],
-		["bash", pi.createBashToolDefinition(cwd, { commandPrefix: settings.shellCommandPrefix }),
-			{ command: "printf '%s' \"$COMPACT_TEST\"" }],
-		["edit", pi.createEditToolDefinition(cwd), { path, edits: [{ oldText: "old", newText: "new" }] }],
-		["write", pi.createWriteToolDefinition(cwd), { path, content: "written\n" }],
-	];
-	// When
-	const outcomes = [];
-	for (const [name, original, args] of cases) {
-		await writeFile(path, "old\n");
-		const expected = await original.execute("original", args, undefined, undefined, context);
-		await writeFile(path, "old\n");
-		const actual = await tools.get(name).execute("compact", args, undefined, undefined, context);
-		const normalizeTiming = (value) => value.structuredContent
-			? { ...value, structuredContent: { ...value.structuredContent, wall_time_seconds: 0 } }
-			: value;
-		outcomes.push({ name, same: JSON.stringify(normalizeTiming(actual)) === JSON.stringify(normalizeTiming(expected)) });
-	}
-	// Then
-	assert.deepEqual({ outcomes, file: await readFile(path, "utf8") },
-		{ outcomes: cases.map(([name]) => ({ name, same: true })), file: "written\n" });
-});
-
 for (const selection of [[], ["read"], ["read", "bash", "edit", "write"]]) {
 	test(`shouldPreserveSelectionWhenPiBindsExtensionWith${selection.length}Tools`, async () => {
 		// Given
@@ -203,30 +158,17 @@ for (const selection of [[], ["read"], ["read", "bash", "edit", "write"]]) {
 			// When
 			await session.bindExtensions({ onError: (error) => errors.push(error) });
 			const registered = [...extensionsResult.extensions[0].tools.values()];
-			// Then
-			assert.deepEqual({ active: session.getActiveToolNames(), errors,
-				compact: registered.every(({ definition }) => definition.renderShell === "self"),
-				registeredCount: registered.length },
-			{ active: selection, errors: [], compact: true, registeredCount: 4 });
+			const names = ["read", "bash", "edit", "write"];
+			// Then: Pi keeps the tools; the harness only selects their renderers.
+			assert.deepEqual({ active: session.getActiveToolNames(), errors, registeredCount: registered.length,
+				replaced: session.getAllTools().filter(({ name, sourceInfo }) => names.includes(name) && sourceInfo.source !== "builtin").map(({ name }) => name),
+				compact: names.map((name) => renderersFor(session, name)?.renderShell) },
+			{ active: selection, errors: [], registeredCount: 0, replaced: [], compact: names.map(() => "self") });
 		} finally {
 			session.dispose();
 		}
 	});
 }
-
-test("shouldRejectMissingFilesAndCancelledExecutionWhenToolsFail", async () => {
-	// Given
-	const controller = new AbortController();
-	controller.abort();
-	// When
-	const outcomes = await Promise.allSettled([
-		tools.get("read").execute("missing", { path: join(cwd, "missing.txt") }, undefined, undefined, { cwd }),
-		tools.get("bash").execute("cancelled", { command: "echo forbidden" }, controller.signal, undefined,
-			{ cwd, sessionManager: pi.SessionManager.inMemory(cwd) }),
-	]);
-	// Then
-	assert.deepEqual(outcomes.map((outcome) => outcome.status), ["rejected", "rejected"]);
-});
 
 test("shouldShowOnlyThreeVisualTailRowsWhenCollapsedToolFails", () => {
 	// Given
@@ -267,15 +209,24 @@ test("shouldBoundVisualErrorRowsAndPreserveExpansionWhenTerminalIsNarrow", () =>
 	assert.ok(expanded.some((line) => line.includes("last cause")));
 });
 
+const runTool = async (session, name, args, id) => {
+	session.agent.state.messages.push({ role: "assistant", content: [{ type: "toolCall", id, name, arguments: args }],
+		api: "openai-responses", provider: "fixture", model: "fixture", stopReason: "toolUse", timestamp: Date.now(),
+		usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } });
+	return session.extensionRunner.createToolContext(id, undefined).executeTool(name, args);
+};
+const renderedCall = (renderers, args) => renderers.renderCall(args, fakeTheme, toolContext(args)).render(80).join("\n").trim();
+
 for (const order of ["before", "after"]) {
-	test(`shouldPreserveForeignReadAndGuardBashOwnershipWhenTheirExtensionLoads${order === "before" ? "Before" : "After"}CompactTools`, async () => {
+	test(`shouldLeaveForeignReadAndBashToTheirOwnerWhenTheirExtensionLoads${order === "before" ? "Before" : "After"}CompactTools`, async () => {
 		// Given
 		const foreignPath = join(cwd, `foreign-${order}.ts`);
 		await writeFile(foreignPath, `import { createReadToolDefinition, createBashToolDefinition } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 export default function(pi) {
 	for (const original of [createReadToolDefinition(${JSON.stringify(cwd)}), createBashToolDefinition(${JSON.stringify(cwd)})]) {
-		pi.registerTool({...original, defaultActive:false, renderCall:() => new Text("Foreign " + original.name,0,0)});
+		pi.registerTool({...original, defaultActive:false, renderCall:() => new Text("Foreign " + original.name,0,0),
+			...(original.name === "bash" ? { execute: async (_id, args) => ({ content: [{ type: "text", text: "foreign:" + args.command }], details: undefined }) } : {})});
 	}
 }`);
 		const paths = order === "before" ? [foreignPath, extensionPath] : [extensionPath, foreignPath];
@@ -294,24 +245,49 @@ export default function(pi) {
 				uiContext: { ...session.extensionRunner.getUIContext(), notify: message => notifications.push(message) } });
 			for (let pass = 0; pass < 2; pass++) {
 				if (pass) await session.reload();
+				const result = await runTool(session, "bash", { command: "printf ownership-marker" }, `bash-${pass}`);
 				// Then
 				assert.deepEqual(session.getActiveToolNames(), ["read", "bash", "edit", "write"]);
-				assert.equal(session.getAllTools().find(tool => tool.name === "read").sourceInfo.path, foreignPath);
-				const bashOwner = session.getAllTools().find(tool => tool.name === "bash").sourceInfo.path;
-				assert.equal(bashOwner, order === "before" ? foreignPath : extensionPath);
-				session.agent.state.messages.push({ role: "assistant", content: [{ type: "toolCall", id: `bash-${pass}`, name: "bash", arguments: { command: "printf ownership-marker" } }],
-					api: "openai-responses", provider: "fixture", model: "fixture", stopReason: "toolUse", timestamp: Date.now(),
-					usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } });
-				const ctx = session.extensionRunner.createToolContext(`bash-${pass}`, undefined);
-				const result = await ctx.executeTool("bash", { command: "printf ownership-marker" });
-				assert.equal(Boolean(result.isError), order === "before");
-				assert.match(result.result.content.map(block => block.text).join("\n"), order === "before" ? /Bash ownership conflict/ : /ownership-marker/);
-				assert.ok(!result.result.content.some(block => block.text === "ownership-marker") || order === "after");
-				assert.equal(session.getAllTools().find(tool => tool.name === "edit").sourceInfo.path, extensionPath);
+				assert.deepEqual({ isError: Boolean(result.isError), text: result.result.content.map(block => block.text).join("\n"),
+					owners: Object.fromEntries(session.getAllTools().filter(({ name }) => ["read", "bash", "edit", "write"].includes(name))
+						.map(({ name, sourceInfo }) => [name, sourceInfo.source === "builtin" ? "builtin" : sourceInfo.path])) },
+				{ isError: false, text: "foreign:printf ownership-marker",
+					owners: { read: foreignPath, bash: foreignPath, edit: "builtin", write: "builtin" } });
+				for (const name of ["read", "bash"]) {
+					assert.equal(renderedCall(renderersFor(session, name), { path: "x", command: "x" }), `Foreign ${name}`);
+				}
+				for (const name of ["edit", "write"]) assert.equal(renderersFor(session, name).renderShell, "self");
 			}
-			assert.equal(notifications.length, order === "before" ? 2 : 0);
-			assert.ok(notifications.every(message => /shellPath.*shellCommandPrefix/.test(message)));
+			assert.deepEqual(notifications, []);
 			assert.deepEqual(errors, []);
 		} finally { await session.extensionRunner.emit({ type: "session_shutdown" }); session.dispose(); }
 	});
 }
+
+test("shouldRunPiBashWithHomeRelativeShellPathAndPrefixWhenCompactToolsIsLoaded", async (t) => {
+	// Given: Pi expands "~" in shellPath; the harness must not pass the raw setting to its own bash.
+	const home = await mkdtemp(join(tmpdir(), "pi-compact-home-")), previousHome = process.env.HOME;
+	t.after(() => rm(home, { recursive: true, force: true }));
+	await mkdir(join(home, "bin"));
+	await writeFile(join(home, "bin", "compact-shell"), '#!/bin/sh\nexport COMPACT_SHELL=home\nexec /bin/bash "$@"\n', { mode: 0o755 });
+	process.env.HOME = home;
+	const settingsManager = pi.SettingsManager.inMemory({ shellPath: "~/bin/compact-shell", shellCommandPrefix: settings.shellCommandPrefix });
+	const resourceLoader = new pi.DefaultResourceLoader({ cwd, agentDir: join(cwd, "agent"), settingsManager,
+		noExtensions: true, additionalExtensionPaths: [extensionPath],
+		noSkills: true, noPromptTemplates: true, noThemes: true, noContextFiles: true });
+	await resourceLoader.reload();
+	const { session } = await pi.createAgentSession({ cwd, agentDir: join(cwd, "agent"), settingsManager, resourceLoader,
+		sessionManager: pi.SessionManager.inMemory(cwd), tools: ["bash"] });
+	const errors = [];
+	try {
+		await session.bindExtensions({ onError: error => errors.push(error), mode: "print" });
+		// When
+		const result = await runTool(session, "bash", { command: 'printf "%s:%s" "$COMPACT_SHELL" "$COMPACT_TEST"' }, "home-shell");
+		// Then
+		assert.deepEqual({ isError: Boolean(result.isError), text: result.result.content.map(block => block.text).join("\n").trim(), errors },
+			{ isError: false, text: "home:kept", errors: [] });
+	} finally {
+		process.env.HOME = previousHome;
+		await session.extensionRunner.emit({ type: "session_shutdown" }); session.dispose();
+	}
+});

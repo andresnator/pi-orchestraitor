@@ -1,83 +1,21 @@
 import assert from "node:assert/strict";
 import { dirname, join } from "node:path";
-import { mkdir, realpath, rm, writeFile } from "node:fs/promises";
-import { createHash } from "node:crypto";
+import { realpath, rm } from "node:fs/promises";
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
 import { stripVTControlCharacters } from "node:util";
 import { BatchController } from "../extensions/subagent/controller.mjs";
 import test from "node:test";
-import { createUISession, createWorkspace, fakeUIContext, loadExtensions, loadUiModule, packageRoot } from "./helpers/ui-harness.mjs";
-
-const header = ({ widgets, ctx }) => widgets.get("orchestraitor:work")?.({ terminal: { rows: 24 } }, ctx.ui.theme).render(100).join("\n") ?? "";
-
-test("shouldReuseTaskProjectionWhenNativeHistoryIsUnchangedAcrossHooks", async (t) => {
-	// Given
-	const ui = await createUISession(t), { session } = ui;
-	const manager = session.sessionManager, runner = session.extensionRunner;
-	let branchReads = 0;
-	const branch = manager.getBranch.bind(manager);
-	manager.getBranch = () => { branchReads++; return branch(); };
-	manager.getEntries = () => { assert.fail("Native UI must not scan all session entries"); };
-	// When
-	await runner.emit({ type: "tool_execution_start", toolName: "read" });
-	await runner.emit({ type: "turn_end" });
-	await runner.emit({ type: "agent_settled" });
-	// Then
-	assert.equal(branchReads, 0);
-	manager.appendMessage({ role: "toolResult", toolName: "orchestraitor_tasks", toolCallId: "seed", content: [], isError: false, timestamp: 1,
-		details: { version: 1, operation: "add", state: { version: 1, revision: 1, tasks: [{ id: "one", title: "Branch work", status: "pending" }] } } });
-	await runner.emit({ type: "tool_execution_start", toolName: "read" });
-	assert.equal(branchReads, 1);
-	assert.match(header(ui), /0\/1 done/);
-});
-
-test("shouldRefreshBranchTasksWhenNavigationKeepsEntryCount", async (t) => {
-	// Given
-	const ui = await createUISession(t), { session, widgets } = ui;
-	const manager = session.sessionManager, runner = session.extensionRunner;
-	const root = manager.appendMessage({ role: "user", content: "root", timestamp: 0 });
-	manager.appendMessage({ role: "toolResult", toolName: "orchestraitor_tasks", toolCallId: "seed", content: [], isError: false, timestamp: 1,
-		details: { version: 1, operation: "add", state: { version: 1, revision: 1, tasks: [{ id: "one", title: "Branch work", status: "pending" }] } } });
-	await runner.emit({ type: "turn_end" });
-	assert.match(header(ui), /0\/1 done/);
-	const count = manager.getEntryCount();
-	manager.getEntries = () => { assert.fail("Native UI must not scan all session entries"); };
-	// When
-	manager.branch(root);
-	await runner.emit({ type: "session_tree", oldLeafId: null, newLeafId: root });
-	// Then
-	assert.equal(manager.getEntryCount(), count);
-	assert.equal(widgets.has("orchestraitor:work"), false);
-});
-
-test("shouldDetectExternalPlanDriftEvenWhenTaskProjectionIsCached", async (t) => {
-	// Given
-	const ui = await createUISession(t), { session } = ui;
-	const cwd = await realpath(session.extensionRunner.createContext().cwd);
-	await mkdir(join(cwd, ".git")); await writeFile(join(cwd, "plan.md"), "original");
-	const binding = { project: cwd, path: "plan.md", sha256: createHash("sha256").update("original").digest("hex"), groups: ["g1"] };
-	session.sessionManager.appendMessage({ role: "toolResult", toolName: "orchestraitor_tasks", toolCallId: "bound", content: [], isError: false, timestamp: 0,
-		details: { version: 1, operation: "replace", state: { version: 1, revision: 1, binding, tasks: [{ id: "one", title: "Bound work", group: "g1", status: "pending" }] } } });
-	await session.extensionRunner.emit({ type: "turn_end" });
-	assert.doesNotMatch(header(ui), /plan binding stale/);
-	session.sessionManager.getBranch = () => { assert.fail("Unchanged branch must not be reconstructed"); };
-	// When
-	await writeFile(join(cwd, "plan.md"), "external edit");
-	await session.extensionRunner.emit({ type: "turn_end" });
-	// Then
-	assert.match(header(ui), /plan binding stale/);
-});
+import { createPackageUISession, createUISession, createWorkspace, fakeUIContext, loadExtensions, loadUiModule, packageRoot } from "./helpers/ui-harness.mjs";
 
 test("shouldClearOnlyOwnedChromeWhenDisposedRepeatedly", async (t) => {
 	// Given
-	const { createUIOwner, WORK_WIDGET_KEY, WORK_STATUS_KEY } = await loadUiModule(t, "extensions/status-ui.ts");
+	const { createUIOwner, WORK_STATUS_KEY } = await loadUiModule(t, "extensions/status-ui.ts");
 	const { ctx, widgets, statuses } = fakeUIContext();
 	const owner = createUIOwner();
 	owner.activate(ctx);
-	owner.setWidget(["Work"]);
 	owner.setStatus("Running");
-	assert.ok(widgets.has(WORK_WIDGET_KEY) && statuses.has(WORK_STATUS_KEY));
+	assert.ok(statuses.has(WORK_STATUS_KEY));
 	// When
 	owner.dispose();
 	owner.dispose();
@@ -94,7 +32,6 @@ for (const mode of ["rpc", "json", "print"]) {
 		const owner = createUIOwner();
 		owner.activate(ctx);
 		// When
-		owner.setWidget(["Work"]);
 		owner.setStatus("Running");
 		const result = await owner.modal("panel", () => ({render: () => [], invalidate() {}}));
 		owner.dispose();
@@ -160,7 +97,7 @@ test("shouldRegisterOneLifecycleOwnerWithoutStartupChromeWhenExtensionLoads", as
 	// Then
 	assert.deepEqual({ tools: [...extension.tools.keys()], shortcuts: [...extension.shortcuts.keys()],
 		flags: [...extension.flags.keys()], commands: [...extension.commands.keys()], calls },
-		{ tools: ["orchestraitor_tasks", "orchestraitor_ask"], shortcuts: [], flags: [], commands: ["orchestraitor:ui", "orchestraitor:tasks", "orchestraitor:agents"], calls: [] });
+		{ tools: ["orchestraitor_ask"], shortcuts: [], flags: [], commands: ["orchestraitor:ui", "orchestraitor:agents"], calls: [] });
 });
 
 for (const mode of ["tui", "rpc", "json", "print"]) {
@@ -174,7 +111,7 @@ for (const mode of ["tui", "rpc", "json", "print"]) {
 		// Then
 		assert.deepEqual({ errors, calls, active: session.getActiveToolNames(),
 			extensions: resources.loader.getExtensions().extensions.length },
-			{ errors: [], calls: [], active: ["read", "bash", "edit", "write", "orchestraitor_tasks", "orchestraitor_ask"], extensions: 1 });
+			{ errors: [], calls: [], active: ["read", "bash", "edit", "write", "orchestraitor_ask"], extensions: 1 });
 	});
 }
 
@@ -214,6 +151,48 @@ test("shouldKeepObservedPoisonedControllerLockWhenNativeUiReloads", async (t) =>
 	await assert.rejects(controller.run([manifest], () => "work"), /launches blocked/i);
 });
 
+test("shouldShowLaunchBlockFromControllerStateNotErrorTextWhenRunFails", async (t) => {
+	// Given
+	const key = Symbol.for("pi-orchestraitor.subagent-controller");
+	const previous = globalThis[key];
+	t.after(() => { globalThis[key] = previous; });
+	const fail = async (blocked, text) => {
+		const { session, statuses, dialogs } = await createUISession(t, "tui");
+		const runner = session.extensionRunner;
+		globalThis[key] = { blocked };
+		await runner.emit({ type: "tool_execution_start", toolName: "subagent_run", toolCallId: "run", args: { tasks: [{ role: "explore", instruction: "inspect" }] } });
+		await runner.emit({ type: "tool_execution_end", toolName: "subagent_run", toolCallId: "run", isError: true, result: { content: [{ type: "text", text }] } });
+		const shown = runner.getCommand("orchestraitor:agents").handler("", runner.createCommandContext());
+		const visible = dialogs.at(-1).component.render(120).map(stripVTControlCharacters).join("\n");
+		dialogs.at(-1).done({ status: "closed" });
+		await shown;
+		return { panel: /Launches blocked/.test(visible), status: statuses.get("orchestraitor:status") === "Agents blocked" };
+	};
+	// When
+	const quoted = await fail(false, "Validation failed: instruction \"explain why launches blocked after termination\" is too long");
+	const locked = await fail(true, "Subagent launches blocked");
+	// Then
+	assert.deepEqual({ quoted, locked }, { quoted: { panel: false, status: false }, locked: { panel: true, status: true } });
+});
+
+test("shouldReportAgentReplayFailureWithoutLeavingQuestionsUnownedOnSessionStart", async (t) => {
+	// Given
+	const { session, errors, dialogs } = await createUISession(t, "tui");
+	const manager = session.sessionManager, runner = session.extensionRunner;
+	const branch = manager.getBranch.bind(manager);
+	await runner.emit({ type: "session_shutdown", reason: "reload" });
+	manager.getBranch = () => { manager.getBranch = branch; throw new Error("Agent history unreadable"); };
+	// When
+	await runner.emit({ type: "session_start", reason: "reload" });
+	const ask = runner.getAllRegisteredTools().find(({ definition }) => definition.name === "orchestraitor_ask").definition;
+	const pending = ask.execute("ask", { questions: [{ id: "q", prompt: "Choose", selection: "single", options: [{ label: "A", value: "a" }, { label: "B", value: "b" }] }] }, undefined, undefined, runner.createToolContext("ask", undefined));
+	await Promise.resolve();
+	dialogs.at(-1)?.done({ status: "cancelled" });
+	// Then
+	const reported = errors.filter(({ event }) => event === "session_start").map(({ error }) => error).join("\n");
+	assert.deepEqual({ agents: /Agent history unreadable/.test(reported), question: (await pending).details.status }, { agents: true, question: "cancelled" }, reported);
+});
+
 test("shouldUpdateOneNativeFooterEntryDuringAgentsAndQuestionsWhenChromeIsVisible", async (t) => {
 	// Given
 	const { session, ctx, statuses, dialogs } = await createUISession(t);
@@ -236,15 +215,11 @@ test("shouldUpdateOneNativeFooterEntryDuringAgentsAndQuestionsWhenChromeIsVisibl
 	assert.deepEqual({ active, awaiting, returned, statuses: [...statuses] }, { active: "Agents · 1 active", awaiting: "Awaiting input", returned: "Agents · 1 active", statuses: [["foreign-status", "Foreign status"]] });
 });
 
-test("shouldHideAndRestoreOnlyPassiveChromeWithoutChangingTasksOrNativeFactoriesWhenUserTogglesUi", async (t) => {
+test("shouldHideAndRestoreOnlyPassiveChromeWithoutChangingBranchOrNativeFactoriesWhenUserTogglesUi", async (t) => {
 	// Given
 	const { session, ctx, widgets, statuses } = await createUISession(t);
 	const runner = session.extensionRunner;
 	for (const method of ["setHeader", "setFooter", "setEditorComponent", "setEditorText", "setWorkingIndicator"]) ctx.ui[method] = () => { throw new Error(`Foreign ${method} must not be replaced`); };
-	const tool = runner.getAllRegisteredTools().find(({ definition }) => definition.name === "orchestraitor_tasks").definition;
-	const result = await tool.execute("tasks", { operation: "replace", expectedRevision: 0, tasks: [{ id: "one", title: "Inspect", status: "pending" }] }, undefined, undefined, runner.createToolContext("tasks", undefined));
-	session.sessionManager.appendMessage({ role: "toolResult", toolCallId: "tasks", toolName: tool.name, timestamp: Date.now(), isError: false, ...result });
-	await runner.emit({ type: "turn_end", toolResults: [] });
 	await runner.emit({ type: "tool_execution_start", toolName: "subagent_run", toolCallId: "agents", args: { tasks: [{ role: "review", instruction: "review" }] } });
 	const initialBranch = JSON.stringify(session.sessionManager.getBranch());
 	const command = runner.getCommand("orchestraitor:ui");
@@ -254,35 +229,8 @@ test("shouldHideAndRestoreOnlyPassiveChromeWithoutChangingTasksOrNativeFactories
 	await command.handler("show", runner.createCommandContext());
 	// Then
 	assert.deepEqual(hidden, { widgets: [["foreign-widget", ["Foreign widget"]]], statuses: [["foreign-status", "Foreign status"]] });
-	assert.ok(widgets.has("orchestraitor:work"));
 	assert.equal(statuses.get("orchestraitor:status"), "Agents · 1 active");
 	assert.equal(JSON.stringify(session.sessionManager.getBranch()), initialBranch);
-});
-
-test("shouldRenderCurrentThemeAndBoundRowsAtAllWidthsWithoutCachingForeignColorsWhenWorkHeaderResizes", async (t) => {
-	// Given
-	const { session, ctx, widgets } = await createUISession(t);
-	const runner = session.extensionRunner;
-	const tool = runner.getAllRegisteredTools().find(({ definition }) => definition.name === "orchestraitor_tasks").definition;
-	const result = await tool.execute("tasks", { operation: "replace", expectedRevision: 0, tasks: Array.from({ length: 6 }, (_, i) => ({ id: String(i), title: "原é\x1b]52;c;secret\x07", status: "pending" })) }, undefined, undefined, runner.createToolContext("tasks", undefined));
-	session.sessionManager.appendMessage({ role: "toolResult", toolCallId: "tasks", toolName: tool.name, timestamp: Date.now(), isError: false, ...result });
-	await runner.emit({ type: "turn_end", toolResults: [] });
-	await runner.getCommand("orchestraitor:tasks").handler("expand", runner.createCommandContext());
-	const terminal = { rows: 24, columns: 80 };
-	const component = widgets.get("orchestraitor:work")({ terminal }, ctx.ui.theme);
-	const { visibleWidth } = (await import("./helpers/ui-harness.mjs")).tui;
-	// When / Then
-	for (const color of [31, 32, 39]) {
-		ctx.ui.theme = { fg: (_token, text) => `\x1b[${color}m${text}\x1b[0m` };
-		component.invalidate();
-		for (const width of [1, 20, 40, 80, 120]) {
-			const lines = component.render(width);
-			assert.equal(lines.length, 8);
-			assert.ok(lines.every((line) => visibleWidth(line) <= width && !line.includes("\x1b]52")));
-		}
-	}
-	terminal.rows = 10;
-	assert.equal(component.render(80).length, 1);
 });
 
 test("shouldReleaseOwnershipWhenCustomFactoryFails", async (t) => {
@@ -300,21 +248,47 @@ test("shouldReleaseOwnershipWhenCustomFactoryFails", async (t) => {
 	assert.deepEqual(await next, { status: "closed" });
 });
 
-test("shouldIgnoreTaskRefreshFromReplacedContextAndAfterShutdown", async (t) => {
+test("shouldIgnoreAgentEventsFromReplacedContextAndAfterShutdown", async (t) => {
 	const cwd = await createWorkspace(t);
 	const loaded = await loadExtensions([join(packageRoot, "extensions/status-ui.ts")], cwd);
 	assert.deepEqual(loaded.errors, []);
 	const extension = loaded.extensions[0];
 	const old = fakeUIContext(), current = fakeUIContext();
-	old.ctx.sessionManager.appendMessage({ role: "toolResult", toolName: "orchestraitor_tasks", toolCallId: "old", isError: false, content: [], timestamp: Date.now(),
-		details: { version: 1, operation: "add", state: { version: 1, revision: 1, tasks: [{ id: "old", title: "Old context task", status: "pending" }] } } });
-	const emit = async (type, ctx) => { for (const handler of extension.handlers.get(type)) await handler({ type }, ctx); };
+	const emit = async (type, ctx, event = {}) => { for (const handler of extension.handlers.get(type) ?? []) await handler({ type, ...event }, ctx); };
+	const start = { toolName: "subagent_run", toolCallId: "agents", args: { tasks: [{ role: "explore", instruction: "inspect" }] } };
 	await emit("session_start", old.ctx);
-	assert.ok(old.widgets.has("orchestraitor:work"));
 	await emit("session_start", current.ctx);
-	await emit("turn_end", old.ctx);
-	assert.equal(current.widgets.has("orchestraitor:work"), false);
+	await emit("tool_execution_start", old.ctx, start);
+	assert.equal(current.statuses.has("orchestraitor:status"), false);
 	await emit("session_shutdown", current.ctx);
-	await emit("turn_end", old.ctx);
-	assert.equal(current.widgets.has("orchestraitor:work"), false);
+	await emit("tool_execution_start", current.ctx, start);
+	assert.equal(current.statuses.has("orchestraitor:status"), false);
+	await emit("session_start", current.ctx);
+	await emit("tool_execution_start", current.ctx, start);
+	assert.equal(current.statuses.get("orchestraitor:status"), "Agents · 1 active");
 });
+
+// Pi persists rejected tool arguments verbatim, and any tool result can carry arbitrary details.
+for (const [scenario, tasks, results] of [["String", "[{\"role\":\"explore\"}]"], ["Object", { role: "explore", instruction: "inspect" }], ["NullEntry", [null]],
+	["NonArrayResults", [{ role: "explore", instruction: "inspect" }], { id: "not-a-list" }]]) {
+	test(`shouldActivateUiAndAskAfterReloadWhenPersistedSubagentDataIs${scenario}`, async (t) => {
+		// Given
+		const { session, dialogs, errors } = await createPackageUISession(t, "tui");
+		const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
+		session.sessionManager.appendMessage({ role: "assistant", api: "openai-completions", provider: "fixture", model: "model", usage, stopReason: "toolUse",
+			content: [{ type: "toolCall", id: "malformed", name: "subagent_run", arguments: { tasks } }], timestamp: Date.now() });
+		session.sessionManager.appendMessage(results ? { role: "toolResult", toolName: "subagent_collect", toolCallId: "malformed", content: [], details: { results }, isError: false, timestamp: Date.now() }
+			: { role: "toolResult", toolName: "subagent_run", toolCallId: "malformed", content: [{ type: "text", text: "Validation failed for tool \"subagent_run\"" }], isError: true, timestamp: Date.now() });
+		// When
+		await session.extensionRunner.emit({ type: "session_shutdown", reason: "reload" });
+		await session.extensionRunner.emit({ type: "session_start", reason: "reload" });
+		const question = { id: "after-reload", prompt: "Pick a marker", selection: "single", options: [{ label: "Alpha", value: "alpha" }, { label: "Beta", value: "beta" }] };
+		const asked = session.getToolDefinition("orchestraitor_ask").execute("ask", { questions: [question] }, undefined, undefined, session.extensionRunner.createContext());
+		await Promise.resolve();
+		for (const key of ["\r", "\r"]) dialogs.at(-1)?.component.handleInput(key); // Choose Alpha, then submit from review.
+		const answer = await asked;
+		// Then
+		assert.deepEqual({ errors: errors.map(({ event, error }) => `${event}: ${error}`), answer: answer.details },
+			{ errors: [], answer: { version: 1, status: "answered", answers: [{ id: "after-reload", values: ["alpha"] }] } });
+	});
+}

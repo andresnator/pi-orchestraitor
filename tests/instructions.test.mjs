@@ -4,7 +4,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { createWorkspace, importHost, loadExtensions, packageRoot } from "./helpers/pi-host.mjs";
 
-const { normalizeBuildSystemPromptOptions, buildSystemPrompt } = await importHost("dist/core/system-prompt.js");
+const { normalizeBuildSystemPromptOptions, buildSystemPrompt, buildSystemPromptSections } = await importHost("dist/core/system-prompt.js");
 // Pi starts runs from a submitted prompt or from an idle custom message with triggerTurn.
 const TRIGGERS = {
 	UserPrompt: { messageType: "user", prompt: "Review only" },
@@ -40,38 +40,34 @@ for (const mode of ["tui", "print", "json", "rpc"]) for (const [trigger, fields]
 				sections: {
 					...original.sections,
 					pi_orchestraitor_core: await readFile(join(packageRoot, "instructions/core.md"), "utf8"),
-					pi_orchestraitor_execution: await readFile(join(packageRoot, "instructions/orchestraitor.md"), "utf8"),
 					pi_orchestraitor_personality: await readFile(join(packageRoot, "instructions/personality.md"), "utf8"),
 				},
 			},
 			results: [undefined, undefined],
 		});
-		assert.match(buildSystemPrompt(options), /<pi_orchestraitor_execution>[\s\S]*Orchestraitor/);
+		assert.match(buildSystemPrompt(options), /<pi_orchestraitor_core>[\s\S]*Personal harness rules/);
 		assert.equal(buildSystemPrompt(options).split("<pi_orchestraitor_personality>").length, 2);
 	});
 }
 
-test("shouldKeepTasksAsEvidenceProjectionWhenExecutionGuidanceIsLoaded", async () => {
-	// Given
-	const path = join(packageRoot, "instructions/orchestraitor.md");
-	// When
-	const instructions = await readFile(path, "utf8");
-	// Then
-	assert.match(instructions, /direct model-only `orchestraitor_tasks`/);
-	assert.match(instructions, /Child completion never marks tasks done/);
-	assert.match(instructions, /not execution authority or durable SDD recovery/);
-	assert.match(instructions, /original plan path\/hash and stable group references/);
-});
+// Owned sections ride on every request, so they stay within a fixed budget of characters.
+const INSTRUCTIONS_BUDGET = 3000;
 
-test("shouldKeepQuestionsAsClarificationWithoutGrantingPermissionsWhenGuidanceIsLoaded", async () => {
+test("shouldStayWithinBudgetWhenOwnedInstructionsAreSentWithEveryRequest", async (t) => {
 	// Given
-	const path = join(packageRoot, "instructions/orchestraitor.md");
+	const cwd = await createWorkspace(t);
+	const loaded = await loadExtensions([join(packageRoot, "extensions/instructions.ts")], cwd);
+	assert.deepEqual(loaded.errors, []);
+	const options = normalizeBuildSystemPromptOptions({ cwd, sections: { other_extension: "Not owned" } });
 	// When
-	const instructions = await readFile(path, "utf8");
+	for (const handler of loaded.extensions[0].handlers.get("before_agent_start")) {
+		await handler({ type: "before_agent_start", messageType: "user", prompt: "Hello", systemPromptOptions: options }, { cwd, mode: "print" });
+	}
 	// Then
-	assert.match(instructions, /direct model-only `orchestraitor_ask`/);
-	assert.match(instructions, /cancelled, busy or unavailable results are not approval/);
-	assert.match(instructions, /never replace native trust\/security dialogs/);
+	const owned = Object.entries(options.sections).filter(([key]) => key.startsWith("pi_orchestraitor_"));
+	const characters = owned.reduce((sum, [, text]) => sum + text.length, 0);
+	assert.deepEqual(owned.map(([key]) => key), ["pi_orchestraitor_core", "pi_orchestraitor_personality"]);
+	assert.ok(characters <= INSTRUCTIONS_BUDGET, `${characters} > ${INSTRUCTIONS_BUDGET}`);
 });
 
 test("shouldKeepOnePersonalitySectionWhenTheInstructionsExtensionIsReloaded", async (t) => {
@@ -94,29 +90,28 @@ test("shouldKeepOnePersonalitySectionWhenTheInstructionsExtensionIsReloaded", as
 });
 
 const READ_WHOLE_DOCS = "- Always read pi .md files completely and follow links to related docs";
-const READ_RELEVANT_DOCS = "- In pi .md files, list the headings first, then read the relevant sections completely and follow links to related docs";
 
 /** Mirror Pi's runner: every read renders the options as earlier handlers left them. */
-function startEvent(options, render = () => buildSystemPrompt(options)) {
+function startEvent(options) {
 	return { type: "before_agent_start", messageType: "user", prompt: "Explain pi extensions", systemPromptOptions: options,
-		get systemPrompt() { return render(); } };
+		get systemPrompt() { return buildSystemPrompt(options); } };
 }
 
 async function ownedSections() {
 	return {
 		pi_orchestraitor_core: await readFile(join(packageRoot, "instructions/core.md"), "utf8"),
-		pi_orchestraitor_execution: await readFile(join(packageRoot, "instructions/orchestraitor.md"), "utf8"),
 		pi_orchestraitor_personality: await readFile(join(packageRoot, "instructions/personality.md"), "utf8"),
 	};
 }
 
-test("shouldNarrowOnlyPiDocsReadingRuleInPlaceWhenPiRendersItsNativeDocs", async (t) => {
+test("shouldKeepNativeDocsOutOfCustomSectionsWhenAddingOwnedInstructions", async (t) => {
 	// Given
 	const cwd = await createWorkspace(t);
 	const loaded = await loadExtensions([join(packageRoot, "extensions/instructions.ts")], cwd);
 	assert.deepEqual(loaded.errors, []);
 	const options = normalizeBuildSystemPromptOptions({ cwd, selectedTools: ["read"], sections: { other_extension: "Keep this" } });
-	const native = buildSystemPrompt(options);
+	const original = structuredClone(options);
+	const nativeDocs = buildSystemPromptSections(options).docs;
 	const event = startEvent(options);
 	// When
 	const results = [];
@@ -124,25 +119,33 @@ test("shouldNarrowOnlyPiDocsReadingRuleInPlaceWhenPiRendersItsNativeDocs", async
 		for (const handler of loaded.extensions[0].handlers.get("before_agent_start")) results.push(await handler(event, { cwd, mode: "tui" }));
 	}
 	// Then
-	const prompt = buildSystemPrompt(options);
-	const expected = buildSystemPrompt(normalizeBuildSystemPromptOptions({ cwd, selectedTools: ["read"],
-		sections: { other_extension: "Keep this", ...await ownedSections() } })).replace(READ_WHOLE_DOCS, READ_RELEVANT_DOCS);
-	// Drift guard: Pi still renders the exact rule this extension narrows.
-	assert.equal(native.split(READ_WHOLE_DOCS).length, 2);
-	assert.deepEqual({ results, docsSections: prompt.split("<docs>").length - 1, narrowed: prompt.includes(READ_RELEVANT_DOCS) },
-		{ results: [undefined, undefined], docsSections: 1, narrowed: true });
-	assert.equal(prompt, expected);
+	assert.deepEqual({ options, results, docs: buildSystemPromptSections(options).docs,
+		docsSections: buildSystemPrompt(options).split("<docs>").length - 1 }, {
+		options: { ...original, sections: { ...original.sections, ...await ownedSections() } },
+		results: [undefined, undefined], docs: nativeDocs, docsSections: 1,
+	});
 });
 
-test("shouldKeepPiDocsSectionWhenItsReadingRuleChanges", async (t) => {
+test("shouldPreserveCustomDocsWhenAnotherExtensionProvidesThem", async (t) => {
 	// Given
 	const cwd = await createWorkspace(t);
 	const loaded = await loadExtensions([join(packageRoot, "extensions/instructions.ts")], cwd);
 	assert.deepEqual(loaded.errors, []);
-	const options = normalizeBuildSystemPromptOptions({ cwd, selectedTools: ["read"] });
-	const event = startEvent(options, () => buildSystemPrompt(options).replace(READ_WHOLE_DOCS, "- Read pi .md files as needed"));
+	const options = normalizeBuildSystemPromptOptions({ cwd, selectedTools: ["read"],
+		sections: { docs: `External documentation guidance\n${READ_WHOLE_DOCS}` } });
+	const original = structuredClone(options);
+	const event = startEvent(options);
 	// When
 	for (const handler of loaded.extensions[0].handlers.get("before_agent_start")) await handler(event, { cwd, mode: "print" });
 	// Then
-	assert.deepEqual(options.sections, await ownedSections());
+	assert.deepEqual(options, { ...original, sections: { ...original.sections, ...await ownedSections() } });
+});
+
+test("shouldPreferRelevantSectionsOverWholeFilesWhenCoreGuidanceIsLoaded", async () => {
+	// Given
+	const path = join(packageRoot, "instructions/core.md");
+	// When
+	const instructions = await readFile(path, "utf8");
+	// Then
+	assert.match(instructions, /For Pi Markdown docs, this overrides whole-file guidance: read the headings, then the relevant sections completely, and follow links to related docs\./);
 });

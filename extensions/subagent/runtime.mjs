@@ -7,7 +7,9 @@ const CHILD_SYSTEM_PROMPT = "You are a bounded child worker. Follow the assigned
 export async function createChildRuntime(sdk, manifest, digest, report, temporary, modelRuntime) {
 	validateManifest(manifest);
 	const model = selectModel(manifest.model, undefined, await modelRuntime.getAvailable());
-	const settingsManager = sdk.SettingsManager.inMemory({ retry: { enabled: false }, compaction: { enabled: false } });
+	// Pi's own transient-error retry: bridged provider errors keep their text, so Pi
+	// classifies them as in the parent. Two attempts after 2 and 4 s; RPC abort cancels the wait.
+	const settingsManager = sdk.SettingsManager.inMemory({ retry: { enabled: true, maxRetries: 2, baseDelayMs: 2000 }, compaction: { enabled: false } });
 	return sdk.createAgentSessionRuntime(async () => {
 		const services = await sdk.createAgentSessionServices({ cwd: manifest.cwd, agentDir: temporary, settingsManager, modelRuntime,
 			resourceLoaderOptions: {

@@ -22,13 +22,13 @@ test("shouldLockDevelopmentHostAndDenyUnreviewedBuildsWhenPnpmInstalls", async (
 	// Then
 	assert.deepEqual({ manager: manifest.packageManager, host: manifest.devDependencies[HOST_NAME], runtime: manifest.dependencies,
 		peer: manifest.peerDependencies[HOST_NAME], private: manifest.private },
-		{ manager: "pnpm@12.9.1", host: "1.2.0", runtime: { "beautiful-mermaid": "1.1.3" }, peer: "*", private: true });
+		{ manager: "pnpm@12.9.1", host: "1.3.0", runtime: { "@vscode/ripgrep": "1.18.0", "beautiful-mermaid": "1.1.3" }, peer: "*", private: true });
 	assert.deepEqual(policy, { autoInstallPeers: false, minimumReleaseAge: 1440,
-		minimumReleaseAgeExclude: ["@earendil-works/pi-agent-core@1.2.0", "@earendil-works/pi-ai@1.2.0", "@earendil-works/pi-codemode@1.2.0", "@earendil-works/pi-coding-agent@1.2.0", "@earendil-works/pi-mcp@1.2.0", "@earendil-works/pi-telemetry@1.2.0", "@earendil-works/pi-tui@1.2.0"],
+		minimumReleaseAgeExclude: ["@earendil-works/pi-agent-core@1.3.0", "@earendil-works/pi-ai@1.3.0", "@earendil-works/pi-codemode@1.3.0", "@earendil-works/pi-coding-agent@1.3.0", "@earendil-works/pi-mcp@1.3.0", "@earendil-works/pi-telemetry@1.3.0", "@earendil-works/pi-tui@1.3.0"],
 		blockExoticSubdeps: true, strictDepBuilds: true,
 		allowBuilds: { "@google/genai@2.21.0": false, "esbuild@0.28.2": false, "protobufjs@7.6.6": false } });
-	assert.equal(projectLock.importers["."].devDependencies[HOST_NAME].specifier, "1.2.0");
-	assert.match(projectLock.importers["."].devDependencies[HOST_NAME].version, /^1\.2\.0(?:\(|$)/);
+	assert.equal(projectLock.importers["."].devDependencies[HOST_NAME].specifier, "1.3.0");
+	assert.match(projectLock.importers["."].devDependencies[HOST_NAME].version, /^1\.3\.0(?:\(|$)/);
 	assert.equal(managerLock.importers["."].packageManagerDependencies.pnpm.version, "12.9.1");
 	assert.ok(Object.values(projectLock.packages).every((pkg) => /^sha512-/.test(pkg.resolution.integrity)));
 });
@@ -46,6 +46,8 @@ test("shouldUseFrozenLocalHostAndPinnedActionsWhenCiRuns", async () => {
 	assert.equal(workflow.jobs.test["runs-on"], "ubuntu-24.04");
 	assert.deepEqual(workflow.jobs.test.strategy.matrix.node, ["22.19.0", "24.20.0"]);
 	assert.deepEqual(workflow.permissions, { contents: "read" });
+	// Each pull request commit runs once; pushes run only on long-lived branches.
+	assert.deepEqual(workflow.on, { push: { branches: ["main", "develop"] }, pull_request: null, workflow_dispatch: null });
 	assert.equal(actions.length, 3);
 	assert.ok(actions.every(({ uses }) => /@[a-f0-9]{40}$/.test(uses)));
 	assert.deepEqual(actions[0].with, { "persist-credentials": false, "fetch-depth": 2 });

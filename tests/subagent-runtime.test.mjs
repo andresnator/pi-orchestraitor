@@ -108,6 +108,7 @@ test("shouldRestrictNativeWritesAndRecursiveSearchWhenGuardToolsExecute", async 
 	const outside = await realpath(await createWorkspace(t));
 	await writeFile(join(outside, "secret"), "needle SECRET");
 	await writeFile(join(cwd, "target"), "needle safe");
+	await writeFile(join(cwd, "second"), "needle second");
 	await symlink(outside, join(cwd, "escape"));
 	const reports = [];
 	const runtime = await createChildRuntime(pi, manifest, "digest", (message) => reports.push(message), temporary, modelRuntime);
@@ -119,9 +120,8 @@ test("shouldRestrictNativeWritesAndRecursiveSearchWhenGuardToolsExecute", async 
 	// When
 	const search = await tools.get("search").execute("search", { text: "needle" }, undefined, undefined, ctx);
 	const fileSearch = await tools.get("search").execute("files", { text: "needle", mode: "files", limit: 1 }, undefined, undefined, ctx);
-	assert.match(fileSearch.content[0].text, /target/);
-	assert.doesNotMatch(fileSearch.content[0].text, /:1:/);
-	assert.match(fileSearch.content[0].text, /truncated/);
+	// ripgrep searches files in parallel, so either file may come first.
+	assert.match(fileSearch.content[0].text, /^(?:target|second)\n\[Search truncated: 1-file limit; pass limit for more\]$/);
 	await assert.rejects(tools.get("search").execute("bad", { text: "needle", limit: 0 }, undefined, undefined, ctx), /limit/);
 	await tools.get("write").execute("write", { path: "target", content: "new" }, undefined, undefined, ctx);
 	// Then

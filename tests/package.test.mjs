@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { copyFile, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
@@ -15,13 +15,13 @@ const EXPECTED_PROMPTS = ["absorb", "orchestraitor", "plan", "review"];
 const PROVENANCE = JSON.parse(await readFile(join(packageRoot, "docs/skills-provenance.json"), "utf8"));
 const EXPECTED_FILES = [
 	"LICENSE", "README.md", "THIRD_PARTY_NOTICES.md", "package.json",
-	"extensions/compact-tools.ts", "extensions/context-budget.ts", "extensions/instructions.ts", "extensions/mcp.ts", "extensions/nan.ts", "extensions/subagents.ts",
+	"extensions/compact-tools.ts", "extensions/context-budget.ts", "extensions/auto-compact.ts", "extensions/instructions.ts", "extensions/mcp.ts", "extensions/nan.ts", "extensions/pretty-theme.ts", "extensions/pretty/theme.mjs", "extensions/provider-options.mjs", "extensions/subagents.ts",
 	...["index", "context", "conversation", "markdown", "popup", "status", "transcript", "types"].map((name) => `extensions/btw/${name}.ts`),
-	"extensions/skill-registry.ts", "extensions/skills/sources.mjs", "extensions/skills/registry.mjs", "extensions/skills/store.mjs", "extensions/skills/types.ts",
-	"extensions/status-ui.ts", "extensions/ui/display.ts", "extensions/ui/agents.ts", "extensions/ui/tasks.ts", "extensions/ui/task-view.ts", "extensions/ui/questions.ts", "extensions/ui/cache-notice.ts",
+	"extensions/skill-registry.ts", "extensions/skills/sources.mjs", "extensions/skills/registry.mjs", "extensions/skills/types.ts",
+	"extensions/status-ui.ts", "extensions/footer.ts", "extensions/ui/footer.ts", "extensions/quota.ts", "extensions/ui/quota.ts", "extensions/ui/display.ts", "extensions/ui/agents.ts", "extensions/ui/questions.ts", "extensions/ui/cache-notice.ts",
 	"extensions/models/store.mjs", "extensions/models/panel.mjs", "extensions/models/selector.ts", "extensions/subagent/bridge.mjs", "extensions/subagent/background.mjs",
 	"extensions/subagent/child.mjs", "extensions/subagent/controller.mjs", "extensions/subagent/guard.mjs", "extensions/subagent/policy.mjs", "extensions/subagent/runtime.mjs",
-	"instructions/core.md", "instructions/orchestraitor.md", "instructions/personality.md",
+	"instructions/core.md", "instructions/personality.md",
 	"scripts/install-pi.mjs", "scripts/pi-host.mjs", "scripts/skill-migration.mjs", "scripts/check-personality.mjs", "scripts/bench.mjs", "scripts/usage-report.mjs",
 	"scripts/skill-inventory.mjs", "scripts/package-registration.mjs", "scripts/pretty-config.mjs",
 	"docs/btw.md", "docs/nan.md", "docs/usage.md", "docs/skills.md", "docs/skills-provenance.json", "docs/verification.md", "docs/subagents.md", "docs/interactive-ui.md", "docs/performance.md", "docs/pi-pretty.md", "docs/manual-package-check.md",
@@ -79,8 +79,8 @@ test("shouldLoadPromptsAndExtensionsWhenExplicitPackageBypassesDiscovery", async
 		prompts: loader.getPrompts().prompts.map(({ name }) => name).sort(),
 		skills: loader.getSkills().skills.length,
 	}, {
-		extensions: ["compact-tools.ts", "context-budget.ts", "index.ts", "instructions.ts", "mcp.ts", "nan.ts", "skill-registry.ts", "status-ui.ts", "subagents.ts"],
-		errors: [], prompts: EXPECTED_PROMPTS, skills: 57,
+		extensions: ["auto-compact.ts", "compact-tools.ts", "context-budget.ts", "footer.ts", "index.ts", "instructions.ts", "mcp.ts", "nan.ts", "pretty-theme.ts", "quota.ts", "skill-registry.ts", "status-ui.ts", "subagents.ts"],
+		errors: [], prompts: EXPECTED_PROMPTS, skills: 37,
 	});
 });
 
@@ -133,13 +133,18 @@ test("shouldLoadOnlyPackagedResourcesWhennpmTarballIsExtractedElsewhere", async 
 	}, {
 		files: EXPECTED_FILES, errors: [], prompts: EXPECTED_PROMPTS,
 		skills: PROVENANCE.skills.map(({ name }) => name).sort(), skillDiagnostics: [],
-		active: ["read", "bash", "edit", "write", "subagent_collect", "subagent_run", "orchestraitor_tasks", "orchestraitor_ask", "skill_registry"], prefix: "Host instructions",
-		preservedSection: "Project-specific instructions", theme: "system", dependencies: { "beautiful-mermaid": "1.1.3" },
+		active: ["read", "bash", "edit", "write", "subagent_collect", "subagent_run", "orchestraitor_ask", "skill_registry"], prefix: "Host instructions",
+		preservedSection: "Project-specific instructions", theme: "system", dependencies: { "@vscode/ripgrep": "1.18.0", "beautiful-mermaid": "1.1.3" },
 		peers: { "@earendil-works/pi-ai": "*", "@earendil-works/pi-coding-agent": "*", "@earendil-works/pi-tui": "*", typebox: "*" },
 		nanProvider: "NaN", nanModels: ["deepseek-v4-flash", "glm5.3-flash", "qwen3.8-flash", "mimo-v2.6-flash", "gemma4", "qwen3.6", "glm5.3"],
 	});
 	// Native extensions must work under node_modules, including spaces.
 	assert.ok(packed.files.every(({ path }) => !path.startsWith("herdr/") && !path.includes("workbench")));
+	// The child search resolves the locked ripgrep binary from the extracted package's own dependencies.
+	const { resolveRipgrep } = await import(pathToFileURL(join(extracted, "extensions/subagent/guard.mjs")).href);
+	const rgPath = await resolveRipgrep();
+	assert.ok(rgPath?.startsWith(await realpath(extracted)), rgPath);
+	assert.match(execFileSync(rgPath, ["--version"], { encoding: "utf8" }), /^ripgrep /);
 	// The extracted bootstrap must resolve its sibling guard/runtime files without repo imports.
 	const { BatchController } = await import(pathToFileURL(join(extracted, "extensions/subagent/controller.mjs")).href);
 	const { hostRoot } = await import("./helpers/pi-host.mjs");
@@ -150,9 +155,9 @@ test("shouldLoadOnlyPackagedResourcesWhennpmTarballIsExtractedElsewhere", async 
 	}], () => "No model call is allowed");
 	assert.deepEqual({ status: childResult.status, terminated: childResult.terminated }, { status: "failed", terminated: true });
 	assert.match(childResult.diagnostic, /Model unavailable/);
-	assert.match(result.systemPromptOptions.sections.pi_orchestraitor_execution, /Orchestraitor/);
+	assert.match(result.systemPromptOptions.sections.pi_orchestraitor_core, /Personal harness rules/);
 	assert.match(result.systemPromptOptions.sections.pi_orchestraitor_personality, /Colombian software architect/);
-	assert.equal(PROVENANCE.skills.length, 57);
+	assert.equal(PROVENANCE.skills.length, 37);
 	for (const skill of PROVENANCE.skills) {
 		for (const resource of skill.resources) {
 			const bytes = await readFile(join(extracted, "skills", skill.name, resource.path));
@@ -205,6 +210,6 @@ test("shouldAvoidDoubleRegistrationWhenOriginalGlobalExtensionIsExcluded", async
 		errors,
 	}, {
 		compactPaths: [join(packageRoot, "extensions/compact-tools.ts")],
-		tools: ["bash", "edit", "orchestraitor_ask", "orchestraitor_tasks", "read", "skill_registry", "subagent_collect", "subagent_run", "write"], errors: [],
+		tools: ["orchestraitor_ask", "skill_registry", "subagent_collect", "subagent_run"], errors: [],
 	});
 });

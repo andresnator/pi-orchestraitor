@@ -52,6 +52,23 @@ test("shouldReplayOnlyBranchOutcomesAndLimitHistoryWhenSessionChanges", async (t
 		{ previousCount: 20, limited: true, branchIds: ["branch"], live: [], nestedUnavailable: true });
 });
 
+test("shouldKeepEveryChildOutcomeWhenAFullBatchFinishesOrReplays", async (t) => {
+	// Given
+	const { createAgentsProjection } = await loadUiModule(t, "extensions/ui/agents.ts");
+	const view = createAgentsProjection();
+	const ids = Array.from({ length: 10 }, (_, index) => `child-${index}`);
+	const results = ids.map((id) => ({ id, role: "explore", status: "completed", terminated: true }));
+	// When
+	view.start("call/1", ids.map((id) => ({ role: "explore", instruction: id })));
+	view.finish("call/1", { details: { results } });
+	const finished = view.snapshot().recent;
+	view.replay([{ type: "message", message: { role: "toolResult", toolName: "subagent_run", toolCallId: "call/2", details: { results } } }]);
+	const replayed = view.snapshot().recent;
+	// Then
+	assert.deepEqual([finished, replayed].map((rows) => rows.map(({ id, phase }) => `${id}:${phase}`)),
+		[ids.map((id) => `${id}:completed`), ids.map((id) => `${id}:completed`)]);
+});
+
 test("shouldClassifyStoppingAsLiveAndUnconfirmedExitAsFailureWhenProjecting", async (t) => {
 	// Given
 	const { classifyAgent } = await loadUiModule(t, "extensions/ui/agents.ts");
@@ -82,6 +99,17 @@ test("shouldFollowAcceptedControllerBatchWhenPreparationOrderReverses", async (t
 	assert.deepEqual({ live: view.snapshot().live.map(({ id }) => id),
 		recent: view.snapshot().recent.map(({ phase, diagnostic }) => ({ phase, diagnostic })) },
 		{ live: ["accepted-child"], recent: [{ phase: "failed", diagnostic: "A subagent batch is already active" }] });
+});
+
+test("shouldRecordUnavailableOutcomeWhenFinishedResultContentIsNotAnArray", async (t) => {
+	// Given
+	const { createAgentsProjection } = await loadUiModule(t, "extensions/ui/agents.ts");
+	const view = createAgentsProjection();
+	view.start("call/1", [{ role: "explore", instruction: "inspect" }]);
+	// When
+	view.finish("call/1", { content: "Provider failed" }, true);
+	// Then
+	assert.deepEqual(view.snapshot().recent.map(({ phase, diagnostic }) => ({ phase, diagnostic })), [{ phase: "failed", diagnostic: "Outcome unavailable" }]);
 });
 
 test("shouldReplayNativeLaunchFailureWithoutInventingChildEvidenceWhenReceiptIsAnError", async (t) => {
@@ -246,3 +274,24 @@ test("replaying a partial mixed receipt does not assign another task's instructi
 	]);
 	assert.equal(view.snapshot().recent[0].label, "Assignment unavailable");
 });
+
+// Pi persists rejected arguments verbatim and reports raw arguments before validating them.
+for (const [scenario, tasks, role, liveLabel = "Assignment unavailable"] of [["String", "explore", "unavailable"], ["Object", { role: "explore", instruction: "inspect" }, "unavailable", "inspect"],
+	["NullEntry", [null], "unavailable"], ["NonStringInstruction", [{ role: "explore", instruction: { text: "inspect" } }], "explore"]]) {
+	test(`shouldReplayRejectedLaunchAsFailedRowWhenPersistedTasksAre${scenario}`, async (t) => {
+		// Given
+		const { createAgentsProjection } = await loadUiModule(t, "extensions/ui/agents.ts");
+		const view = createAgentsProjection();
+		const branch = [
+			{ type: "message", message: { role: "assistant", content: [{ type: "toolCall", id: "rejected", name: "subagent_run", arguments: { tasks } }] } },
+			{ type: "message", message: { role: "toolResult", toolName: "subagent_run", toolCallId: "rejected", isError: true, content: [{ type: "text", text: "Validation failed" }] } },
+		];
+		// When
+		view.replay(branch, "session", false);
+		view.start("live", Array.isArray(tasks) ? tasks : [tasks]);
+		// Then
+		const { recent, live } = view.snapshot();
+		assert.deepEqual({ rows: recent.map(({ phase, role, label, diagnostic }) => ({ phase, role, label, diagnostic })), live: live.map(({ phase, label }) => ({ phase, label })) },
+			{ rows: [{ phase: "failed", role, label: "Assignment unavailable", diagnostic: "Validation failed" }], live: [{ phase: "preparing", label: liveLabel }] });
+	});
+}

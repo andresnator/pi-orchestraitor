@@ -22,17 +22,19 @@ function response(model, value, usage = zero, stopReason) {
 	return stream;
 }
 const call = (id, name, args) => [{ type: "toolCall", id, name, arguments: args }];
-async function fixture(t, { trusted = false, project, onParent, childContent = "Child evidence", tools = ["read", "subagent_run", "subagent_collect"], maxParentCalls = 7 } = {}) {
+async function fixture(t, { trusted = false, project, onParent, childContent = "Child evidence", childStopReason, tools = ["read", "subagent_run", "subagent_collect"], maxParentCalls = 7 } = {}) {
+	const parentContexts = [];
 	const cwd = await realpath(await createWorkspace(t)), agentDir = join(cwd, "agent");
 	if (project !== undefined) { await mkdir(join(cwd, ".pi")); await writeFile(paths(agentDir, cwd).project, typeof project === "string" ? project : JSON.stringify(project)); }
 	const eventBus = pi.createEventBus(), childDone = deferred(), childProviders = [], errors = [];
-	eventBus.on("orchestraitor:subagent-progress", event => { if (event.tasks.some(task => task.phase === "completed")) childDone.resolve(); });
+	eventBus.on("orchestraitor:subagent-progress", event => { if (event.tasks.some(task => ["completed", "failed"].includes(task.phase))) childDone.resolve(); });
 	const modelRuntime = await pi.ModelRuntime.create({ authPath: join(agentDir, "auth.json"), modelsPath: null, refreshOnCreate: false });
 	let parentCalls = 0;
 	for (const provider of ["trust-parent", "trust-project", "trust-personal"]) modelRuntime.registerProvider(provider, { api: "openai-completions", baseUrl: "https://example.invalid", apiKey: "local", models: [modelConfig],
 		streamSimple(model, context) {
-			if (JSON.stringify(context.messages[0]).includes("bounded child worker")) { childProviders.push(provider); return response(model, childContent, childUsage); }
+			if (JSON.stringify(context.messages[0]).includes("bounded child worker")) { childProviders.push(provider); return response(model, childContent, childUsage, childStopReason); }
 			const turn = parentCalls++;
+			parentContexts.push(JSON.stringify(context.messages));
 			// Reproductions must remain finite even if the pre-fix boundary loops forever.
 			if (turn >= maxParentCalls) return response(model, "Fixture stops unbounded continuation", zero, "aborted");
 			return response(model, onParent ? onParent(turn, childDone.promise) : turn === 0 ? call("launch", "subagent_run", { tasks: [{ role: "explore", instruction: "Inspect fixture" }] }) : "Parent verified");
@@ -45,7 +47,7 @@ async function fixture(t, { trusted = false, project, onParent, childContent = "
 		tools, sessionManager: pi.SessionManager.create(cwd, join(agentDir, "sessions")) });
 	t.after(async () => { await session.abort(); await session.extensionRunner.emit({ type: "session_shutdown" }); session.dispose(); });
 	await session.bindExtensions({ mode: "print", onError: error => errors.push(error) });
-	return { cwd, session, childProviders, errors, childDone, get parentCalls() { return parentCalls; } };
+	return { cwd, session, childProviders, errors, childDone, parentContexts, get parentCalls() { return parentCalls; } };
 }
 
 for (const trusted of [false, true]) test(`native delegation ${trusted ? "applies" : "ignores"} project provider assignments according to Pi trust`, async t => {
@@ -56,6 +58,31 @@ for (const trusted of [false, true]) test(`native delegation ${trusted ? "applie
 	assert.deepEqual(f.errors, []);
 });
 
+test("a trusted profile limits each role's parallel subagents, pending readers included", { timeout: 15000 }, async t => {
+	const f = await fixture(t, { trusted: true, project: { assignments: { explore: { parallel: 1 } } }, onParent(turn) {
+		if (turn === 0) return call("too-many", "subagent_run", { tasks: [{ role: "explore", instruction: "One" }, { role: "explore", instruction: "Two" }] });
+		if (turn === 1) return call("mixed", "subagent_run", { tasks: [{ role: "explore", instruction: "One" }, { role: "review", instruction: "Two" }] });
+		// Pi runs tool calls of one message in parallel; only one launch may reserve the single slot.
+		if (turn === 2) return ["a", "b"].flatMap(id => call(`background-${id}`, "subagent_run", { tasks: [{ role: "explore", instruction: `Three ${id}`, mode: "background" }] }));
+		if (turn === 3) return call("over-pending", "subagent_run", { tasks: [{ role: "explore", instruction: "Four" }] });
+		if (turn === 4) return call("wait", "subagent_collect", { action: "wait" });
+		return "Parent done";
+	} });
+	await f.session.prompt("Delegate within the profile limits");
+	const results = Object.fromEntries(f.session.sessionManager.getEntries().filter(entry => entry.type === "message" && entry.message.role === "toolResult")
+		.map(entry => [entry.message.toolCallId, entry.message]));
+	assert.equal(results["too-many"].isError, true);
+	assert.match(JSON.stringify(results["too-many"].content), /allows 1 explore subagent at once; requested 2.*\/models-profiles/);
+	assert.equal(results.mixed.isError, false, JSON.stringify(results.mixed.content));
+	const parallel = [results["background-a"], results["background-b"]];
+	assert.deepEqual(parallel.map(result => result.isError).sort(), [false, true], JSON.stringify(parallel.map(result => result.content)));
+	assert.match(JSON.stringify(parallel.find(result => result.isError).content), /allows 1 explore subagent at once; requested 1 with 1 pending/);
+	assert.match(JSON.stringify(results["over-pending"].content), /allows 1 explore subagent at once; requested 1 with 1 pending/);
+	assert.equal(results.wait.isError, false, JSON.stringify(results.wait.content));
+	assert.equal(f.childProviders.length, 3);
+	assert.deepEqual(f.errors, []);
+});
+
 test("untrusted malformed project configuration is never loaded", async t => {
 	const f = await fixture(t, { project: "INVALID JSON" });
 	await f.session.prompt("Delegate fixture exploration");
@@ -63,7 +90,7 @@ test("untrusted malformed project configuration is never loaded", async t => {
 	assert.deepEqual(f.errors, []);
 });
 
-test("a finished reader gets one automatic collection reminder, then remains manually recoverable", { timeout: 15000 }, async t => {
+test("a finished reader gets one finish notice and one automatic collection reminder, then remains manually recoverable", { timeout: 15000 }, async t => {
 	let manualCollection = false, collectionIssued = false;
 	const f = await fixture(t, { onParent(turn, finished) {
 		if (manualCollection && !collectionIssued) { collectionIssued = true; return call("manual-collect", "subagent_collect", { action: "collect" }); }
@@ -72,8 +99,10 @@ test("a finished reader gets one automatic collection reminder, then remains man
 		return "Parent still ignores collection";
 	} });
 	await f.session.prompt("Launch and answer without collecting");
-	assert.equal(f.parentCalls, 3, "Only the initial response and one reminder may request provider continuation");
+	assert.equal(f.parentCalls, 3, "The finish notice is context only: only the initial response and one reminder may request provider continuation");
 	const entries = f.session.sessionManager.getEntries();
+	assert.deepEqual(entries.filter(entry => entry.type === "custom_message" && entry.customType === "orchestraitor-subagent-finished").map(entry => entry.content),
+		[`Background subagents finished: ${[...recoverReceipts(entries).keys()][0]} (explore) completed. Call subagent_collect directly to retrieve them.`]);
 	assert.equal(entries.filter(entry => entry.type === "custom_message" && entry.customType === "orchestraitor-subagents-ready").length, 1);
 	assert.ok(entries.some(entry => entry.type === "custom_message" && entry.customType === "orchestraitor-subagents-uncollected" && /uncollected|pending/i.test(entry.content)));
 	const pending = recoverReceipts(entries);
@@ -88,6 +117,37 @@ test("a finished reader gets one automatic collection reminder, then remains man
 	assert.equal(f.session.getSessionStats().tokens.total, 300);
 	assert.equal(recoverReceipts(f.session.sessionManager.getEntries()).size, 0);
 	assert.equal(f.childProviders.length, 1);
+	assert.deepEqual(f.errors, []);
+});
+
+const finishNotices = entries => entries.filter(entry => entry.type === "custom_message" && entry.customType === "orchestraitor-subagent-finished").map(entry => entry.content);
+
+test("a failed background reader notifies the parent with its diagnostic before collection", { timeout: 15000 }, async t => {
+	const f = await fixture(t, { childStopReason: "aborted", onParent(turn, finished) {
+		if (turn === 0) return call("launch", "subagent_run", { tasks: [{ role: "explore", instruction: "Inspect fixture", mode: "background" }] });
+		if (turn === 1) return finished.then(() => call("work", "read", { path: "missing.txt" }));
+		if (turn === 2) return call("collect", "subagent_collect", { action: "collect" });
+		return "Parent handled the failure";
+	} });
+	await f.session.prompt("Launch a reader that fails");
+	const notices = finishNotices(f.session.sessionManager.getEntries());
+	assert.equal(notices.length, 1);
+	assert.match(notices[0], /^Background subagents finished: \S+ \(explore\) failed: .+\. Call subagent_collect directly to retrieve them\.$/);
+	assert.ok(f.parentContexts[2].includes("Background subagents finished:"), "The notice reaches the parent's next request in the same run");
+	assert.equal(recoverReceipts(f.session.sessionManager.getEntries()).size, 0);
+	assert.deepEqual(f.errors, []);
+});
+
+test("a covering wait returns a background reader without a finish notice", { timeout: 15000 }, async t => {
+	const release = deferred();
+	const f = await fixture(t, { childContent: release.promise.then(() => "Child evidence"), onParent(turn) {
+		if (turn === 0) return call("launch", "subagent_run", { tasks: [{ role: "explore", instruction: "Inspect fixture", mode: "background" }] });
+		if (turn === 1) { setTimeout(release.resolve, 100); return call("wait", "subagent_collect", { action: "wait" }); }
+		return "Parent verified";
+	} });
+	await f.session.prompt("Launch and wait for the reader");
+	assert.equal(f.session.getSessionStats().tokens.total, 300);
+	assert.deepEqual(finishNotices(f.session.sessionManager.getEntries()), []);
 	assert.deepEqual(f.errors, []);
 });
 

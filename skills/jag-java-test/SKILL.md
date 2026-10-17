@@ -4,11 +4,11 @@ description: "Create/retrofit Java JUnit, Mockito and AssertJ tests, including l
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
-  pi_adaptation: "2.0.0"
-  modification_notice: "Modified for Pi by pi-orchestraitor."
+  pi_adaptation: "2.1.0"
+  modification_notice: "Modified for Pi by pi-orchestraitor; dropped bundled legacy-testing textbook references."
   author: andresnator
   status: testing
-  version: "3.2.1"
+  version: "3.3.0"
 ---
 
 # Java Testing Skill
@@ -50,11 +50,11 @@ Before writing tests, inspect or ask for:
 |---|---|
 | Clean, injectable class needs tests | Use Simple Unit Tests below. |
 | Existing code has no tests but is easy to instantiate | Write characterization tests first, then improve. |
-| Constructor/static/global/framework dependencies block testing | Use `references/quick-decision-flow.md` and dependency-breaking references. |
+| Constructor/static/global/framework dependencies block testing | Use `references/quick-decision-flow.md` to pick the dependency-breaking technique. |
 | Dependency setup is missing or unclear | Read `references/dependency-setup.md` before adding imports or build snippets. |
-| Golden Master or ApprovalTests is needed | Read `references/characterization-tests.md`, then `references/approvaltests-setup.md` before creating baselines. |
-| Static/final mocking or captors are needed | Read `references/mockito-patterns.md` before choosing Mockito features. |
-| Large legacy cluster or unclear effect propagation | Read `references/advanced-patterns.md` for pinch points, effect sketches, and hot spots. |
+| Golden Master or ApprovalTests is needed | Read `references/approvaltests-setup.md` before creating baselines. |
+| Static/final mocking is needed | Prefer a seam; otherwise read the Static and Final Mocking section of `references/dependency-setup.md`. |
+| Large legacy cluster or unclear effect propagation | Sketch how effects propagate and anchor a temporary test at a pinch point before unit-level seams exist. |
 
 ## Execution Steps
 
@@ -92,19 +92,9 @@ Use `references/` to understand when and why to apply a technique. Use `assets/e
 
 | Reference | Load when |
 |---|---|
-| `references/dependency-setup.md` | Dependency setup or version compatibility is unclear. |
-| `references/mockito-patterns.md` | Mockito annotations, captors, verification, static/final mocking, or interaction boundaries are needed. |
-| `references/characterization-tests.md` | Existing behavior must be locked before modification, including Golden Master tests. |
+| `references/dependency-setup.md` | Dependency setup, version compatibility, or static/final mocking is unclear. |
 | `references/approvaltests-setup.md` | ApprovalTests setup or baseline workflow is needed. |
-| `references/seam-model.md` | Seams and enabling points must be classified before breaking dependencies. |
-| `references/dependency-breaking.md` | Constructor, interface, override, parameter adaptation, or global-reference techniques are needed. |
 | `references/quick-decision-flow.md` | The code is hard to test and you need a first route. |
-| `references/sensing-separation.md` | Decide whether the seam observes behavior or separates dependencies. |
-| `references/pass-null-subclass-override.md` | Pass Null, null object, subclass-and-override, or extract-and-override is the likely seam. |
-| `references/sprout-wrap-techniques.md` | Risky legacy additions call for Sprout Method/Class or Wrap Method/Class. |
-| `references/method-object-skin-wrap.md` | Long methods, API skin wrapping, or method-object extraction is needed. |
-| `references/tdd-legacy.md` | The task asks for TDD while modifying existing legacy Java. |
-| `references/advanced-patterns.md` | Pinch points, effect sketches, God classes, hot spots, or scratch refactoring are needed. |
 | `assets/examples/ExampleServiceTest.java` | Service test template with JUnit 5, Mockito, and AssertJ. |
 | `assets/examples/ExampleConfigTest.java` | Configuration/value-object style example. |
 | `assets/examples/ExampleHandlerTest.java` | Handler/controller collaborator example. |

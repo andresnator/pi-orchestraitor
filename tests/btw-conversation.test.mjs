@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it, mock } from "node:test";
 import {
-	SideConversation, CHAT_STATUS, CANCELLED_RESPONSE_TEXT, FAILED_RESPONSE_TEXT,
-	TRUNCATED_RESPONSE_TEXT, TOOL_REQUEST_TEXT, firstQuestion, waitFor,
+	SideConversation, CHAT_STATUS, CANCELLED_RESPONSE_TEXT, EMPTY_RESPONSE_TEXT, FAILED_RESPONSE_TEXT,
+	TRUNCATED_RESPONSE_TEXT, TOOL_REQUEST_TEXT, firstQuestion, latestAnswer, waitFor,
 } from "./helpers/btw-harness.mjs";
 
 const MODEL = { id: "main-model", provider: "test", reasoning: true };
@@ -15,14 +15,18 @@ const response = {
 	responseId: "provider-continuation", deferred: { id: "deferred-handle" },
 };
 const events = () => (async function* () { yield { type: "done", message: response, reason: "stop" }; })();
+const failure = (errorMessage) => () => (async function* () {
+	yield { type: "error", reason: "error", error: { ...response, content: [], stopReason: "error", errorMessage } };
+})();
 
 function fixture(streamSimple = mock.fn(events)) {
 	const context = { systemPrompt: "Main instructions", messages: [user("Main question")], tools: [] };
 	const ctx = { model: MODEL, thinkingLevel: "high", modelRegistry: { streamSimple }, sessionManager: { getSessionId: () => PARENT_SESSION } };
 	const changed = mock.fn();
-	const conversation = new SideConversation(ctx, context);
+	const requestOptions = mock.fn(() => ({}));
+	const conversation = new SideConversation(ctx, context, requestOptions);
 	conversation.onChange = changed;
-	return { conversation, context, streamSimple, changed, ctx };
+	return { conversation, context, streamSimple, changed, ctx, requestOptions };
 }
 
 function blockedFixture() {
@@ -49,13 +53,13 @@ describe("temporary conversation", () => {
 		assert.deepEqual(second[1].messages.map(message => message.content), [
 			user("Main question").content, firstQuestion("First question"), response.content, user("Follow up").content,
 		]);
-		// The provider's default retention, as for the parent, so follow-ups and the parent prefix hit the cache.
+		// Keep the provider's default retention and stable side-session affinity for follow-ups.
 		assert.deepEqual({ tools: second[1].tools, sessionId: second[2].sessionId, cacheRetention: second[2].cacheRetention },
 			{ tools: [], sessionId: first[2].sessionId, cacheRetention: undefined });
 		assert.partialDeepStrictEqual(second[1].messages[2], { responseId: undefined, deferred: undefined, content: response.content });
 	});
 
-	it("shouldShareThePromptCacheButNotTheConnectionOfTheParentSession", async () => {
+	it("shouldKeepItsOwnProviderSessionWhenTheParentSessionChanges", async () => {
 		// Given
 		const { conversation, streamSimple, ctx } = fixture();
 		// When
@@ -63,27 +67,49 @@ describe("temporary conversation", () => {
 		ctx.sessionManager.getSessionId = () => "parent-after-switch";
 		await conversation.send("Segunda pregunta");
 		// Then
+		const sideSession = streamSimple.mock.calls[0].arguments[2].sessionId;
+		assert.equal(typeof sideSession, "string");
+		assert.ok(sideSession.length > 0);
+		assert.notEqual(sideSession, PARENT_SESSION);
+		assert.notEqual(sideSession, "parent-after-switch");
 		assert.deepEqual(streamSimple.mock.calls.map(call => [call.arguments[2].sessionId, call.arguments[2].transport]),
-			[[PARENT_SESSION, "sse"], ["parent-after-switch", "sse"]]);
+			[[sideSession, "sse"], [sideSession, "sse"]]);
 	});
 
-	it("shouldUseLowThinkingUntilShiftTabSelectsInheritOrOff", async () => {
+	it("shouldLeaveParentProviderHistoryUntouchedWhenTheProviderPersistsSessions", async () => {
+		// Given
+		const parentHistory = [user("Main question"), response];
+		const providerSessions = new Map([[PARENT_SESSION, structuredClone(parentHistory)]]);
+		// A provider may persist by sessionId regardless of the requested transport.
+		const streamSimple = mock.fn((_model, context, options) => {
+			providerSessions.set(options.sessionId, structuredClone(context.messages));
+			return events();
+		});
+		const { conversation } = fixture(streamSimple);
+		// When
+		await conversation.send("Private question");
+		conversation.dispose();
+		// Then
+		assert.deepEqual(providerSessions.get(PARENT_SESSION), parentHistory);
+		assert.equal(providerSessions.size, 2);
+	});
+
+	it("shouldInheritThinkingUntilShiftTabSelectsOffOrLow", async () => {
 		// Given
 		const { conversation, streamSimple, ctx } = fixture();
 		// When
-		await conversation.send("Default");
-		conversation.cycleThinking();
-		ctx.model = OTHER_MODEL;
 		await conversation.send("Inherited");
+		ctx.model = OTHER_MODEL;
 		ctx.thinkingLevel = "medium";
 		await conversation.send("Inherited after a parent change");
 		conversation.cycleThinking();
 		await conversation.send("Off");
 		conversation.cycleThinking();
+		await conversation.send("Low");
 		// Then
 		assert.deepEqual(streamSimple.mock.calls.map(({ arguments: [model, , options] }) => ({ model: model.id, reasoning: options.reasoning })), [
-			{ model: MODEL.id, reasoning: "low" }, { model: OTHER_MODEL.id, reasoning: "high" },
-			{ model: OTHER_MODEL.id, reasoning: "medium" }, { model: OTHER_MODEL.id, reasoning: undefined },
+			{ model: MODEL.id, reasoning: "high" }, { model: OTHER_MODEL.id, reasoning: "medium" },
+			{ model: OTHER_MODEL.id, reasoning: undefined }, { model: OTHER_MODEL.id, reasoning: "low" },
 		]);
 		assert.deepEqual({ thinking: conversation.thinking, parent: ctx.thinkingLevel }, { thinking: "low", parent: "medium" });
 	});
@@ -217,6 +243,72 @@ describe("temporary conversation", () => {
 		});
 	}
 
+	it("shouldRetryATransientProviderErrorBeforeAnyAnswerText", async () => {
+		// Given
+		const streamSimple = mock.fn(events);
+		streamSimple.mock.mockImplementationOnce(failure("429 Too Many Requests"));
+		const { conversation, requestOptions } = fixture(streamSimple);
+		conversation.retryPolicy = { maxRetries: 2, baseDelayMs: 1 };
+		// When
+		await conversation.send("Question");
+		// Then
+		const sessionId = streamSimple.mock.calls[0].arguments[2].sessionId;
+		assert.notEqual(sessionId, PARENT_SESSION);
+		assert.deepEqual({ streamSessions: streamSimple.mock.calls.map(call => call.arguments[2].sessionId),
+			optionSessions: requestOptions.mock.calls.map(call => call.arguments) },
+			{ streamSessions: [sessionId, sessionId], optionSessions: [[MODEL, sessionId]] });
+		assert.deepEqual({ status: conversation.status, turns: conversation.turns.map(({ answer, note }) => ({ answer, note })) },
+			{ status: CHAT_STATUS.ready, turns: [{ answer: "Answer", note: undefined }] });
+	});
+
+	for (const errorMessage of ["429 insufficient_quota: check your plan and billing details", "500 Internal error: prompt is too long: 213462 tokens > 200000 maximum"]) {
+		it(`shouldFailFastWhenTheProviderErrorIsNotTransient: ${errorMessage.slice(0, 24)}`, async () => {
+			// Given
+			const streamSimple = mock.fn(failure(errorMessage));
+			const { conversation } = fixture(streamSimple);
+			conversation.retryPolicy = { maxRetries: 2, baseDelayMs: 1 };
+			// When
+			await conversation.send("Question");
+			// Then
+			assert.deepEqual({ requests: streamSimple.mock.calls.length, status: conversation.status, note: conversation.turns[0].note },
+				{ requests: 1, status: CHAT_STATUS.error, note: errorMessage });
+		});
+	}
+
+	it("shouldStopRetryingWhenCancelledDuringBackoff", async () => {
+		// Given
+		const streamSimple = mock.fn(failure("503 Service Unavailable"));
+		const { conversation } = fixture(streamSimple);
+		conversation.retryPolicy = { maxRetries: 2, baseDelayMs: 60_000 };
+		const running = conversation.send("Question");
+		await waitFor(() => assert.match(conversation.turns[0].note ?? "", /Retrying \(1\/2\) in 60s/));
+		// When
+		conversation.cancel();
+		await running;
+		// Then
+		assert.deepEqual({ requests: streamSimple.mock.calls.length, busy: conversation.busy, status: conversation.status, note: conversation.turns[0].note },
+			{ requests: 1, busy: false, status: CHAT_STATUS.cancelled, note: CANCELLED_RESPONSE_TEXT });
+	});
+
+	it("shouldKeepAnEmptyAnswerOutOfTheSideHistoryAndClipboard", async () => {
+		// Given
+		const streamSimple = mock.fn(events);
+		streamSimple.mock.mockImplementationOnce(() => (async function* () {
+			yield { type: "done", message: { ...response, content: [{ type: "thinking", thinking: "Only thoughts" }] }, reason: "stop" };
+		})());
+		const { conversation } = fixture(streamSimple);
+		// When
+		await conversation.send("Empty");
+		const latest = (() => { try { return latestAnswer(conversation.turns); } catch (error) { return error.message; } })();
+		await conversation.send("Next");
+		// Then
+		assert.equal(latest, "The side conversation has no answers yet.");
+		assert.deepEqual(conversation.turns.map(({ answer, note }) => ({ answer, note })),
+			[{ answer: "", note: EMPTY_RESPONSE_TEXT }, { answer: "Answer", note: undefined }]);
+		assert.deepEqual(streamSimple.mock.calls[1].arguments[1].messages.map(message => message.content),
+			[user("Main question").content, firstQuestion("Empty"), user("Next").content]);
+	});
+
 	it("shouldNeverReplayToolCallsWhenTheModelRequestsATool", async () => {
 		// Given
 		const call = { type: "toolCall", id: "call-1", name: "bash", arguments: { command: "rm -rf /" } };
@@ -268,7 +360,7 @@ describe("temporary conversation", () => {
 	it("shouldRetryOnlyAnUnansweredQuestionAndReplaceItsFailedAttempt", async () => {
 		// Given
 		const streamSimple = mock.fn(events);
-		const { conversation } = fixture(streamSimple);
+		const { conversation, requestOptions } = fixture(streamSimple);
 		await conversation.send("First question");
 		streamSimple.mock.mockImplementationOnce(() => (async function* () { throw new Error("Connection failed"); })());
 		await conversation.send("Follow up");
@@ -278,7 +370,11 @@ describe("temporary conversation", () => {
 		await conversation.retry();
 		// Then
 		assert.equal(retryable, true);
-		assert.equal(streamSimple.mock.calls.length, 3);
+		const sessionId = streamSimple.mock.calls[0].arguments[2].sessionId;
+		assert.notEqual(sessionId, PARENT_SESSION);
+		assert.deepEqual({ streamSessions: streamSimple.mock.calls.map(call => call.arguments[2].sessionId),
+			optionSessions: requestOptions.mock.calls.map(call => call.arguments) },
+			{ streamSessions: [sessionId, sessionId, sessionId], optionSessions: [[MODEL, sessionId], [MODEL, sessionId], [MODEL, sessionId]] });
 		assert.deepEqual(streamSimple.mock.calls[2].arguments[1].messages.map(message => message.content), [
 			user("Main question").content, firstQuestion("First question"), response.content, user("Follow up").content,
 		]);
@@ -291,7 +387,7 @@ describe("temporary conversation", () => {
 
 	it("shouldResendTheInstructionsWhenRetryingACancelledFirstQuestion", async () => {
 		// Given
-		const { conversation, streamSimple, release } = blockedFixture();
+		const { conversation, streamSimple, release, requestOptions } = blockedFixture();
 		const running = conversation.send("First");
 		conversation.cancel();
 		release();
@@ -299,6 +395,11 @@ describe("temporary conversation", () => {
 		// When
 		await conversation.retry();
 		// Then
+		const sessionId = streamSimple.mock.calls[0].arguments[2].sessionId;
+		assert.notEqual(sessionId, PARENT_SESSION);
+		assert.deepEqual({ streamSessions: streamSimple.mock.calls.map(call => call.arguments[2].sessionId),
+			optionSessions: requestOptions.mock.calls.map(call => call.arguments) },
+			{ streamSessions: [sessionId, sessionId], optionSessions: [[MODEL, sessionId], [MODEL, sessionId]] });
 		assert.deepEqual(streamSimple.mock.calls[1].arguments[1].messages.at(-1).content, firstQuestion("First"));
 		assert.deepEqual(conversation.turns.map(turn => turn.answer), ["Answer"]);
 	});
