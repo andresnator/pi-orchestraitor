@@ -105,7 +105,7 @@ try {
   assert.deepEqual(errors, []);
   assert.equal(result.systemPromptOptions.customPrompt, "Host instructions");
   assert.equal(result.systemPromptOptions.sections.existing, "Project-specific instructions");
-  assert.match(result.systemPromptOptions.sections.pi_orchestraitor_execution, /Orchestraitor/);
+  assert.match(result.systemPromptOptions.sections.pi_orchestraitor_core, /Personal harness rules/);
   assert.match(result.systemPromptOptions.sections.pi_orchestraitor_personality, /Colombian software architect/);
   assert.equal(session.modelRuntime.getProvider("nan")?.name, "NaN");
   for (const tool of ["subagent_run", "subagent_collect", "orchestraitor_tasks", "orchestraitor_ask", "skill_registry"]) {

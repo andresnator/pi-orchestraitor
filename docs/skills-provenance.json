@@ -57,7 +57,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "ff21ea5c5a2ca572f56f3667c10f5d8bfcb60563c5b95eaea69a6f406065ec79"
+          "sha256": "f3a15e195227e73ea71ef9fcec73a208eac5f217e17b14aa5c48f96d5010e42d"
         },
         {
           "path": "references/candidate-survey.md",
@@ -172,7 +172,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "b0fd1eb1156a1d9ceef5f0039f5bd483f221c27b3976f37c7e60bc39c37991ab"
+          "sha256": "83c44352bc2b5efd491964fac0441ea0241a8f93512fd5f2b77d521145873c7f"
         },
         {
           "path": "assets/examples/OrderServiceTest.java",
@@ -329,7 +329,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "738b6a0106f990b4ccd777dd992a1c13510fd5489759cecb32d23e6ba5305cc0"
+          "sha256": "8bf1359d2600eca6d38e681685c45d44b952d84830e1fe89cb7c32ccf90249f6"
         },
         {
           "path": "assets/discovery-template.md",
@@ -388,11 +388,11 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "917a9920ef86b6c9286db1da0284b21fbabf6d5f9b640eae64f16a64a629b9e8"
+          "sha256": "1eec4142665f4aef83ed451e05ccb4af677c3c3b1bd78f98496be1aa183d4a14"
         },
         {
           "path": "assets/plan-template.md",
-          "sha256": "0347dcb2cea5660538c9e68e95bc168537d55a0a8d879848e06cabb445c9bf76"
+          "sha256": "36504f574ab542a0e16114bf2423f400b3abe525ff05071124692b74ddbb5c92"
         }
       ],
       "adaptations": [

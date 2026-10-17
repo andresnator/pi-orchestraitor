@@ -8,7 +8,7 @@ metadata:
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
   status: in-progress
-  version: "5.0.2"
+  version: "5.0.3"
 ---
 
 ## Contract
@@ -29,7 +29,7 @@ Use `assets/discovery-template.md`. Write one `.ai/deep-planner/discoveries/<slu
 
 ## Deep Plan
 
-Load `jag-plan` and write one `.ai/deep-planner/plans/<slug>.md`. Large efforts remain one plan with work groups and explicit dependencies. Do not create roadmaps, slices, readiness markers, or companion phase documents.
+Load `jag-plan` and write one `.ai/deep-planner/plans/<slug>.md`. Large efforts remain one plan with ordered steps. Do not create roadmaps, slices, readiness markers, or companion phase documents.
 
 ## Outputs
 

@@ -40,38 +40,25 @@ for (const mode of ["tui", "print", "json", "rpc"]) for (const [trigger, fields]
 				sections: {
 					...original.sections,
 					pi_orchestraitor_core: await readFile(join(packageRoot, "instructions/core.md"), "utf8"),
-					pi_orchestraitor_execution: await readFile(join(packageRoot, "instructions/orchestraitor.md"), "utf8"),
 					pi_orchestraitor_personality: await readFile(join(packageRoot, "instructions/personality.md"), "utf8"),
 				},
 			},
 			results: [undefined, undefined],
 		});
-		assert.match(buildSystemPrompt(options), /<pi_orchestraitor_execution>[\s\S]*Orchestraitor/);
+		assert.match(buildSystemPrompt(options), /<pi_orchestraitor_core>[\s\S]*Personal harness rules/);
 		assert.equal(buildSystemPrompt(options).split("<pi_orchestraitor_personality>").length, 2);
 	});
 }
 
-test("shouldKeepTasksAsEvidenceProjectionWhenExecutionGuidanceIsLoaded", async () => {
-	// Given
-	const path = join(packageRoot, "instructions/orchestraitor.md");
-	// When
-	const instructions = await readFile(path, "utf8");
-	// Then
-	assert.match(instructions, /direct model-only `orchestraitor_tasks`/);
-	assert.match(instructions, /Child completion never marks tasks done/);
-	assert.match(instructions, /not execution authority or durable SDD recovery/);
-	assert.match(instructions, /set each task's group to its plan group/);
-});
+// Owned sections ride on every request, so they stay within a fixed budget of characters.
+const INSTRUCTIONS_BUDGET = 3000;
 
-test("shouldKeepQuestionsAsClarificationWithoutGrantingPermissionsWhenGuidanceIsLoaded", async () => {
-	// Given
-	const path = join(packageRoot, "instructions/orchestraitor.md");
-	// When
-	const instructions = await readFile(path, "utf8");
+test("shouldStayWithinBudgetWhenOwnedInstructionsAreSentWithEveryRequest", async () => {
+	// Given / When
+	const sections = await ownedSections();
 	// Then
-	assert.match(instructions, /direct model-only `orchestraitor_ask`/);
-	assert.match(instructions, /cancelled, busy or unavailable results are not approval/);
-	assert.match(instructions, /never replace native trust\/security dialogs/);
+	assert.deepEqual(Object.keys(sections), ["pi_orchestraitor_core", "pi_orchestraitor_personality"]);
+	assert.ok(Object.values(sections).join("").length <= INSTRUCTIONS_BUDGET, `${Object.values(sections).join("").length} > ${INSTRUCTIONS_BUDGET}`);
 });
 
 test("shouldKeepOnePersonalitySectionWhenTheInstructionsExtensionIsReloaded", async (t) => {
@@ -104,7 +91,6 @@ function startEvent(options) {
 async function ownedSections() {
 	return {
 		pi_orchestraitor_core: await readFile(join(packageRoot, "instructions/core.md"), "utf8"),
-		pi_orchestraitor_execution: await readFile(join(packageRoot, "instructions/orchestraitor.md"), "utf8"),
 		pi_orchestraitor_personality: await readFile(join(packageRoot, "instructions/personality.md"), "utf8"),
 	};
 }
@@ -152,5 +138,5 @@ test("shouldPreferRelevantSectionsOverWholeFilesWhenCoreGuidanceIsLoaded", async
 	// When
 	const instructions = await readFile(path, "utf8");
 	// Then
-	assert.match(instructions, /For Pi Markdown documentation, this overrides whole-file reading guidance: list headings first, read the relevant sections completely, and follow related documentation links\./);
+	assert.match(instructions, /For Pi Markdown docs, this overrides whole-file guidance: read the headings, then the relevant sections\./);
 });
