@@ -3,34 +3,34 @@ import test from "node:test";
 import { createUISession, fakeUIContext, importHost, loadUiModule, pi } from "./helpers/ui-harness.mjs";
 
 const questionArgs = { questions: [{ id: "q", prompt: "Choose", selection: "single", options: [{ label: "A", value: "a" }, { label: "B", value: "b" }] }] };
-const widgetKey = "orchestraitor:work", statusKey = "orchestraitor:status";
-const header = ({ widgets, ctx }) => widgets.get(widgetKey)?.({ terminal: { rows: 24 } }, ctx.ui.theme).render(100) ?? [];
+const statusKey = "orchestraitor:status";
 
 async function seed(ui) {
 	const { session } = ui, runner = session.extensionRunner;
 	const target = session.sessionManager.appendMessage({ role: "user", content: "Start here", timestamp: Date.now() });
-	const tool = runner.getAllRegisteredTools().find(({ definition }) => definition.name === "orchestraitor_tasks").definition;
-	const result = await tool.execute("tasks", { operation: "add", expectedRevision: 0, tasks: [{ id: "one", title: "Retain this task", status: "pending" }] }, undefined, undefined, runner.createToolContext("tasks"));
-	session.sessionManager.appendMessage({ role: "toolResult", toolCallId: "tasks", toolName: tool.name, isError: false, timestamp: Date.now(), ...result });
+	session.sessionManager.appendMessage({ role: "toolResult", toolName: "subagent_run", toolCallId: "persisted", content: [], isError: false, timestamp: Date.now(),
+		details: { results: [{ id: "persisted-agent", role: "review", status: "completed", terminated: true }] } });
 	session.sessionManager.appendMessage({ role: "user", content: "Continue the local inspection", timestamp: Date.now() });
-	await runner.getCommand("orchestraitor:tasks").handler("expand", runner.createCommandContext());
 	await runner.emit({ type: "tool_execution_start", toolName: "subagent_run", toolCallId: "agents", args: { tasks: [{ role: "explore", instruction: "Inspect locally" }] } });
 	return target;
 }
 
+async function agentsPanel(ui) {
+	const { session, ctx, dialogs } = ui, runner = session.extensionRunner;
+	const opened = Promise.withResolvers(), original = ctx.ui.custom;
+	ctx.ui.custom = (...args) => { const result = original(...args); opened.resolve(); return result; };
+	const pending = runner.getCommand("orchestraitor:agents").handler("", runner.createCommandContext());
+	await Promise.race([opened.promise, pending.then(() => { throw new Error("Panel did not open"); })]);
+	const panel = dialogs.at(-1), text = panel.component.render(100).join("\n");
+	panel.done({ status: "closed" });
+	await pending;
+	ctx.ui.custom = original;
+	return text;
+}
+
 async function checkNewInteractions(ui) {
 	const { session, ctx, dialogs } = ui, runner = session.extensionRunner;
-	for (const name of ["tasks", "agents"]) {
-		const opened = Promise.withResolvers(), original = ctx.ui.custom;
-		ctx.ui.custom = (...args) => { const result = original(...args); opened.resolve(); return result; };
-		const pending = runner.getCommand(`orchestraitor:${name}`).handler("", runner.createCommandContext());
-		await Promise.race([opened.promise, pending.then(() => { throw new Error("Panel did not open"); })]);
-		const panel = dialogs.at(-1);
-		assert.match(panel.component.render(100).join("\n"), name === "tasks" ? /Retain this task/ : /Inspect locally/);
-		panel.done({ status: "closed" });
-		await pending;
-		ctx.ui.custom = original;
-	}
+	assert.match(await agentsPanel(ui), /Inspect locally/);
 	const original = ctx.ui.custom;
 	ctx.ui.custom = (...args) => {
 		const pending = original(...args);
@@ -50,10 +50,8 @@ for (const action of ["tree-veto", "summary-abort", "switch-veto", "fork-veto"])
 		const ui = await createUISession(t, "tui", { extensionFactories: action === "summary-abort" ? [] : [(api) => {
 			api.on(event, () => { vetoes++; return { cancel: true }; });
 		}] });
-		const { session, ctx, widgets, statuses, errors } = ui, runner = session.extensionRunner;
+		const { session, ctx, statuses, errors } = ui, runner = session.extensionRunner;
 		const target = await seed(ui);
-		const expanded = header(ui);
-		assert.equal(expanded.length, 3);
 		if (hidden) await runner.getCommand("orchestraitor:ui").handler("hide", runner.createCommandContext());
 		const branch = session.sessionManager.getBranch(), leaf = session.sessionManager.getLeafId();
 		const opened = Promise.withResolvers(), late = Promise.withResolvers();
@@ -109,35 +107,34 @@ for (const action of ["tree-veto", "summary-abort", "switch-veto", "fork-veto"])
 		}
 		assert.equal((await oldQuestion).details.status, "cancelled");
 		late.resolve("1. A");
-		assert.equal(widgets.has(widgetKey), !hidden);
 		assert.equal(statuses.get(statusKey), hidden ? undefined : "Agents · 1 active");
 		await checkNewInteractions(ui);
 		if (hidden) {
-			assert.equal(widgets.has(widgetKey), false);
+			assert.equal(statuses.has(statusKey), false);
 			await runner.getCommand("orchestraitor:ui").handler("show", runner.createCommandContext());
 		}
-		assert.deepEqual(header(ui), expanded);
+		assert.equal(statuses.get(statusKey), "Agents · 1 active");
 		assert.deepEqual(errors, []);
 	});
 }
 
 test("shouldReconstructEffectiveBranchAfterCompletedNativeTreeNavigation", async (t) => {
-	const ui = await createUISession(t), { session, widgets, statuses, errors } = ui;
+	const ui = await createUISession(t), { session, statuses, errors } = ui;
 	const target = await seed(ui), leaf = session.sessionManager.getLeafId();
 	assert.equal((await session.navigateTree(target)).cancelled, false);
-	assert.equal(widgets.has(widgetKey), false);
 	assert.equal(statuses.has(statusKey), false);
+	assert.doesNotMatch(await agentsPanel(ui), /persisted-agent/);
 	assert.equal((await session.navigateTree(leaf)).cancelled, false);
-	assert.match(header(ui)[0], /^Tasks \S+ 0\/1 done/);
+	assert.match(await agentsPanel(ui), /persisted-agent · review/);
 	assert.deepEqual(errors, []);
 });
 
 for (const kind of ["native", "modal"]) {
 	test(`shouldReleaseCancelled${kind}BeforeOldCompletionWithoutClosingNewQuestion`, async (t) => {
 		const { createUIOwner } = await loadUiModule(t, "extensions/status-ui.ts");
-		const { ctx, dialogs, widgets } = fakeUIContext();
+		const { ctx, dialogs, statuses } = fakeUIContext();
 		const owner = createUIOwner();
-		owner.activate(ctx); owner.setWidget(["Retained"]);
+		owner.activate(ctx); owner.setStatus("Retained");
 		const old = Promise.withResolvers();
 		const first = kind === "native" ? owner.interaction(() => old.promise) : owner.modal("question", () => ({ render: () => [], invalidate() {} }));
 		await Promise.resolve();
@@ -150,7 +147,7 @@ for (const kind of ["native", "modal"]) {
 		old.resolve({ status: "answered" });
 		await Promise.resolve();
 		assert.equal(owner.awaitingInput, true);
-		assert.deepEqual(widgets.get(widgetKey), ["Retained"]);
+		assert.equal(statuses.get(statusKey), "Retained");
 		dialogs.at(-1).done({ status: "answered" });
 		assert.deepEqual(await next, { status: "answered" });
 	});

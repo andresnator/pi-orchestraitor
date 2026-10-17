@@ -18,7 +18,7 @@ const EXPECTED_FILES = [
 	"extensions/compact-tools.ts", "extensions/context-budget.ts", "extensions/auto-compact.ts", "extensions/instructions.ts", "extensions/mcp.ts", "extensions/nan.ts", "extensions/pretty-theme.ts", "extensions/pretty/theme.mjs", "extensions/provider-options.mjs", "extensions/subagents.ts",
 	...["index", "context", "conversation", "markdown", "popup", "status", "transcript", "types"].map((name) => `extensions/btw/${name}.ts`),
 	"extensions/skill-registry.ts", "extensions/skills/sources.mjs", "extensions/skills/registry.mjs", "extensions/skills/types.ts",
-	"extensions/status-ui.ts", "extensions/footer.ts", "extensions/ui/footer.ts", "extensions/quota.ts", "extensions/ui/quota.ts", "extensions/ui/display.ts", "extensions/ui/agents.ts", "extensions/ui/tasks.ts", "extensions/ui/task-view.ts", "extensions/ui/questions.ts", "extensions/ui/cache-notice.ts",
+	"extensions/status-ui.ts", "extensions/footer.ts", "extensions/ui/footer.ts", "extensions/quota.ts", "extensions/ui/quota.ts", "extensions/ui/display.ts", "extensions/ui/agents.ts", "extensions/ui/questions.ts", "extensions/ui/cache-notice.ts",
 	"extensions/models/store.mjs", "extensions/models/panel.mjs", "extensions/models/selector.ts", "extensions/subagent/bridge.mjs", "extensions/subagent/background.mjs",
 	"extensions/subagent/child.mjs", "extensions/subagent/controller.mjs", "extensions/subagent/guard.mjs", "extensions/subagent/policy.mjs", "extensions/subagent/runtime.mjs",
 	"instructions/core.md", "instructions/personality.md",
@@ -133,7 +133,7 @@ test("shouldLoadOnlyPackagedResourcesWhennpmTarballIsExtractedElsewhere", async 
 	}, {
 		files: EXPECTED_FILES, errors: [], prompts: EXPECTED_PROMPTS,
 		skills: PROVENANCE.skills.map(({ name }) => name).sort(), skillDiagnostics: [],
-		active: ["read", "bash", "edit", "write", "subagent_collect", "subagent_run", "orchestraitor_tasks", "orchestraitor_ask", "skill_registry"], prefix: "Host instructions",
+		active: ["read", "bash", "edit", "write", "subagent_collect", "subagent_run", "orchestraitor_ask", "skill_registry"], prefix: "Host instructions",
 		preservedSection: "Project-specific instructions", theme: "system", dependencies: { "@vscode/ripgrep": "1.18.0", "beautiful-mermaid": "1.1.3" },
 		peers: { "@earendil-works/pi-ai": "*", "@earendil-works/pi-coding-agent": "*", "@earendil-works/pi-tui": "*", typebox: "*" },
 		nanProvider: "NaN", nanModels: ["deepseek-v4-flash", "glm5.3-flash", "qwen3.8-flash", "mimo-v2.6-flash", "gemma4", "qwen3.6", "glm5.3"],
@@ -210,6 +210,6 @@ test("shouldAvoidDoubleRegistrationWhenOriginalGlobalExtensionIsExcluded", async
 		errors,
 	}, {
 		compactPaths: [join(packageRoot, "extensions/compact-tools.ts")],
-		tools: ["orchestraitor_ask", "orchestraitor_tasks", "skill_registry", "subagent_collect", "subagent_run"], errors: [],
+		tools: ["orchestraitor_ask", "skill_registry", "subagent_collect", "subagent_run"], errors: [],
 	});
 });

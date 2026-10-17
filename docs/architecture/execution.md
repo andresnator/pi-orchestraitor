@@ -53,7 +53,7 @@ sequenceDiagram
 
 ## Presentation is not acceptance or recovery
 
-The optional [UI](../interactive-ui.md) observes this loop; it does not advance groups. Parent-issued task mutations carry revisions and evidence for done/reasons for reopening. Only successful native branch receipts are replayed. Child progress travels through native tool updates without adding usage again. Questions collect requirements/preferences, never native trust or destructive-action permission. Hiding chrome does not cancel execution or foreground questions.
+The optional [UI](../interactive-ui.md) observes this loop; it does not advance groups. Only successful native branch receipts are replayed. Child progress travels through native tool updates without adding usage again. Questions collect requirements/preferences, never native trust or destructive-action permission. Hiding chrome does not cancel execution or foreground questions.
 
 ## One example, two ways to execute a group
 

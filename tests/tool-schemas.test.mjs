@@ -5,7 +5,6 @@ import { createWorkspace, importHost, loadPackage, startSession } from "./helper
 import { loadUiModule } from "./helpers/ui-harness.mjs";
 
 const { validateToolArguments } = await importHost("node_modules/@earendil-works/pi-ai/dist/index.js");
-const TASK_STATUSES = ["pending", "in_progress", "blocked", "done"];
 // Each enum field: its schema path, its values, and the smallest valid call that carries one value.
 const ENUMS = [
 	{ tool: "subagent_collect", path: ["action"], values: ["status", "collect", "wait", "cancel"], call: action => ({ action }) },
@@ -15,9 +14,6 @@ const ENUMS = [
 	{ tool: "skill_registry", path: ["operation"], values: ["search", "load"], call: operation => ({ operation }) },
 	{ tool: "orchestraitor_ask", path: ["questions", "items", "selection"], values: ["single", "multiple"],
 		call: selection => ({ questions: [{ id: "q", prompt: "Pick", selection, options: [{ label: "A", value: "a" }, { label: "B", value: "b" }] }] }) },
-	{ tool: "orchestraitor_tasks", path: ["operation"], values: ["replace", "add", "update", "list", "clear"], call: operation => ({ operation }) },
-	{ tool: "orchestraitor_tasks", path: ["tasks", "items", "status"], values: TASK_STATUSES, call: status => ({ operation: "replace", tasks: [{ id: "t", title: "Task", status }] }) },
-	{ tool: "orchestraitor_tasks", path: ["changes", "status"], values: TASK_STATUSES, call: status => ({ operation: "update", id: "t", changes: { status } }) },
 ];
 const field = (schema, path) => path.reduce((node, key) => key === "items" ? node.items : node.properties[key], schema);
 
@@ -50,17 +46,15 @@ test("shouldDeclareFilesAsImplementOnlyWhenSubagentRunIsRegistered", async (t) =
 	assert.match(description ?? "", /instruction or context/);
 });
 
-test("shouldAcceptExactlyTheTextLengthsPiValidatorAcceptsWhenTasksAndQuestionsCheckAtRuntime", async (t) => {
+test("shouldAcceptExactlyTheTextLengthsPiValidatorAcceptsWhenQuestionsCheckAtRuntime", async (t) => {
 	// Given
 	const cwd = await createWorkspace(t);
 	const { session } = await startSession(t, cwd, await loadPackage(cwd));
 	const tools = new Map(session.getAllTools().map(tool => [tool.name, tool]));
-	const { applyTaskOperation, emptyTasks, TASK_TITLE_LIMIT } = await loadUiModule(t, "extensions/ui/tasks.ts");
 	const { validateQuestions, QUESTION_TEXT_LIMIT } = await loadUiModule(t, "extensions/ui/questions.ts");
 	// Emoji take two UTF-16 units and a combining accent one more; Pi's validator counts each as one character.
 	const samples = limit => ({ ascii: "a".repeat(limit), asciiOver: "a".repeat(limit + 1), emoji: "\u{1F44D}".repeat(limit), emojiOver: "\u{1F44D}".repeat(limit + 1), accented: "e\u0301".repeat(limit) });
 	const fields = [
-		{ tool: "orchestraitor_tasks", limit: TASK_TITLE_LIMIT, call: title => ({ operation: "add", expectedRevision: 0, tasks: [{ id: "t", title, status: "pending" }] }), run: params => applyTaskOperation(emptyTasks(), params) },
 		{ tool: "orchestraitor_ask", limit: QUESTION_TEXT_LIMIT, call: prompt => ({ questions: [{ id: "q", prompt, selection: "single", options: [{ label: "A", value: "a" }, { label: "B", value: "b" }] }] }), run: validateQuestions },
 	];
 	const accepts = fn => { try { fn(); return true; } catch { return false; } };

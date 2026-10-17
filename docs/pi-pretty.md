@@ -30,7 +30,7 @@ Pretty highlights with a Shiki theme. Without a theme of its own, it uses Pi's `
 | Bash execution | Pi's built-in tool with effective `shellPath` (including `~`) and `shellCommandPrefix`, or whichever extension registers bash. |
 | Read when pretty is loaded | Upstream pretty tool definition, renderer and result metadata. |
 | Compact presentation of Pi's read, bash, edit, write and native codemode | Harness renderer resolver. |
-| Subagents, tasks and questions | Existing harness tools, receipts, accounting and UI. |
+| Subagents and questions | Existing harness tools, receipts, accounting and UI. |
 | Find/grep, optional ls, prompt editor and activity indicators | Upstream pretty; `ls` remains disabled by its upstream default. |
 | Session execution, tool selection and total accounting | Pi and the existing guarded child controller. |
 
@@ -40,7 +40,7 @@ Pretty's FFF-backed find/grep replaces native search behavior and initializes an
 
 This companion adds highlighting, indexing and presentation work. Read content remains native in the exercised fixtures, and bash retains Pi's native guidelines. The offline harness benchmark excludes Pretty and cannot establish its startup/indexing cost or actual provider-token savings.
 
-Compact results marked as errors display their transformed text explanation when expanded. Candidate task state, subagent results or codemode metadata do not replace that error text or appear as confirmed completion. Successful results retain full expanded details, including subagent batches with individual failures.
+Compact results marked as errors display their transformed text explanation when expanded. Subagent results or codemode metadata do not replace that error text or appear as confirmed completion. Successful results retain full expanded details, including subagent batches with individual failures.
 
 ## Verification
 
