@@ -1,13 +1,14 @@
 ---
 name: jag-repo-issues
 description: "Rank verified project/architecture problems and pair them with proportionate guardrails."
+disable-model-invocation: true
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
   pi_adaptation: "2.0.0"
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
-  version: "2.1.1"
+  version: "2.1.2"
   status: testing
 ---
 
@@ -15,7 +16,7 @@ metadata:
 
 ## Contract
 
-Turn a verified `jag-arch-state` snapshot into a ranked architecture shortlist. Product repositories only; AI-harness analysis belongs to `jag-absorb`, and code-level findings belong to Deep Plan.
+Turn a verified [architecture state snapshot](../jag-arch-map/references/state.md) into a ranked architecture shortlist. Product repositories only; AI-harness analysis belongs to `/skill:jag-absorb`, and code-level findings belong to Deep Plan.
 
 Read-only. Each issue needs source/config/wiring evidence plus consequence. Documentation states intent, never proves behavior.
 

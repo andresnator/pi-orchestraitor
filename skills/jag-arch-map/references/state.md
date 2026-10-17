@@ -1,21 +1,8 @@
----
-name: jag-arch-state
-description: "Verify project architecture, style and toolchain; record facts for downstream work."
-license: MIT
-compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
-metadata:
-  pi_adaptation: "2.0.0"
-  modification_notice: "Modified for Pi by pi-orchestraitor."
-  author: andresnator
-  version: "2.0.1"
-  status: testing
----
-
 # Architecture State
 
 ## Contract
 
-Record current architecture facts. Do not rank problems, propose changes, inspect code style; `jag-repo-issues` owns judgments and fitness functions.
+Record current architecture facts. Do not rank problems, propose changes, inspect code style; `/skill:jag-repo-issues` owns judgments and fitness functions.
 
 Every claim needs `file:line`. Manifests, build files, configs, imports, deployment descriptors beat README claims; README-only facts `aspirational`.
 

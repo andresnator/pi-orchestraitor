@@ -37,7 +37,7 @@ These are logical components, **not separately deployed services**. Delegated ch
 ```mermaid
 flowchart TB
   M[package.json] -->|declares: E| X[Package extensions]
-  M -->|declares: E| P[Four prompt templates]
+  M -->|declares: E| P[Three prompt templates]
   M -->|declares: E| S[Skill catalog]
   P -->|request instructions: F| A[Main agent]
   S -->|selected guidance: G| A
@@ -62,7 +62,7 @@ flowchart TB
 | Evidence | Source |
 | --- | --- |
 | E | [package.json](../../package.json): extension, skill and prompt resource declarations. |
-| F | [prompts/plan.md](../../prompts/plan.md), [prompts/orchestraitor.md](../../prompts/orchestraitor.md), [prompts/review.md](../../prompts/review.md), [prompts/absorb.md:5–7](../../prompts/absorb.md). |
+| F | [prompts/plan.md](../../prompts/plan.md), [prompts/orchestraitor.md](../../prompts/orchestraitor.md), [prompts/review.md](../../prompts/review.md). |
 | G | [README.md](../../README.md), [extensions/skill-registry.ts](../../extensions/skill-registry.ts): catalog selection, then body loading. |
 | H | [extensions/instructions.ts](../../extensions/instructions.ts): adds only owned sections without replacing Pi/project context; [instructions/core.md](../../instructions/core.md) narrows Pi Markdown reads without copying the native docs section. |
 | I | [extensions/compact-tools.ts](../../extensions/compact-tools.ts): presentation, not a scheduler; yields read/bash to existing extension owners. The installer separately registers [pi-pretty](../pi-pretty.md); [extensions/pretty-theme.ts](../../extensions/pretty-theme.ts) only maps Pi's built-in themes to its [highlight theme](../pi-pretty.md#highlight-theme). |
@@ -85,13 +85,13 @@ flowchart TB
 | Plan | A short Markdown plan: outcome, scope, steps, checks and risks. Not an executable scheduler. |
 | `.ai/` | Planning/report artifacts; not a durable phase database. |
 
-Sources: [prompts/plan.md](../../prompts/plan.md), [instructions/core.md](../../instructions/core.md), [extensions/subagents.ts](../../extensions/subagents.ts), [plan template](../../skills/jag-plan/assets/plan-template.md), [jag-evidence:26–37](../../skills/jag-evidence/SKILL.md).
+Sources: [prompts/plan.md](../../prompts/plan.md), [instructions/core.md](../../instructions/core.md), [extensions/subagents.ts](../../extensions/subagents.ts), [plan template](../../skills/jag-plan/assets/plan-template.md), [jag-evidence:27–38](../../skills/jag-evidence/SKILL.md).
 
 ## Supporting pieces, not extra SDD stages
 
-- **Product inputs:** PRD, stories and buildable issues can clarify requirements. They do not automatically launch execution. Even `sdd-ready` is an issue label, not a running engine ([jag-issue:27–49](../../skills/jag-issue/SKILL.md)).
-- **Specialist skills:** architecture, debugging, refactoring and testing guidance are loaded when relevant; they are not a mandatory chain.
-- **`/review`:** read-only findings; fixes need separate authorization. **`/absorb`:** compares another harness; does not adopt it ([review:5–8](../../prompts/review.md), [absorb:5–7](../../prompts/absorb.md)).
+- **Product inputs:** PRD, stories and buildable issues can clarify requirements. They do not automatically launch execution. Even `sdd-ready` is an issue label, not a running engine ([jag-issue:28–50](../../skills/jag-issue/SKILL.md)).
+- **Specialist skills:** the core (debugging, refactoring, testing and similar) loads when relevant; packs such as architecture and product documents run only through `/skill:<name>`. Neither is a mandatory chain ([core and packs](../skills.md#core-and-packs)).
+- **`/review`:** read-only findings; fixes need separate authorization. **`/skill:jag-absorb`:** compares another harness; does not adopt it ([review:5–8](../../prompts/review.md), [jag-absorb](../../skills/jag-absorb/SKILL.md)).
 - **Installation and tests:** `scripts/install-pi.mjs` installs/migrates resources; package scripts expose verification. Neither is an SDD coordinator ([package.json](../../package.json), [README.md](../../README.md)).
 
 ## What is enforced, and what is instructed?

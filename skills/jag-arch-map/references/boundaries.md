@@ -1,17 +1,4 @@
----
-name: jag-boundaries
-description: "Map a backend service's APIs, consumers, inputs and outputs with evidence and confidence."
-license: MIT
-compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
-metadata:
-  pi_adaptation: "2.0.0"
-  modification_notice: "Modified for Pi by pi-orchestraitor."
-  author: andresnator
-  status: testing
-  version: "2.0.0"
----
-
-# Service Boundary Analysis
+# Service Boundaries
 
 ## Contract
 

@@ -5,13 +5,11 @@ import { join } from "node:path";
 import test from "node:test";
 import { createSkillRegistry } from "../extensions/skills/registry.mjs";
 import { createWorkspace, packageRoot, pi } from "./helpers/pi-host.mjs";
+import { CORE_SKILLS, MANUAL_SKILLS, NATIVE_SKILL_COUNT } from "./helpers/skill-packs.mjs";
 
 // Instruction checks establish structural contracts, not real-model compliance.
 const SOURCE_REVISION = "6fd947921b935b7e1e69293a200400f0fdd5c15f";
 const SOURCE_REPOSITORY = "https://github.com/mattpocock/skills";
-const NATIVE_SKILL_COUNT = 37;
-const AUTOMATIC_SKILL_COUNT = 33;
-const MANUAL_NAMES = ["jag-handoff", "jag-retro", "jag-teach", "jag-wait-what"];
 const NEW_SKILLS = [
 	{ name: "jag-agent-docs", upstream: "writing-for-agents", bucket: "productivity", sourceHash: "551adca942227b44192edba88acd4e8db911f0121ce58ad16944ccf6a896a74a" },
 	{ name: "jag-pr", upstream: "pr", bucket: "engineering", sourceHash: "ab63f1cf78647389edcd386c9427c5dfca27ed2836930c24773ffee834c19bcd" },
@@ -27,7 +25,7 @@ async function assertContract(name, resources, signals) {
 	const body = await readSkill(name);
 	const { skills, diagnostics } = pi.loadSkillsFromDir({ dir: join(packageRoot, "skills", name), source: "package" });
 	assert.deepEqual({ names: skills.map(({ name }) => name), diagnostics, manual: skills[0]?.disableModelInvocation }, {
-		names: [name], diagnostics: [], manual: MANUAL_NAMES.includes(name),
+		names: [name], diagnostics: [], manual: MANUAL_SKILLS.includes(name),
 	});
 	assert.match(body, /^license: MIT$/m);
 	assert.match(body, /^  author: "?Matt Pocock"?$/m);
@@ -35,7 +33,7 @@ async function assertContract(name, resources, signals) {
 	assert.ok(body.includes(SOURCE_REVISION));
 	assert.match(body, /^  modification_notice: .+/m);
 	assert.match(body, /^  upstream_name: .+/m);
-	assert.equal(body.match(/^  version: "([^"]+)"$/m)?.[1], { "jag-domain": "2.0.0", "jag-agent-docs": "1.1.0" }[name] ?? "1.0.0");
+	assert.equal(body.match(/^  version: "([^"]+)"$/m)?.[1], { "jag-domain": "2.0.1", "jag-agent-docs": "1.1.1" }[name] ?? "1.0.0");
 	for (const path of resources) await access(skillFile(name, path));
 	for (const signal of signals) assert.match(body, signal);
 	assert.doesNotMatch(body, /call the Skill tool|spin up a background agent|Bash\(open/i);
@@ -163,10 +161,10 @@ test("integration/shouldDiscoverExactNativeAndAutomaticInventoriesWhenThePackage
 		automatic: registry.status().available, manual: registry.status().manualOnly,
 		manualNames: skills.filter(({ disableModelInvocation }) => disableModelInvocation).map(({ name }) => name).sort(),
 		excluded: skills.filter(({ name }) => ["ask-matt", "jag-guide"].includes(name)).map(({ name }) => name),
-	}, { total: NATIVE_SKILL_COUNT, unique: NATIVE_SKILL_COUNT, diagnostics: [], automatic: AUTOMATIC_SKILL_COUNT,
-		manual: MANUAL_NAMES.length, manualNames: MANUAL_NAMES, excluded: [] });
-	for (const name of MANUAL_NAMES) await assert.rejects(registry.resolveNames([name], ctx), /manual-only|explicit.*skill/i);
-	for (const { name } of NEW_SKILLS.filter(({ name }) => !MANUAL_NAMES.includes(name))) {
+	}, { total: NATIVE_SKILL_COUNT, unique: NATIVE_SKILL_COUNT, diagnostics: [], automatic: CORE_SKILLS.length,
+		manual: MANUAL_SKILLS.length, manualNames: MANUAL_SKILLS, excluded: [] });
+	for (const name of MANUAL_SKILLS) await assert.rejects(registry.resolveNames([name], ctx), /manual-only|explicit.*skill/i);
+	for (const { name } of NEW_SKILLS.filter(({ name }) => !MANUAL_SKILLS.includes(name))) {
 		const result = await registry.search(name, 5, ctx);
 		assert.ok(result.matches.some((match) => match.name === name));
 		assert.equal((await registry.resolveNames([name], ctx))[0].skill.name, name);
@@ -225,7 +223,7 @@ test("integration/shouldReuseAgentWritingConditionallyWhenSkillAuthoringNeedsIt"
 	// Then
 	assert.match(body, /author: gentleman-programming/);
 	assert.match(body, /license: Apache-2\.0/);
-	assert.match(body, /jag-agent-docs/);
-	assert.match(body, /when available/i);
-	assert.match(body, /skill_registry/);
+	assert.ok(body.includes("[../jag-agent-docs/references/agent-writing.md](../jag-agent-docs/references/agent-writing.md)"));
+	assert.match(body, /when (it is )?bundled|when available/i);
+	assert.doesNotMatch(body, /load it with `skill_registry`/);
 });

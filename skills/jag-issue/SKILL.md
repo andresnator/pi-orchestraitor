@@ -1,6 +1,7 @@
 ---
 name: jag-issue
 description: "Create or enrich agent-ready GitHub issues/tickets (formerly SDD issues) with scope, acceptance and technical context."
+disable-model-invocation: true
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
@@ -8,7 +9,7 @@ metadata:
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
   status: backlog
-  version: "2.1.4"
+  version: "2.1.5"
 ---
 
 # Skill: jag-issue

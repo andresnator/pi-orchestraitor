@@ -1,6 +1,7 @@
 ---
 name: jag-usm
 description: "Create journey-first USM/user story maps with MVP slicing and Mermaid; includes mapa de historias requests. Supports optional section review."
+disable-model-invocation: true
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
@@ -8,7 +9,7 @@ metadata:
   modification_notice: "Modified for Pi by pi-orchestraitor; added optional section review."
   author: andresnator
   status: testing
-  version: "2.1.0"
+  version: "2.1.1"
 ---
 
 # User Story Mapping

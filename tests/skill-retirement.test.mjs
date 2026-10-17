@@ -4,14 +4,19 @@ import { join } from "node:path";
 import test from "node:test";
 import { createSkillRegistry } from "../extensions/skills/registry.mjs";
 import { createWorkspace, packageRoot, pi } from "./helpers/pi-host.mjs";
+import { CORE_SKILLS, MANUAL_SKILLS, NATIVE_SKILL_COUNT } from "./helpers/skill-packs.mjs";
 
-const NATIVE_SKILL_COUNT = 37;
-const AUTOMATIC_SKILL_COUNT = 33;
-const MANUAL_ONLY_COUNT = 4;
 const LENSES = ["jag-arch-impact", "jag-behavior", "jag-big-o", "jag-java-naming", "jag-legacy", "jag-logs", "jag-nulls", "jag-risk",
 	"jag-scope", "jag-seams", "jag-test-scope", "jag-tool-matrix", "jag-tools", "jag-types", "jag-validation"];
-const OTHERS = ["jag-java-api", "jag-java-errors", "jag-java-model", "jag-java-secure", "jag-prompts", "jag-refine"];
-const MERGED = { "jag-jira-story": "user-story", "jag-jira-task": "task", "jag-jira-spike": "spike" };
+const OTHERS = ["jag-java-api", "jag-java-errors", "jag-java-model", "jag-java-secure", "jag-prompts", "jag-refine", "jag-routing"];
+const MERGED = {
+	"jag-jira-story": { skill: "jag-jira", path: "SKILL.md", section: "user-story" },
+	"jag-jira-task": { skill: "jag-jira", path: "SKILL.md", section: "task" },
+	"jag-jira-spike": { skill: "jag-jira", path: "SKILL.md", section: "spike" },
+	"jag-prd-lite": { skill: "jag-prd", path: "SKILL.md", section: "light-mode" },
+	"jag-arch-state": { skill: "jag-arch-map", path: "references/state.md", section: "architecture-state" },
+	"jag-boundaries": { skill: "jag-arch-map", path: "references/boundaries.md", section: "service-boundaries" },
+};
 const RETIRED = [...LENSES, ...OTHERS, ...Object.keys(MERGED)];
 const JIRA_TEMPLATES = [
 	{ heading: "### User Story\n", quick: "assets/quick.md", refinement: "assets/story-refinement.md", marker: "h2. User Story" },
@@ -29,6 +34,7 @@ const TRIMMED = {
 const catalog = () => pi.loadSkillsFromDir({ dir: join(packageRoot, "skills"), source: "package" });
 const readProvenance = async () => JSON.parse(await readFile(join(packageRoot, "docs/skills-provenance.json"), "utf8"));
 const skillFile = (name, path) => readFile(join(packageRoot, "skills", name, path), "utf8");
+const headingSlugs = (text) => [...text.matchAll(/^#+ (.+)$/gm)].map(([, heading]) => heading.toLowerCase().replace(/[^a-z0-9 -]/g, "").replaceAll(" ", "-"));
 
 test("shouldRemoveRetiredSkillsWhenNativeCatalogIsLoaded", async () => {
 	// Given
@@ -62,33 +68,31 @@ test("shouldRecordOriginalIdentityWhenSkillsAreRetired", async () => {
 		} else {
 			assert.deepEqual([entry.license, entry.author], ["MIT", "andresnator"], entry.name);
 		}
-		const section = MERGED[entry.name];
-		assert.deepEqual({ reason: entry.reason, replacement: entry.replacement }, section
-			? { reason: "merged", replacement: { skill: "jag-jira", path: "SKILL.md", section } }
+		const replacement = MERGED[entry.name];
+		assert.deepEqual({ reason: entry.reason, replacement: entry.replacement }, replacement
+			? { reason: "merged", replacement }
 			: { reason: "redundant", replacement: null }, entry.name);
+		if (replacement) assert.ok(headingSlugs(await skillFile(replacement.skill, replacement.path)).includes(replacement.section), entry.name);
 	}
-	assert.deepEqual(provenance.skills.find(({ name }) => name === "jag-jira")?.mergedFrom, Object.keys(MERGED));
+	for (const target of new Set(Object.values(MERGED).map(({ skill }) => skill))) {
+		assert.deepEqual(provenance.skills.find(({ name }) => name === target)?.mergedFrom,
+			Object.keys(MERGED).filter((name) => MERGED[name].skill === target), target);
+	}
 });
 
-test("shouldRejectRetiredNamesAndFindJiraWhenRegistryUsesCurrentCatalog", async (t) => {
+test("shouldRejectRetiredNamesWhenRegistryUsesCurrentCatalog", async (t) => {
 	// Given
 	const cwd = await createWorkspace(t);
 	const registry = createSkillRegistry(pi);
 	t.after(() => registry.dispose());
 	const ctx = { cwd, isProjectTrusted: () => false };
-	await registry.capture(catalog().skills, ctx);
 	// When
-	const [jira] = await registry.resolveNames(["jag-jira"], ctx);
+	await registry.capture(catalog().skills, ctx);
 	// Then
 	assert.deepEqual({ automatic: registry.status().available, manual: registry.status().manualOnly }, {
-		automatic: AUTOMATIC_SKILL_COUNT, manual: MANUAL_ONLY_COUNT,
+		automatic: CORE_SKILLS.length, manual: MANUAL_SKILLS.length,
 	});
-	assert.equal(jira.skill.name, "jag-jira");
 	for (const name of RETIRED) await assert.rejects(registry.resolveNames([name], ctx), /unavailable/i);
-	for (const query of ["jira story", "jira task", "jira spike"]) {
-		const search = await registry.search(query, 5, ctx);
-		assert.ok(search.matches.some(({ name }) => name === "jag-jira"), `${query} must find jag-jira`);
-	}
 });
 
 test("shouldRouteEachTicketTypeToItsTemplatesWhenJiraSkillIsLoaded", async () => {

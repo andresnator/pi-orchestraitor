@@ -1,13 +1,14 @@
 ---
 name: jag-arch-ideas
 description: "Explore architecture changes; survey candidates on request, or design a chosen change with an ADR and plan."
+disable-model-invocation: true
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
   pi_adaptation: "2.0.0"
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
-  version: "4.1.1"
+  version: "4.1.2"
   status: testing
 ---
 

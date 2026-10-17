@@ -1,6 +1,7 @@
 ---
 name: jag-patterns
 description: "Choose GoF/design patterns (strategy, policy, adapter, factory, builder, decorator, observer) only for real needs; review OCP/polymorphism under real extension pressure and DIP/dependency inversion, ports, interfaces and adapters at concrete boundaries."
+disable-model-invocation: true
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
@@ -8,7 +9,7 @@ metadata:
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
   status: testing
-  version: "1.2.1"
+  version: "1.2.2"
 ---
 
 # Skill: jag-patterns

@@ -1,6 +1,7 @@
 ---
 name: jag-slidev
 description: "Create or refine Slidev presentations with retro themes; validate Mermaid and inspect exported slides before reporting completion. Use for Slidev decks, slides or retro-terminal presentations."
+disable-model-invocation: true
 license: MIT
 compatibility: "Pi 1.3.0; Node >=22.19, pnpm 12, optional Slidev/Playwright and Mermaid checker dependencies."
 metadata:
@@ -9,7 +10,7 @@ metadata:
   source: agents-orchestrator
   upstream_name: slidev-retro-deck
   source_revision: ea3158595b56d832e79b41c4c16175f45cd67ea2
-  version: "2.0.0"
+  version: "2.0.1"
   pi_adaptation: "2.0.0"
   status: testing
   modification_notice: "Adapted for Pi with explicit setup authority, bounded validation and portable resources."

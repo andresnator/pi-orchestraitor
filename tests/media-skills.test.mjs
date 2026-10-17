@@ -5,12 +5,13 @@ import { join } from "node:path";
 import test from "node:test";
 import { packageRoot, pi } from "./helpers/pi-host.mjs";
 import { createSkillRegistry } from "../extensions/skills/registry.mjs";
+import { CORE_SKILLS, NATIVE_SKILL_COUNT } from "./helpers/skill-packs.mjs";
 
 const names = ["jag-slidev", "jag-whisper"];
 const revision = "ea3158595b56d832e79b41c4c16175f45cd67ea2";
 const sourceHashes = ["e0369d54093b4e6d829610bdd4e4a6768b0bd7fa08f9b683c11f736315313811", "aafe1e855749b874476014011dbdb4dff9f4c48bd196effd36edcdced39a0d0c"];
 
-test("shouldDiscoverAndLoadBothAutomaticMediaSkillsWhenRegistryCapturesThem", async (t) => {
+test("shouldKeepBothMediaSkillsManualOnlyWhenRegistryCapturesThem", async (t) => {
 	// Given
 	const { skills, diagnostics } = pi.loadSkillsFromDir({ dir: join(packageRoot, "skills"), source: "package" });
 	const registry = createSkillRegistry(pi);
@@ -20,14 +21,12 @@ test("shouldDiscoverAndLoadBothAutomaticMediaSkillsWhenRegistryCapturesThem", as
 	await registry.capture(skills, ctx);
 	// Then
 	assert.deepEqual({ total: skills.length, automatic: skills.filter((s) => !s.disableModelInvocation).length, diagnostics }, {
-		total: 37, automatic: 33, diagnostics: [],
+		total: NATIVE_SKILL_COUNT, automatic: CORE_SKILLS.length, diagnostics: [],
 	});
 	for (const name of names) {
 		const result = await registry.search(name, 5, ctx);
-		assert.ok(result.matches.some((match) => match.name === name));
-		const [loaded] = await registry.resolveNames([name], ctx);
-		assert.equal(loaded.skill.name, name);
-		assert.match(loaded.body, new RegExp(`name: ${name}`));
+		assert.ok(!result.matches.some((match) => match.name === name));
+		await assert.rejects(registry.resolveNames([name], ctx), /manual-only|explicit.*skill/i);
 	}
 });
 

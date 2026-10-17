@@ -1,6 +1,7 @@
 ---
 name: jag-domain
 description: "Define domain terminology and ubiquitous language; record domain-model architecture decisions."
+disable-model-invocation: true
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
@@ -15,7 +16,7 @@ metadata:
   consulted_source_path: "skills/engineering/domain-modeling/SKILL.md"
   consulted_source_revision: "6fd947921b935b7e1e69293a200400f0fdd5c15f"
   status: testing
-  version: "2.0.0"
+  version: "2.0.1"
 ---
 
 # Domain Modeling
