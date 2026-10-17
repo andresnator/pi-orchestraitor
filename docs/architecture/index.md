@@ -25,7 +25,7 @@ flowchart LR
 ```
 
 Evidence for nodes and edges:
-- **A:** [prompts/orchestraitor.md:5–8](../../prompts/orchestraitor.md), [prompts/plan.md:5–12](../../prompts/plan.md).
+- **A:** [prompts/orchestraitor.md](../../prompts/orchestraitor.md), [prompts/plan.md](../../prompts/plan.md).
 - **B:** [instructions/core.md](../../instructions/core.md).
 - **C:** [extensions/mcp.ts:3–23](../../extensions/mcp.ts). Engram registers as a hidden server with four codemode memory tools. Registration is not proof of service availability. Engram is not an SDD state store.
 - **D:** [extensions/subagents.ts](../../extensions/subagents.ts), [extensions/subagent/runtime.mjs:7–29](../../extensions/subagent/runtime.mjs), [extensions/subagent/guard.mjs:13–83](../../extensions/subagent/guard.mjs).
@@ -62,7 +62,7 @@ flowchart TB
 | Evidence | Source |
 | --- | --- |
 | E | [package.json](../../package.json): extension, skill and prompt resource declarations. |
-| F | [prompts/plan.md:5–8](../../prompts/plan.md), [prompts/orchestraitor.md:5–6](../../prompts/orchestraitor.md), [prompts/review.md:5–8](../../prompts/review.md), [prompts/absorb.md:5–7](../../prompts/absorb.md). |
+| F | [prompts/plan.md](../../prompts/plan.md), [prompts/orchestraitor.md](../../prompts/orchestraitor.md), [prompts/review.md](../../prompts/review.md), [prompts/absorb.md:5–7](../../prompts/absorb.md). |
 | G | [README.md](../../README.md), [extensions/skill-registry.ts](../../extensions/skill-registry.ts): catalog selection, then body loading. |
 | H | [extensions/instructions.ts](../../extensions/instructions.ts): adds only owned sections without replacing Pi/project context; [instructions/core.md](../../instructions/core.md) narrows Pi Markdown reads without copying the native docs section. |
 | I | [extensions/compact-tools.ts](../../extensions/compact-tools.ts): presentation, not a scheduler; yields read/bash to existing extension owners. The installer separately registers [pi-pretty](../pi-pretty.md); [extensions/pretty-theme.ts](../../extensions/pretty-theme.ts) only maps Pi's built-in themes to its [highlight theme](../pi-pretty.md#highlight-theme). |
@@ -82,10 +82,10 @@ flowchart TB
 | Skill | Instructions and supporting resources, not an autonomous worker. See the [catalog](../skills.md). |
 | Orchestraitor | The core instructions and `/orchestraitor` prompt followed by the **main session**, not another process. |
 | Subagent | A fresh worker with role `explore`, `review` or `implement`; launched only through `subagent_run`. |
-| Plan | A Markdown contract: behavior, ordered groups, exact files, skills and checks. Not an executable scheduler. |
+| Plan | A short Markdown plan: outcome, scope, steps, checks and risks. Not an executable scheduler. |
 | `.ai/` | Planning/report artifacts; not a durable phase database. |
 
-Sources: [prompts/plan.md:5–8](../../prompts/plan.md), [instructions/core.md](../../instructions/core.md), [extensions/subagents.ts](../../extensions/subagents.ts), [plan template:1–62](../../skills/jag-plan/assets/plan-template.md), [jag-evidence:26–37](../../skills/jag-evidence/SKILL.md).
+Sources: [prompts/plan.md](../../prompts/plan.md), [instructions/core.md](../../instructions/core.md), [extensions/subagents.ts](../../extensions/subagents.ts), [plan template](../../skills/jag-plan/assets/plan-template.md), [jag-evidence:26–37](../../skills/jag-evidence/SKILL.md).
 
 ## Supporting pieces, not extra SDD stages
 

@@ -21,7 +21,7 @@ flowchart TD
   X -->|all required checks: E| V
 ```
 
-Node/edge evidence: **A** [instructions/core.md](../../instructions/core.md); **B** [prompts/plan.md:5–8](../../prompts/plan.md); **C** [jag-evidence:16–37](../../skills/jag-evidence/SKILL.md); **D** [jag-arch-ideas:16–29](../../skills/jag-arch-ideas/SKILL.md); **E** [prompts/orchestraitor.md](../../prompts/orchestraitor.md). These are instructed routes, not automatic dispatch code.
+Node/edge evidence: **A** [instructions/core.md](../../instructions/core.md); **B** [prompts/plan.md](../../prompts/plan.md); **C** [jag-evidence:16–37](../../skills/jag-evidence/SKILL.md); **D** [jag-arch-ideas:16–29](../../skills/jag-arch-ideas/SKILL.md); **E** [prompts/orchestraitor.md](../../prompts/orchestraitor.md). These are instructed routes, not automatic dispatch code.
 
 ## 1. Direct work: skip the plan when it adds no value
 
@@ -101,6 +101,6 @@ For substantial authorized work, the main agent can project tasks through `orche
 
 ## Optional review is not another executor
 
-After any implementation, `/review <changed-files-or-diff>` asks the main session for evidence-backed findings. It fingerprints the scope and rechecks it before the verdict. Example: `/review src/cart.ts and tests/cart.test.ts`; then separately authorize a specific fix if needed. Review does not silently modify files or become blind dual review ([prompts/review.md:5–14](../../prompts/review.md)).
+After any implementation, `/review <changed-files-or-diff>` asks the main session for evidence-backed findings. It fingerprints the scope and rechecks it before the verdict. Example: `/review src/cart.ts and tests/cart.test.ts`; then separately authorize a specific fix if needed. Review does not silently modify files or become blind dual review ([prompts/review.md](../../prompts/review.md)).
 
 All examples are navigation examples for a hypothetical checkout application. File names and expected results are illustrative; no application changes or model-run workflows were performed for this guide.
