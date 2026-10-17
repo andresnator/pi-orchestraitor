@@ -18,7 +18,7 @@ const ORIGINAL_BODY_HASHES = {
 };
 const VERSIONS = { "jag-docs": ["1.1.0", "2.1.0"], "jag-jira": ["3.0.0", "3.0.0"] };
 const SELECTED_NAMES = Object.keys(ORIGINAL_BODY_HASHES);
-const BUNDLED_SKILL_COUNT = 36;
+const BUNDLED_SKILL_COUNT = 37;
 const MODE_BLOCK = /## Optional Interactive Mode\n[\s\S]*?\n\n(?=## )/g;
 const skillPath = (name) => join(packageRoot, "skills", name, "SKILL.md");
 const readSkill = (name) => readFile(skillPath(name), "utf8");

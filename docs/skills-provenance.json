@@ -57,11 +57,29 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "c98e09a9fddc3c41b2c5f111ab040c65e8bc464508050c637a770b7b3319430e"
+          "sha256": "ff21ea5c5a2ca572f56f3667c10f5d8bfcb60563c5b95eaea69a6f406065ec79"
+        },
+        {
+          "path": "references/candidate-survey.md",
+          "sha256": "cc174ad886e209f9b44e0e3c3a920c8360a686a1fb60a4ec5860e096fec3bfd7"
         }
       ],
       "adaptations": [
-        "SKILL.md"
+        "SKILL.md",
+        "references/candidate-survey.md"
+      ],
+      "sourceConsultations": [
+        {
+          "upstreamRepository": "https://github.com/mattpocock/skills",
+          "upstreamRevision": "49dd158d1076134a641b33efb035946536778336",
+          "purpose": "Consulted for a bounded candidate-survey mode; original design workflow retained, without automatic artifacts or external HTML.",
+          "resources": [
+            {
+              "path": "skills/engineering/improve-codebase-architecture/SKILL.md",
+              "sha256": "552240a5ab5cec6b67c15dd1ad6e9f6962b1bca6ce870059a8c2713760c20392"
+            }
+          ]
+        }
       ]
     },
     {
@@ -311,11 +329,11 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "c403245bf57428f49e8b0613fef28a6b7efc6fc375a42de960423803fcc5af4f"
+          "sha256": "738b6a0106f990b4ccd777dd992a1c13510fd5489759cecb32d23e6ba5305cc0"
         },
         {
           "path": "assets/discovery-template.md",
-          "sha256": "11c3e7035307f737334b11964a47e016e097fc66032bdfa8088b7926183aeb80"
+          "sha256": "7d8453ddbe5208e65a2f043a54ae8bc3a032b54fcfdcfaa08eaad3b9d1fbb771"
         },
         {
           "path": "references/edge-validation.md",
@@ -328,7 +346,8 @@
       ],
       "adaptations": [
         "SKILL.md",
-        "references/question-economy.md"
+        "references/question-economy.md",
+        "assets/discovery-template.md"
       ],
       "sourceConsultations": [
         {
@@ -339,6 +358,17 @@
             {
               "path": "pi/core/skills/intent-driven-development/SKILL.md",
               "sha256": "e34045f7b3bf6a6fbd364f85c7bc81d8208e18bb929ceff80bbc987f78aadea8"
+            }
+          ]
+        },
+        {
+          "upstreamRepository": "https://github.com/mattpocock/skills",
+          "upstreamRevision": "49dd158d1076134a641b33efb035946536778336",
+          "purpose": "Consulted for precise blocked questions, unspecified in-scope areas and exclusions; original import identity retained, without tracker machinery.",
+          "resources": [
+            {
+              "path": "skills/engineering/wayfinder/SKILL.md",
+              "sha256": "9be7b478c389605a24517d27752f278933588da97a1b5921b165f455edf4c5b7"
             }
           ]
         }
@@ -844,15 +874,15 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "e096a1b622aa69e7c7b31954fe1f409e73e4d8443ce6031dfbd280390c556635"
+          "sha256": "780e1294d8183d0eb4e2cd738675be12f0046b70457adb5cb43b7e6393c773a3"
         },
         {
           "path": "assets/audit-template.md",
-          "sha256": "58ba340e0f2ea92534c678cab502ac2cb531151f0c088258eedb0b8efb4c4f81"
+          "sha256": "5062b2dae2fa288b724618a477560224a77a47978bccbcde7590d28b19494c0a"
         },
         {
           "path": "references/agent-writing.md",
-          "sha256": "bd268d65f3c393a19d2bfe52cd51ed521a26d2827a6b30d857748ddc5149d12d"
+          "sha256": "11269128072d3c7ca8fbd04a761be1bfb2c76034f88104a4743814d0d55924b4"
         },
         {
           "path": "references/pi-mechanics.md",
@@ -864,6 +894,19 @@
         "assets/audit-template.md",
         "references/agent-writing.md",
         "references/pi-mechanics.md"
+      ],
+      "sourceConsultations": [
+        {
+          "upstreamRepository": "https://github.com/mattpocock/skills",
+          "upstreamRevision": "49dd158d1076134a641b33efb035946536778336",
+          "purpose": "Consulted for evidence-based remedy classification and check wiring; original writing-for-agents identity retained.",
+          "resources": [
+            {
+              "path": "skills/engineering/retro/SKILL.md",
+              "sha256": "33fbc28568e3146f20fd908b12998bc0ab30aa4f4c87288199a40793efa94696"
+            }
+          ]
+        }
       ]
     },
     {
@@ -1296,6 +1339,40 @@
         "assets/transcript-template.md",
         "references/cli.md",
         "scripts/assemble.mjs"
+      ]
+    },
+    {
+      "name": "jag-retro",
+      "upstreamName": "retro",
+      "upstreamPaths": [
+        "skills/engineering/retro/SKILL.md"
+      ],
+      "upstreamVersion": null,
+      "license": "MIT",
+      "author": "Matt Pocock",
+      "adaptedBy": "pi-orchestraitor",
+      "upstreamRepository": "https://github.com/mattpocock/skills",
+      "upstreamRevision": "49dd158d1076134a641b33efb035946536778336",
+      "upstreamSha256": "33fbc28568e3146f20fd908b12998bc0ab30aa4f4c87288199a40793efa94696",
+      "upstreamResources": [
+        {
+          "path": "skills/engineering/retro/SKILL.md",
+          "sha256": "33fbc28568e3146f20fd908b12998bc0ab30aa4f4c87288199a40793efa94696"
+        }
+      ],
+      "resources": [
+        {
+          "path": "SKILL.md",
+          "sha256": "ba8d797af42434075e0b6bb91a1e18af19097bd6cc78563466d721c5d2888170"
+        },
+        {
+          "path": "assets/retrospective-template.md",
+          "sha256": "92e6ff183d2989d328a6de6a1c4c239bccfac3c44200960dc885aa40241574fe"
+        }
+      ],
+      "adaptations": [
+        "SKILL.md",
+        "assets/retrospective-template.md"
       ]
     }
   ],

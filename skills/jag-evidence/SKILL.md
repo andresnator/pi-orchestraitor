@@ -8,7 +8,7 @@ metadata:
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
   status: in-progress
-  version: "5.0.1"
+  version: "5.0.2"
 ---
 
 ## Contract
@@ -25,7 +25,7 @@ Plan before implementation. Read relevant code and contracts; never edit product
 
 ## Wayfinder discovery
 
-Use `assets/discovery-template.md`. Write one `.ai/deep-planner/discoveries/<slug>.md`. Do not add status, phase, or readiness markers. Keep evidence, decisions, and unresolved questions current. When the destination is clear, suggest converting the discovery into a plan.
+Use `assets/discovery-template.md`. Write one `.ai/deep-planner/discoveries/<slug>.md`. Do not add status, phase, or readiness markers. Keep evidence and decisions current. A precise question remains an open question even when blocked; record its prerequisite when useful. Put in-scope areas that cannot yet be phrased as a precise question under **Not yet specified**, without prematurely decomposing them. Keep **Out of scope** separate; out-of-scope work returns only through a user-approved scope change. Move a vague area into open questions only when a precise question emerges, without duplicating it. Preserve the three edge dispositions above; no tracker, claims, scheduler or second discovery artifact. Resolve relevant business questions and clarify relevant unspecified areas before proposing a final executable plan. When the destination is clear, suggest converting the discovery into a plan.
 
 ## Deep Plan
 

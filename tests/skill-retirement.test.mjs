@@ -5,9 +5,9 @@ import test from "node:test";
 import { createSkillRegistry } from "../extensions/skills/registry.mjs";
 import { createWorkspace, packageRoot, pi } from "./helpers/pi-host.mjs";
 
-const NATIVE_SKILL_COUNT = 36;
+const NATIVE_SKILL_COUNT = 37;
 const AUTOMATIC_SKILL_COUNT = 33;
-const MANUAL_ONLY_COUNT = 3;
+const MANUAL_ONLY_COUNT = 4;
 const LENSES = ["jag-arch-impact", "jag-behavior", "jag-big-o", "jag-java-naming", "jag-legacy", "jag-logs", "jag-nulls", "jag-risk",
 	"jag-scope", "jag-seams", "jag-test-scope", "jag-tool-matrix", "jag-tools", "jag-types", "jag-validation"];
 const OTHERS = ["jag-java-api", "jag-java-errors", "jag-java-model", "jag-java-secure", "jag-prompts", "jag-refine"];

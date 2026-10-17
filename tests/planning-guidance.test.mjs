@@ -27,7 +27,7 @@ test("evidence/shouldRecordBusinessRulesAsOpenQuestionsWhenCodeOnlyShowsCurrentB
 	assert.match(section(body, "Method"), /business rules, compliance, SLAs, pricing, retention, priorities or target users found in code as open questions until the user or an authoritative product document confirms them/);
 	assert.match(userOnly, /business rules, compliance, SLAs, pricing, retention\)/);
 	assert.match(userOnly, /Code can show today's value, never whether the business requires it\./);
-	assert.equal(versionOf(body), "5.0.1");
+	assert.equal(versionOf(body), "5.0.2");
 });
 
 test("plan/shouldRequireUserSourcedRequirementsAndObservableWordingWhenSelfChecking", async () => {
@@ -57,7 +57,7 @@ test("provenance/shouldCreditEccConsultationAndRefreshFingerprintsWhenPlanningGu
 	const entries = GUIDED_SKILLS.map((name) => provenance.skills.find((skill) => skill.name === name));
 	// Then
 	for (const entry of entries) {
-		assert.deepEqual(entry.sourceConsultations, [{ upstreamRepository: SOURCE_REPOSITORY, upstreamRevision: SOURCE_REVISION,
+		assert.deepEqual(entry.sourceConsultations.filter(({ upstreamRepository }) => upstreamRepository === SOURCE_REPOSITORY), [{ upstreamRepository: SOURCE_REPOSITORY, upstreamRevision: SOURCE_REVISION,
 			purpose: CONSULTATION_PURPOSE, resources: [{ path: SOURCE_PATH, sha256: SOURCE_HASH }] }], entry.name);
 		for (const resource of entry.resources) {
 			assert.equal(sha256(await readFile(join(packageRoot, "skills", entry.name, resource.path))), resource.sha256, `${entry.name}/${resource.path}`);
