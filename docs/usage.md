@@ -96,7 +96,7 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 | `pi-claude-bridge@0.9.3` | Separately installed companion through `install:pi`; Claude Code bridge. Authentication and model selection remain user-controlled. |
 | `extensions/btw/index.ts` | Temporary 70% side-conversation panel; no tools or local history, manual clipboard copying only. |
 | `extensions/instructions.ts` | Adds core, execution, and personality sections while preserving Pi and project instructions. Only Pi's docs rule changes, from reading whole files to reading the relevant sections. |
-| `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. Engram is skipped when another package already provides its `mem_search` tool. |
+| `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. Engram exposes only four memory tools, through codemode. |
 | `extensions/nan.ts` | Native NaN API-key login/environment fallback and seven documented chat models; no default changes or startup requests. |
 | `extensions/subagents.ts` | Model profiles, bounded sync/background readers, child guards, collection and native usage. |
 | `extensions/skill-registry.ts` | Bounded search/load, in-memory native snapshot refresh; lazy/native exposure. |
@@ -143,9 +143,9 @@ See the [interactive UI guide](interactive-ui.md) for schemas, task replay versu
 
 ## MCP and memory
 
-Context7 uses `https://mcp.context7.com/mcp`. Engram runs `engram mcp --tools=agent` with the session project's cwd. Both use `codemode` exposure. Pi owns connection errors and shutdown; the package never installs missing services.
+Context7 uses `https://mcp.context7.com/mcp` with `codemode` exposure. Engram runs `engram mcp --tools=agent` with the session project's cwd. Its server is `hidden`: only `mem_search`, `mem_save`, `mem_context` and `mem_get_observation` are reachable, through codemode, so no memory schema enters the prompt. Pi owns connection errors and shutdown; the package never installs missing services.
 
-Engram registers when the session starts, unless another package, such as gentle-engram, already provides Engram's `mem_search` tool: a second route to the same memory would only duplicate its tools. To keep this package's route as well, add the `engram` entry below to `mcp.json`.
+This package is the only memory route. Remove other Engram packages, such as gentle-engram, from your Pi settings: they add their own memory rules and declare every Engram tool. Likewise, drop `context7` from your `mcp.json` unless you need different settings, since a file entry replaces the package's.
 
 An entry with the same server name in personal or project `mcp.json` overrides the complete default. Fields are not merged. For an explicit project identity, use trusted project configuration:
 
@@ -156,7 +156,8 @@ An entry with the same server name in personal or project `mcp.json` overrides t
       "command": "engram",
       "args": ["mcp", "--tools=agent", "--project", "project-name"],
       "cwd": ".",
-      "exposure": "codemode"
+      "exposure": "hidden",
+      "toolExposure": { "mem_search": "codemode", "mem_save": "codemode", "mem_context": "codemode", "mem_get_observation": "codemode" }
     }
   }
 }
@@ -166,7 +167,7 @@ Do not set one fixed project globally across repositories. An inherited `ENGRAM_
 
 Run `/mcp` inside the session to inspect extension registrations. `pi mcp list` does not load extensions. To persistently disable a server, provide its complete configuration with `enabled: false`, or exclude the package's MCP extension through `pi config` to disable both defaults.
 
-Memory instructions restrict saves to useful, verified project decisions and exclude secrets, personal information, raw transcripts, and sensitive code. They do not implement automatic capture or a data filter. Engram inherits its environment; review autosync configuration before connecting your usual database. The package does not enable cloud sync.
+Memory instructions ask for few saves of verified decisions and exclude secrets, credentials, personal data and transcripts. They do not implement automatic capture or a data filter. Engram inherits its environment; review autosync configuration before connecting your usual database. The package does not enable cloud sync.
 
 ## Try without registration
 
