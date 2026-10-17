@@ -52,8 +52,8 @@ The report records scope, redacted evidence, supported learning, hypotheses, ran
 The three existing workflow owners receive small, separate updates:
 
 - `jag-agent-docs` 1.1.0 owns check-versus-prose classification. Inspect existing checks and wiring before adding instructions; distinguish missing, unwired, broken, effective and unknown. Effective requires relevant execution evidence. Retro reuses this guidance rather than duplicating it.
-- `jag-evidence` 5.0.2 keeps one discovery file and separates precise blocked questions, not-yet-specified in-scope areas and exclusions. Existing edge dispositions and user-owned business decisions remain unchanged. No tracker is added.
-- `jag-arch-ideas` 4.1.0 adds an explicitly requested candidate-survey mode. It returns inline alternatives with evidence, ADR conflicts, expected benefits labelled as hypotheses and a first reversible validation. It may conclude that no change is justified. It stops before ADR/plan creation or implementation. The ordinary design mode still produces one ADR and one plan.
+- `jag-evidence` 5.0.3 keeps one discovery file and separates precise blocked questions, not-yet-specified in-scope areas and exclusions. Existing edge dispositions and user-owned business decisions remain unchanged. No tracker is added.
+- `jag-arch-ideas` 4.1.1 adds an explicitly requested candidate-survey mode. It returns inline alternatives with evidence, ADR conflicts, expected benefits labelled as hypotheses and a first reversible validation. It may conclude that no change is justified. It stops before ADR/plan creation or implementation. The ordinary design mode still produces one ADR and one plan.
 
 All three retain their original import identities; provenance records the separate source consultations. No new Grill/Domain wrapper or Chief of Staff coordinator is added.
 

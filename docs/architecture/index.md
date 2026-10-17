@@ -96,6 +96,6 @@ Sources: [prompts/plan.md](../../prompts/plan.md), [instructions/core.md](../../
 
 ## What is enforced, and what is instructed?
 
-Planning-only scope and parent verification are **agent instructions**. Child tool/path restrictions have executable guards, but are **not an OS sandbox**. No durable SDD resume, automatic commits, TCR, parallel writers or blind dual review is supplied ([instructions/core.md:25](../../instructions/core.md), [instructions/core.md](../../instructions/core.md)).
+Planning-only scope and parent verification are **agent instructions**. Child tool/path restrictions have executable guards, but are **not an OS sandbox**. No durable SDD resume, automatic commits, TCR or blind dual review is supplied; commits need explicit permission ([instructions/core.md](../../instructions/core.md)).
 
 Evidence method: local manifest, instructions and implementation; Graphify index absent. Context7 resolved Pi but its indexed versions do not establish 1.0.2 behavior, so installed public declarations/docs are the compatibility authority. Engram records verified project decisions, not task authority. Examples on the next pages are illustrative; current acceptance and limits belong in [verification](../verification.md).

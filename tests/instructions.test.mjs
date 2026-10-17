@@ -53,12 +53,21 @@ for (const mode of ["tui", "print", "json", "rpc"]) for (const [trigger, fields]
 // Owned sections ride on every request, so they stay within a fixed budget of characters.
 const INSTRUCTIONS_BUDGET = 3000;
 
-test("shouldStayWithinBudgetWhenOwnedInstructionsAreSentWithEveryRequest", async () => {
-	// Given / When
-	const sections = await ownedSections();
+test("shouldStayWithinBudgetWhenOwnedInstructionsAreSentWithEveryRequest", async (t) => {
+	// Given
+	const cwd = await createWorkspace(t);
+	const loaded = await loadExtensions([join(packageRoot, "extensions/instructions.ts")], cwd);
+	assert.deepEqual(loaded.errors, []);
+	const options = normalizeBuildSystemPromptOptions({ cwd, sections: { other_extension: "Not owned" } });
+	// When
+	for (const handler of loaded.extensions[0].handlers.get("before_agent_start")) {
+		await handler({ type: "before_agent_start", messageType: "user", prompt: "Hello", systemPromptOptions: options }, { cwd, mode: "print" });
+	}
 	// Then
-	assert.deepEqual(Object.keys(sections), ["pi_orchestraitor_core", "pi_orchestraitor_personality"]);
-	assert.ok(Object.values(sections).join("").length <= INSTRUCTIONS_BUDGET, `${Object.values(sections).join("").length} > ${INSTRUCTIONS_BUDGET}`);
+	const owned = Object.entries(options.sections).filter(([key]) => key.startsWith("pi_orchestraitor_"));
+	const characters = owned.reduce((sum, [, text]) => sum + text.length, 0);
+	assert.deepEqual(owned.map(([key]) => key), ["pi_orchestraitor_core", "pi_orchestraitor_personality"]);
+	assert.ok(characters <= INSTRUCTIONS_BUDGET, `${characters} > ${INSTRUCTIONS_BUDGET}`);
 });
 
 test("shouldKeepOnePersonalitySectionWhenTheInstructionsExtensionIsReloaded", async (t) => {
@@ -138,5 +147,5 @@ test("shouldPreferRelevantSectionsOverWholeFilesWhenCoreGuidanceIsLoaded", async
 	// When
 	const instructions = await readFile(path, "utf8");
 	// Then
-	assert.match(instructions, /For Pi Markdown docs, this overrides whole-file guidance: read the headings, then the relevant sections\./);
+	assert.match(instructions, /For Pi Markdown docs, this overrides whole-file guidance: read the headings, then the relevant sections completely, and follow links to related docs\./);
 });

@@ -101,6 +101,6 @@ For substantial authorized work, the main agent can project tasks through `orche
 
 ## Optional review is not another executor
 
-After any implementation, `/review <changed-files-or-diff>` asks the main session for evidence-backed findings with path:line, severity and fix intent. It does not fingerprint the scope, so files that change during the review are not detected. Example: `/review src/cart.ts and tests/cart.test.ts`; then separately authorize a specific fix if needed. Review does not silently modify files or become blind dual review ([prompts/review.md](../../prompts/review.md)).
+After any implementation, `/review <changed-files-or-diff>` asks the main session for evidence-backed findings with path:line, severity and fix intent. It does not fingerprint the scope, so files that change during the review are not detected. Example: `/review src/cart.ts and tests/cart.test.ts`; then separately authorize a specific fix if needed. Review does not modify files or fix findings without separate authorization ([prompts/review.md](../../prompts/review.md)).
 
 All examples are navigation examples for a hypothetical checkout application. File names and expected results are illustrative; no application changes or model-run workflows were performed for this guide.
