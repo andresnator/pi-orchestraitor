@@ -41,7 +41,7 @@ flowchart TB
   M -->|declares: E| S[Skill catalog]
   P -->|request instructions: F| A[Main agent]
   S -->|selected guidance: G| A
-  X -->|instructions.ts injects: H| I[core / orchestraitor / personality]
+  X -->|instructions.ts injects: H| I[core / personality]
   I -->|system prompt sections: H| A
   X -->|compact-tools.ts decorates: I| T[Native tool presentation]
   X -->|context-budget.ts caps: N| CB[Model-issued codemode output]
