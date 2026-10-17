@@ -536,27 +536,19 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "9bad4142c2f8de0fe25cebdd3a057b8bf708ed676ad633814d60868b8c01e187"
+          "sha256": "d3232ad202a5d41b430d1455701a7a8a8dbd9eb16a2b64e6b6082240187d537f"
         },
         {
-          "path": "assets/spike-quick.md",
-          "sha256": "274498392170d7967b96d6539f22a7fc2939de8721db677916ba6140fb5f7986"
+          "path": "assets/quick.md",
+          "sha256": "60048623535b47a772caaa0cf1b432670f4777bb4667ce5ec324c096d7785c31"
         },
         {
           "path": "assets/spike-refinement.md",
           "sha256": "63c67357e42191222f5ee4a701f79502419afcac723f070bbf8921b2abf90cd9"
         },
         {
-          "path": "assets/story-quick.md",
-          "sha256": "653c6155b37a362bb188bf73d365109ba3994a20059fb7292bd9aa417e4cc863"
-        },
-        {
           "path": "assets/story-refinement.md",
           "sha256": "0ad247a8624013ada32da655c21d4dd97dc7486fbfba956c97f330f5e03649a2"
-        },
-        {
-          "path": "assets/task-quick.md",
-          "sha256": "683abc432ccfaf923ef2f26a8f767319135e2caff15fb50a5cc898706bf05ea4"
         },
         {
           "path": "assets/task-refinement.md",
@@ -564,7 +556,8 @@
         }
       ],
       "adaptations": [
-        "SKILL.md"
+        "SKILL.md",
+        "assets/quick.md"
       ],
       "mergedFrom": [
         "jag-jira-story",
@@ -757,11 +750,11 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "02614d570a8fec0723c46dd4fbef13a224286f29c36ce66492d4ba5dc34b5c14"
+          "sha256": "a6dcd6adaa6eb602f45efccbbd7251d07041f41a156430a9fb30a85dddeece63"
         },
         {
           "path": "assets/skill-template.md",
-          "sha256": "d5ee46a9c483ed156ab510dcba4326eb18c197ff9857707485bc2460ee9818a0"
+          "sha256": "daf48f1d0092b275cc3c096b23cb365bd79e231eb6479631bad6cc2cb41b3370"
         },
         {
           "path": "references/behavioral-evaluation.md",

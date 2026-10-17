@@ -4,24 +4,22 @@ description: "Draft/refine Jira User Stories, Tasks and Spikes in Jira Markup: p
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
-  pi_adaptation: "3.0.0"
+  pi_adaptation: "3.0.1"
   modification_notice: "Modified for Pi by pi-orchestraitor; merged the Jira User Story, Task and Spike skills and added optional section review."
   author: andresnator
   status: testing
-  version: "3.0.0"
+  version: "3.0.1"
 ---
 
 # Jira Ticket
 
 ## Scope
 
-Use this skill only to generate Jira User Story, Task or Spike ticket content.
+Generate Jira User Story, Task or Spike ticket content as Jira Markup in chat. This skill does not create Jira issues through the Jira API.
 
 - A User Story describes a user capability and the benefit it provides.
 - A Task describes bounded work with an expected outcome and verifiable completion criteria.
 - A Spike is research work that answers a question, explores uncertainty, and produces evidence for a later decision.
-
-This skill outputs Jira Markup in chat only. It does not create Jira issues through the Jira API.
 
 ## Optional Interactive Mode
 
@@ -37,71 +35,36 @@ Pause or exit on request; report approved/pending sections without inventing mis
 
 ## Ticket Type
 
-- When the user names the type (story, task, spike, or an equivalent in the user's language), use it and do not switch it.
-- Otherwise infer it: a user capability with a benefit is a User Story; bounded technical, maintenance or operational work is a Task; research, investigation or an open question is a Spike.
-- If the type cannot be inferred safely, ask one direct question before anything else. Use Pi's available UI choice mechanism when available; otherwise ask in chat. Do not ask when the type is clear.
-- Load only the selected type's templates:
+Use the type the user names (story, task, spike, or an equivalent in the user's language) and do not switch it. Otherwise infer it: a user capability with a benefit is a User Story; bounded technical, maintenance or operational work is a Task; research, investigation or an open question is a Spike. Ask one direct question first only when the type cannot be inferred safely.
 
 | Type | Quick Creation template | Refinement template |
 | --- | --- | --- |
-| User Story | [assets/story-quick.md](assets/story-quick.md) | [assets/story-refinement.md](assets/story-refinement.md) |
-| Task | [assets/task-quick.md](assets/task-quick.md) | [assets/task-refinement.md](assets/task-refinement.md) |
-| Spike | [assets/spike-quick.md](assets/spike-quick.md) | [assets/spike-refinement.md](assets/spike-refinement.md) |
+| User Story | [assets/quick.md](assets/quick.md) | [assets/story-refinement.md](assets/story-refinement.md) |
+| Task | [assets/quick.md](assets/quick.md) | [assets/task-refinement.md](assets/task-refinement.md) |
+| Spike | [assets/quick.md](assets/quick.md) | [assets/spike-refinement.md](assets/spike-refinement.md) |
 
 ## Operating Rules
 
 - Quick Creation is the default mode.
 - Refinement activates only when explicitly requested by the user.
 - SDD-ready is a variant of Refinement, not a third mode.
-- Follow the user's language during conversation.
-- Generate the final Jira ticket in English by default unless the user explicitly requests another artifact language.
-- Final ticket must be a single Jira Markup code block.
-- Omit empty sections and placeholders.
-- Use `Assumptions and TBD` only for real unresolved non-blocking gaps.
-- Besides the ticket-type question, Quick Creation may ask only when missing information blocks Title, Description, or Objective.
-- Quick Creation blocking questions must be direct interrogative questions ending with `?` or using Spanish `¿...?` when the conversation language is Spanish.
-- In Quick Creation, include Acceptance Criteria or Implementation Notes only if the user explicitly provided useful content for those sections.
-- Refinement asks one question at a time, waits for the user, and does not generate until an explicit generation request.
-- Ask open-ended Quick Creation and Refinement questions directly in normal chat. Add `Recommendation: ...` only when it helps the user respond.
-- Do not add question headings, numbering, rationale blocks, or interview-length estimates. Use Pi's available UI choice mechanism for closed choices when available; otherwise ask in chat.
-- If refining an existing ticket, preserve useful existing content and improve only missing/unclear parts.
-- When refining an existing ticket, include a brief change summary before the final ticket, outside the Jira block.
-- Codebase exploration applies only to Refinement / SDD-ready when it can answer factual questions or validate assumptions; not to Quick Creation by default unless explicitly requested.
-- Codebase exploration is light by default (search/read a few relevant files); deep exploration requires explicit confirmation.
-- Evidence Summary is required before the Jira block when exploration happened or the output makes technical/factual claims. It must include Reviewed, Found, Evidence, Confidence, Unverified. Confidence levels: High, Medium, Low.
-- This skill only generates Jira Markup content; it does not create Jira issues through the Jira API.
+- Follow the user's language during conversation; write the ticket in English unless the user explicitly requests another artifact language.
+- Return the ticket as a single Jira Markup code block. Omit empty sections and placeholders; use `Assumptions and TBD` only for real unresolved non-blocking gaps.
+- Ask one question at a time, directly in normal chat, as a direct interrogative ending with `?` (Spanish `¿...?` when the conversation is in Spanish). Add `Recommendation: ...` only when it helps the user respond. Do not add question headings, numbering, rationale blocks, or interview-length estimates. Use Pi's available UI choice mechanism for closed choices when available; otherwise ask in chat.
+- When refining an existing ticket, preserve useful existing content, improve only missing/unclear parts, and put a brief change summary before the Jira block, outside it.
+- Explore the codebase only in Refinement / SDD-ready, and only to answer factual questions or validate assumptions (Quick Creation only on explicit request). Keep it light (search/read a few relevant files); deep exploration requires explicit confirmation.
 
 ## Modes
 
 ### Quick Creation
 
-Use Quick Creation unless the user explicitly asks for refinement. Load the selected type's Quick Creation template before generating.
-
-Generate directly when the user provided enough information for:
-
-- Title
-- Description
-- Objective
-
-Ask only one blocking question if any of those three cannot be inferred safely. Keep the lead-in minimal before the Jira block.
+Load the Quick Creation template. Generate directly when Title, Description and Objective can be inferred safely; otherwise ask only one blocking question (besides any ticket-type question). Include Acceptance Criteria or Implementation Notes only if the user explicitly provided useful content for them. Keep the lead-in before the Jira block minimal.
 
 ### Refinement
 
-Use Refinement only when the user explicitly asks to refine, improve, complete, add detail, clarify, make developer-ready, add acceptance criteria, or equivalent intent in the user's language.
+Use Refinement only when the user explicitly asks to refine, improve, complete, add detail, clarify, make developer-ready, add acceptance criteria, or equivalent intent in the user's language. Use SDD-ready Refinement when the user explicitly asks for SDD-ready, ready for SDD, prepare for SDD, as SDD input, or equivalent intent.
 
-Use SDD-ready Refinement when the user explicitly asks for SDD-ready, ready for SDD, prepare for SDD, as SDD input, or equivalent intent in the user's language.
-
-Load the selected type's Refinement template before generating. Ask one question at a time using this minimal shape:
-
-```markdown
-[Direct interrogative question?]
-
-Recommendation: [Short suggested answer when useful.]
-```
-
-Omit the recommendation line when it adds no value.
-
-Do not generate until the user explicitly asks to generate, create, print, or finalize the ticket.
+Load the selected type's Refinement template, then ask one question at a time and wait for each answer. Do not generate until the user explicitly asks to generate, create, print, or finalize the ticket.
 
 ## Refinement Guidance
 
@@ -109,41 +72,15 @@ Open Questions are especially useful for SDD-ready output when unresolved decisi
 
 ### User Story
 
-Required refined sections:
+Required: Title, User Story, Description, Acceptance Criteria. Optional: Implementation Notes, Test Notes, Open Questions, Assumptions and TBD.
 
-- Title
-- User Story
-- Description
-- Acceptance Criteria
-
-Optional refined sections:
-
-- Implementation Notes
-- Test Notes
-- Open Questions
-- Assumptions and TBD
-
-The User Story section must use this shape: `As a [user], I want [capability], so that [benefit].`
-
-Acceptance Criteria should use Given/When/Then by default.
+The User Story section must use this shape: `As a [user], I want [capability], so that [benefit].` Acceptance Criteria should use Given/When/Then by default.
 
 Implementation Notes must be conservative. Include only real technical context, constraints, dependencies, risks, or SDD inputs. Avoid premature implementation design, invented architecture, step-by-step plans, or subtasks disguised as design.
 
 ### Task
 
-Required refined sections:
-
-- Title
-- Description
-- Expected Outcome
-- Acceptance Criteria
-
-Optional refined sections:
-
-- Implementation Notes
-- Test Notes
-- Open Questions
-- Assumptions and TBD
+Required: Title, Description, Expected Outcome, Acceptance Criteria. Optional: Implementation Notes, Test Notes, Open Questions, Assumptions and TBD.
 
 Acceptance Criteria should use Given/When/Then by default. Verifiable bullets are allowed for pure technical work when Given/When/Then would be artificial.
 
@@ -151,21 +88,7 @@ Implementation Notes may include technical guidance, constraints, dependencies, 
 
 ### Spike
 
-Required refined sections:
-
-- Title
-- Research Question
-- Context
-- Scope
-- Expected Deliverable
-
-Optional refined sections:
-
-- Acceptance Criteria
-- Implementation Notes
-- Test Notes
-- Open Questions
-- Assumptions and TBD
+Required: Title, Research Question, Context, Scope, Expected Deliverable. Optional: Acceptance Criteria, Implementation Notes, Test Notes, Open Questions, Assumptions and TBD.
 
 Acceptance Criteria should be evidence or deliverable bullets by default. Use Given/When/Then only when it fits naturally.
 
@@ -173,7 +96,7 @@ Implementation Notes must stay investigatory: areas to inspect, constraints, kno
 
 ## Evidence Summary
 
-When required, place this before the Jira block:
+Place an Evidence Summary before the Jira block when codebase exploration happened or the ticket makes technical/factual claims; otherwise omit it.
 
 Evidence Summary
 Reviewed: Files, docs, or sources reviewed.
@@ -181,5 +104,3 @@ Found: Facts discovered.
 Evidence: Specific references.
 Confidence: High | Medium | Low
 Unverified: Claims or assumptions not validated.
-
-If no exploration happened and no technical or factual claims are made, omit the Evidence Summary.

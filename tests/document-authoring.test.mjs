@@ -13,10 +13,10 @@ const ORIGINAL_BODY_HASHES = {
 	"jag-rfc": "7159b24cb5e63375325170950b70eea2c9ef2b4104d70d7e7586e8b1dd4fa229",
 	"jag-adr": "013db18c921f8c1f9019283497eb7797a64474567298dd6e8b9da031cb3e4c18",
 	"jag-usm": "7aea0926c8baa05190e133f12e3fd6e49e95d1af4cb7181127262b5b0aad6640",
-	// Merged Jira Story/Task/Spike default body, pinned 2026-10-17.
-	"jag-jira": "989b6781acee9f41f68a2c8f5a0429c7b5c794b9fb9d976e555440473b2ef6f4",
+	// Merged Jira Story/Task/Spike default body, deduplicated 2026-10-17.
+	"jag-jira": "400070801d0dae32b9449f899ebc1a7a6dde1f2dcec499d15d3f5440af01541b",
 };
-const VERSIONS = { "jag-docs": ["1.1.0", "2.1.0"], "jag-jira": ["3.0.0", "3.0.0"] };
+const VERSIONS = { "jag-docs": ["1.1.0", "2.1.0"], "jag-jira": ["3.0.1", "3.0.1"] };
 const SELECTED_NAMES = Object.keys(ORIGINAL_BODY_HASHES);
 const BUNDLED_SKILL_COUNT = 37;
 const MODE_BLOCK = /## Optional Interactive Mode\n[\s\S]*?\n\n(?=## )/g;

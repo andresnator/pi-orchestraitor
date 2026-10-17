@@ -14,9 +14,9 @@ const OTHERS = ["jag-java-api", "jag-java-errors", "jag-java-model", "jag-java-s
 const MERGED = { "jag-jira-story": "user-story", "jag-jira-task": "task", "jag-jira-spike": "spike" };
 const RETIRED = [...LENSES, ...OTHERS, ...Object.keys(MERGED)];
 const JIRA_TEMPLATES = [
-	{ heading: "### User Story\n", quick: "assets/story-quick.md", refinement: "assets/story-refinement.md", marker: "h2. User Story" },
-	{ heading: "### Task\n", quick: "assets/task-quick.md", refinement: "assets/task-refinement.md", marker: "h2. Expected Outcome" },
-	{ heading: "### Spike\n", quick: "assets/spike-quick.md", refinement: "assets/spike-refinement.md", marker: "h2. Research Question" },
+	{ heading: "### User Story\n", quick: "assets/quick.md", refinement: "assets/story-refinement.md", marker: "h2. User Story" },
+	{ heading: "### Task\n", quick: "assets/quick.md", refinement: "assets/task-refinement.md", marker: "h2. Expected Outcome" },
+	{ heading: "### Spike\n", quick: "assets/quick.md", refinement: "assets/spike-refinement.md", marker: "h2. Research Question" },
 ];
 const TRIMMED = {
 	"jag-refactor": ["techniques/", "references/language-idioms.md", "references/language-applicability.md",
