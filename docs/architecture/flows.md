@@ -21,22 +21,22 @@ flowchart TD
   X -->|all required checks: E| V
 ```
 
-Node/edge evidence: **A** [instructions/orchestraitor.md](../../instructions/orchestraitor.md); **B** [prompts/plan.md:5–8](../../prompts/plan.md); **C** [jag-evidence:16–37](../../skills/jag-evidence/SKILL.md); **D** [jag-arch-ideas:16–29](../../skills/jag-arch-ideas/SKILL.md); **E** [instructions/orchestraitor.md](../../instructions/orchestraitor.md). These are instructed routes, not automatic dispatch code.
+Node/edge evidence: **A** [instructions/core.md](../../instructions/core.md); **B** [prompts/plan.md](../../prompts/plan.md); **C** [jag-evidence:16–37](../../skills/jag-evidence/SKILL.md); **D** [jag-arch-ideas:16–29](../../skills/jag-arch-ideas/SKILL.md); **E** [prompts/orchestraitor.md](../../prompts/orchestraitor.md). These are instructed routes, not automatic dispatch code.
 
 ## 1. Direct work: skip the plan when it adds no value
 
-**Who:** the main agent follows Orchestraitor. It inspects, makes a bounded change and runs focused checks. It stops if scope or risk requires planning.
+**Who:** the main agent follows the core instructions. It inspects, makes a bounded change and runs focused checks. It stops if scope or risk requires planning.
 
 Example in a hypothetical application:
 1. Request: `/orchestraitor fix the misspelled empty-state label in src/cart.ts; do not change behavior`.
 2. The agent reads that file and relevant checks, changes the label and verifies it.
 3. Result: unstaged changes plus verification; no plan or SDD state created.
 
-Contract: [instructions/orchestraitor.md](../../instructions/orchestraitor.md). This is intentionally **not specification-driven planning**.
+Contract: [instructions/core.md](../../instructions/core.md). This is intentionally **not specification-driven planning**.
 
 ## 2. Plan: known outcome, explicit contract
 
-**Who plans:** the main agent loads `jag-plan` and `jag-routing`. It inspects evidence and writes only one plan. It selects implementation skill **names**, without loading their bodies yet.
+**Who plans:** the main agent loads `jag-plan`, inspects evidence and writes one short plan: outcome, scope, steps, checks and risks.
 
 ```mermaid
 sequenceDiagram
@@ -44,21 +44,20 @@ sequenceDiagram
   participant A as Main agent
   participant P as Plan file
   U->>A: /plan + goal [B]
-  A->>A: Inspect evidence and select group skills [F]
-  A->>P: Write behavior, files, groups, checks [F]
+  A->>A: Inspect evidence [F]
+  A->>P: Write outcome, steps and checks [F]
   A-->>U: Plan path without implementation [B]
   U->>A: /orchestraitor execute the plan PATH [E]
-  A->>P: Validate and record SHA-256 [E]
-  A->>A: Execute sequentially, verify and recheck hash [E]
+  A->>A: Follow the steps, run the checks and report [E]
 ```
 
-**F:** [jag-plan:16–30](../../skills/jag-plan/SKILL.md), [jag-routing:20–39](../../skills/jag-routing/SKILL.md), [plan template:1–62](../../skills/jag-plan/assets/plan-template.md). B/E are cited above. See [the execution loop](execution.md).
+**F:** [jag-plan](../../skills/jag-plan/SKILL.md), [plan template](../../skills/jag-plan/assets/plan-template.md). B/E are cited above. See [the execution loop](execution.md).
 
 Example:
 1. `/plan reject empty cart checkout; inspect src/cart.ts and tests/cart.test.ts; write .ai/deep-planner/plans/reject-empty-cart.md`.
-2. Expected plan: WHEN the cart is empty, THEN checkout is rejected; exact files, ordered work and test commands.
+2. Expected plan: checkout rejects an empty cart; the steps and the test command that proves it.
 3. Review the plan, then request `/orchestraitor execute the plan .ai/deep-planner/plans/reject-empty-cart.md`.
-4. The executor loads the selected skills, changes only the authorized scope and reports observed checks.
+4. The executor changes only the authorized scope and reports observed checks.
 
 ## 3. Deep Plan: more investigation, same executor
 
@@ -91,7 +90,7 @@ Discovery → plan is a **user-directed handoff**, not an automatic phase transi
 Example:
 1. `/skill:jag-arch-ideas separate checkout policy from payment infrastructure inside the existing deployable`.
 2. The agent compares boundaries and migration trade-offs, then records the decision in an ADR.
-3. It writes `.ai/architect/plans/<slug>.md`; group 1 adds architecture guardrails and later groups perform incremental migration.
+3. It writes `.ai/architect/plans/<slug>.md`; step 1 adds architecture guardrails and later steps migrate incrementally.
 4. You review the ADR and plan, then request `/orchestraitor execute the plan <returned-path>`.
 
 The ADR explains **why**; the plan specifies **how to change safely**. Both remain documentation until execution is authorized. Contract: [jag-arch-ideas:16–29](../../skills/jag-arch-ideas/SKILL.md).
@@ -102,6 +101,6 @@ For substantial authorized work, the main agent can project tasks through `orche
 
 ## Optional review is not another executor
 
-After any implementation, `/review <changed-files-or-diff>` asks the main session for evidence-backed findings. It fingerprints the scope and rechecks it before the verdict. Example: `/review src/cart.ts and tests/cart.test.ts`; then separately authorize a specific fix if needed. Review does not silently modify files or become blind dual review ([prompts/review.md:5–14](../../prompts/review.md)).
+After any implementation, `/review <changed-files-or-diff>` asks the main session for evidence-backed findings with path:line, severity and fix intent. It does not fingerprint the scope, so files that change during the review are not detected. Example: `/review src/cart.ts and tests/cart.test.ts`; then separately authorize a specific fix if needed. Review does not modify files or fix findings without separate authorization ([prompts/review.md](../../prompts/review.md)).
 
 All examples are navigation examples for a hypothetical checkout application. File names and expected results are illustrative; no application changes or model-run workflows were performed for this guide.

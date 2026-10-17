@@ -73,9 +73,9 @@ These are hypotheses until measured. After a week of comparable work, run `pnpm 
 About 15% of the baseline's assistant turns only updated tasks or memory. The package makes those updates smaller and asks for them to travel with work:
 
 - `orchestraitor_tasks` mutations return the operation, the new revision and only the affected tasks. `list` still returns the complete board, and every receipt keeps the full versioned state in `details`. On the benchmark's one-task update on a 20-task board, the model-facing response fell from 261 to 146 characters.
-- The task tool runs sequentially, so several updates in one assistant message, alongside work calls, take consecutive revisions. Pi then runs every call in that message sequentially: two 400 ms calls plus a task update take about 800 ms instead of 400 ms. `instructions/orchestraitor.md` therefore asks for updates with the next work calls only when at most one of them is slow, and for done evidence that has already returned.
+- The task tool runs sequentially, so several updates in one assistant message, alongside work calls, take consecutive revisions. Pi then runs every call in that message sequentially: two 400 ms calls plus a task update take about 800 ms instead of 400 ms. The tool description therefore asks to pair updates with at most one slow call, and marking a task done needs parent evidence.
 - `extensions/mcp.ts` registers Engram as a `hidden` server whose four memory tools (`mem_search`, `mem_save`, `mem_context`, `mem_get_observation`) are reachable only through codemode. Declared directly, those four schemas would add about 7,100 characters per request; gentle-engram's route declares all 22 of its tools and adds a 2,768-character protocol that makes saving mandatory.
-- This guidance and the codemode rules add 439 characters to the owned instructions and 40 to the tool declarations. Prompt plus tool declarations grew by 528 characters, about 130 estimated tokens per request, in a prefix that stays stable and is mostly read from cache. Package startup stayed within 1% of the baseline.
+- When measured, this guidance and the codemode rules added 439 characters to the owned instructions (since replaced by the shorter core instructions) and 40 to the tool declarations. Prompt plus tool declarations grew by 528 characters, about 130 estimated tokens per request, in a prefix that stays stable and is mostly read from cache. Package startup stayed within 1% of the baseline.
 
 The main Codex models rarely sent several calls per message, so fewer turns depend on the model following this guidance. Compare ceremony-only turns per model with `pnpm run usage --compare`.
 
@@ -149,7 +149,7 @@ Use the pre-change revision `058e89d` and the optimized tree recorded by the ben
 | --- | --- |
 | Consultation | A two-file synthetic repository: identify the exported API and cite its definition/caller. No writes; both citations must be correct. |
 | Small change | A synthetic function with a wrong empty-input result and one deterministic failing test: make the minimal fix and observe failure/pass. Exact changed-file scope and final test result must match. |
-| Task execution | A synthetic three-group plan: inspect, fix the same function, verify. Preserve plan hash, record stable tasks and parent evidence, satisfy the same tests. |
+| Task execution | A synthetic three-step plan: inspect, fix the same function, verify. Leave the plan file unchanged, record stable tasks and parent evidence, satisfy the same tests. |
 | Delegated exploration | Two independent read-only questions on the same synthetic repository: maximum two readers, correct citations, unchanged files and confirmed exits. Parent verifies both answers. |
 
 Run three repetitions per scenario per version: 24 sessions total. Pair versions within each repetition, alternating baseline-first/optimized-first. Use fresh sessions for this cold-run comparison; record actual cache-read/write amounts because fresh sessions do not guarantee an empty provider cache. Evaluate continued-session reuse in a separate explicitly budgeted cohort, never pool it with cold runs.

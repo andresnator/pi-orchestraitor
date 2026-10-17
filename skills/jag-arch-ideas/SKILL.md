@@ -7,7 +7,7 @@ metadata:
   pi_adaptation: "2.0.0"
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
-  version: "4.1.0"
+  version: "4.1.1"
   status: testing
 ---
 
@@ -28,6 +28,6 @@ Design mode retains one ADR and one plan for a requested architecture design. Us
 3. Compare 2-3 candidates by forces, trade-offs, migration cost, first reversible step. Recommend one; microservices must justify operational cost.
 4. Converge on boundaries, incremental migration; no big bang.
 5. Record decision and rejected candidates in one ADR.
-6. Load `jag-plan` and `jag-routing`. Write one `.ai/architect/plans/<slug>.md`. Record selected names per work group. Group 1 creates fitness-function guardrails; later groups keep the build green.
+6. Load `jag-plan`. Write one `.ai/architect/plans/<slug>.md`. Step 1 creates fitness-function guardrails; later steps keep the build green.
 
 Patterns need evidenced forces plus pragmatic and KISS gates. Each work item maps to an ADR decision or architecture gap and names real files. Return the chosen architecture, ADR path, plan path, first reversible step, and `/orchestraitor execute the plan <path>`.

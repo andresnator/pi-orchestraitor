@@ -21,7 +21,7 @@ const EXPECTED_FILES = [
 	"extensions/status-ui.ts", "extensions/footer.ts", "extensions/ui/footer.ts", "extensions/quota.ts", "extensions/ui/quota.ts", "extensions/ui/display.ts", "extensions/ui/agents.ts", "extensions/ui/tasks.ts", "extensions/ui/task-view.ts", "extensions/ui/questions.ts", "extensions/ui/cache-notice.ts",
 	"extensions/models/store.mjs", "extensions/models/panel.mjs", "extensions/models/selector.ts", "extensions/subagent/bridge.mjs", "extensions/subagent/background.mjs",
 	"extensions/subagent/child.mjs", "extensions/subagent/controller.mjs", "extensions/subagent/guard.mjs", "extensions/subagent/policy.mjs", "extensions/subagent/runtime.mjs",
-	"instructions/core.md", "instructions/orchestraitor.md", "instructions/personality.md",
+	"instructions/core.md", "instructions/personality.md",
 	"scripts/install-pi.mjs", "scripts/pi-host.mjs", "scripts/skill-migration.mjs", "scripts/check-personality.mjs", "scripts/bench.mjs", "scripts/usage-report.mjs",
 	"scripts/skill-inventory.mjs", "scripts/package-registration.mjs", "scripts/pretty-config.mjs",
 	"docs/btw.md", "docs/nan.md", "docs/usage.md", "docs/skills.md", "docs/skills-provenance.json", "docs/verification.md", "docs/subagents.md", "docs/interactive-ui.md", "docs/performance.md", "docs/pi-pretty.md", "docs/manual-package-check.md",
@@ -155,7 +155,7 @@ test("shouldLoadOnlyPackagedResourcesWhennpmTarballIsExtractedElsewhere", async 
 	}], () => "No model call is allowed");
 	assert.deepEqual({ status: childResult.status, terminated: childResult.terminated }, { status: "failed", terminated: true });
 	assert.match(childResult.diagnostic, /Model unavailable/);
-	assert.match(result.systemPromptOptions.sections.pi_orchestraitor_execution, /Orchestraitor/);
+	assert.match(result.systemPromptOptions.sections.pi_orchestraitor_core, /Personal harness rules/);
 	assert.match(result.systemPromptOptions.sections.pi_orchestraitor_personality, /Colombian software architect/);
 	assert.equal(PROVENANCE.skills.length, 37);
 	for (const skill of PROVENANCE.skills) {

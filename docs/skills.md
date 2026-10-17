@@ -52,8 +52,8 @@ The report records scope, redacted evidence, supported learning, hypotheses, ran
 The three existing workflow owners receive small, separate updates:
 
 - `jag-agent-docs` 1.1.0 owns check-versus-prose classification. Inspect existing checks and wiring before adding instructions; distinguish missing, unwired, broken, effective and unknown. Effective requires relevant execution evidence. Retro reuses this guidance rather than duplicating it.
-- `jag-evidence` 5.0.2 keeps one discovery file and separates precise blocked questions, not-yet-specified in-scope areas and exclusions. Existing edge dispositions and user-owned business decisions remain unchanged. No tracker is added.
-- `jag-arch-ideas` 4.1.0 adds an explicitly requested candidate-survey mode. It returns inline alternatives with evidence, ADR conflicts, expected benefits labelled as hypotheses and a first reversible validation. It may conclude that no change is justified. It stops before ADR/plan creation or implementation. The ordinary design mode still produces one ADR and one plan.
+- `jag-evidence` 5.0.3 keeps one discovery file and separates precise blocked questions, not-yet-specified in-scope areas and exclusions. Existing edge dispositions and user-owned business decisions remain unchanged. No tracker is added.
+- `jag-arch-ideas` 4.1.1 adds an explicitly requested candidate-survey mode. It returns inline alternatives with evidence, ADR conflicts, expected benefits labelled as hypotheses and a first reversible validation. It may conclude that no change is justified. It stops before ADR/plan creation or implementation. The ordinary design mode still produces one ADR and one plan.
 
 All three retain their original import identities; provenance records the separate source consultations. No new Grill/Domain wrapper or Chief of Staff coordinator is added.
 
@@ -216,7 +216,7 @@ See [offline savings and limitations](performance.md) and [child resolution](sub
 - Every skill declares Pi compatibility and a separate `pi_adaptation` version. The namespace rename baseline is 2.0.0; consolidation recipients use 2.1.1 after the discovery-vocabulary correction, with the `jag-code` pointer correction at 2.0.1. Dropping the textbook catalogs moved `jag-refactor` to 2.2.0 and `jag-java-test` to 2.1.0; the merged `jag-jira` uses 3.0.1. Original upstream versions remain in provenance.
 - Skill routing uses native-authorized names and descriptions via `skill_registry`, or the native catalog when unavailable. Catalog suppression does not rewrite source bodies/resources; executors load selected names. The routing adaptation is 2.0.0.
 - Closed questions use an available Pi UI choice mechanism, with ordinary chat as the fallback. No OpenCode question tool is assumed.
-- `jag-plan` and its template target sequential Orchestraitor execution, unchanged plans, and working-tree delivery. Unsupported SDD, TCR, and automatic Git delivery are reported as blockers.
+- `jag-plan` and its template produce a short plan: outcome, scope, steps, checks and risks. Plans are executed only after an explicit user instruction and never commit on their own.
 - `jag-skill` uses the Pi package layout/discovery checks and a bundled template. Its conditional `jag-agent-docs` pointer loads shared writing guidance only when natively available; it creates no runtime, installer or manual-catalog dependency.
 - Absorb compares the destination's actual runtime. Refactoring instructions require explicit authorization for commits.
 - Descriptions, references, and templates use English. Replies and explicitly requested artifact languages follow the user.

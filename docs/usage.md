@@ -80,7 +80,7 @@ All bundled skill names begin with `jag-` and contain at most 15 characters. Ori
 
 New sources/names require native Pi configuration and `/reload`; edits and removals of already authorized skills are checked on the next request or lookup. Claude/OpenCode directories are not silently enabled. See the [skill registry and catalog](skills.md) for source configuration, limits and fallback.
 
-Orchestraitor is the execution contract in the main session. It supports direct changes and ordered work groups in a supplied plan. It checks the original plan's SHA-256, preserves the plan, and runs its assigned checks. Planning and review requests keep their own scope. Delivery defaults to unstaged working-tree changes; commits require an explicit current user instruction.
+Orchestraitor is how the main session executes: direct by default, delegating only independent parts. Given a plan file, it follows the steps and checks without rewriting the plan. Planning and review requests keep their own scope. Delivery defaults to unstaged working-tree changes; commits require an explicit current user instruction.
 
 The personality applies automatically through `extensions/instructions.ts`; no slash command is needed. Replies follow the user's language. Repository documentation, code, comments, and labels are in English. Professional and sensitive exchanges use a restrained tone. The architect's experience is a role, without an invented human biography.
 
@@ -95,7 +95,7 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 | `extensions/pretty-theme.ts` | Maps Pi's built-in `dark`/`light` themes to Pretty's `github-dark`/`github-light` through `PRETTY_THEME` on each start or reload; writes no files and yields to any theme set for Pretty. See [highlight theme](pi-pretty.md#highlight-theme). |
 | `pi-claude-bridge@0.9.3` | Separately installed companion through `install:pi`; Claude Code bridge. Authentication and model selection remain user-controlled. |
 | `extensions/btw/index.ts` | Temporary 70% side-conversation panel; no tools or local history, manual clipboard copying only. |
-| `extensions/instructions.ts` | Adds core, execution, and personality sections while preserving Pi and project instructions. Only Pi's docs rule changes, from reading whole files to reading the relevant sections. |
+| `extensions/instructions.ts` | Adds core and personality sections while preserving Pi and project instructions. Only Pi's docs rule changes, from reading whole files to reading the relevant sections. |
 | `extensions/mcp.ts` | Registers Context7 and Engram defaults through native MCP. Engram exposes only four memory tools, through codemode. |
 | `extensions/nan.ts` | Native NaN API-key login/environment fallback and seven documented chat models; no default changes or startup requests. |
 | `extensions/subagents.ts` | Model profiles, bounded sync/background readers, child guards, collection and native usage. |
@@ -231,4 +231,4 @@ Normal tools use one unboxed line. `codemode` shows nested-call counts and the c
 
 Errors remain visible: the header plus up to three visual rows, including caught nested-call failures and failed, timed-out or cancelled children. Codemode shows the start of the error cause; other tools show the error tail. Normal rows have no filled background; error rows keep the error background. Presentation does not truncate or change model-facing results. Codemode is decorated through Pi's public factory only when its native tool is present, preserves inactive/disabled selection, and leaves foreign tools with a different parameter schema unchanged. Restart Pi or run `/reload` after changing the package.
 
-Reviews identify repository/base/scope and content fingerprints, including relevant new files, and recheck them before the verdict. Findings distinguish observed/inferred evidence and introduced/aggravated/pre-existing/unknown origin. Behavior changes use observed failing and passing checks where appropriate; the final diff alone does not prove RED/GREEN execution.
+Reviews report findings with path:line, severity, the concrete failure and fix intent, separating defects from preferences. They do not fingerprint the scope, so files that change during a review are not detected. Behavior changes use observed failing and passing checks where appropriate; the final diff alone does not prove RED/GREEN execution.

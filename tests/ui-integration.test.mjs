@@ -59,7 +59,7 @@ test("shouldDisableUiWithoutChangingLauncherOrInstructionsWhenUiEntrypointIsExcl
 	assert.deepEqual({ active: session.getActiveToolNames(), ui: resources.loader.getExtensions().extensions.some(({ path }) => basename(path) === "status-ui.ts"), errors, calls },
 		{ active: ["read", "bash", "edit", "write", "subagent_collect", "subagent_run", "skill_registry"], ui: false, errors: [], calls: [] });
 	assert.equal(result.systemPromptOptions.sections.foreign, "Keep this");
-	assert.equal(result.systemPromptOptions.sections.pi_orchestraitor_execution, await readFile(join(packageRoot, "instructions/orchestraitor.md"), "utf8"));
+	assert.equal(result.systemPromptOptions.sections.pi_orchestraitor_core, await readFile(join(packageRoot, "instructions/core.md"), "utf8"));
 });
 
 test("shouldDriveActualNativeToolsWithLocalProviderAndKeepFixtureOutOfPackageWhenSmokeRunsInJsonMode", { timeout: 30000 }, async (t) => {

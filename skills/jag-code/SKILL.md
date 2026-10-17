@@ -8,14 +8,14 @@ metadata:
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
   status: in-progress
-  version: "2.0.2"
+  version: "2.0.3"
 ---
 
 # Code Conventions
 
 ## Activation Contract
 
-Load this skill when writing production code or tests. Planners select its name through `jag-routing`; they do not load this body.
+Load this skill when writing production code or tests where these conventions matter.
 
 Do not use for documentation, prose artifacts, or infrastructure config with no code.
 

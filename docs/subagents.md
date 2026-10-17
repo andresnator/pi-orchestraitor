@@ -1,6 +1,6 @@
 # Bounded subagents
 
-`subagent_run` starts a fresh Node process and in-memory Pi session per task. It accepts up to ten `explore`/`review` readers, or up to ten `implement` writers that each own disjoint files; a batch never mixes readers and writers. A parent has at most ten pending readers across calls. The active profile can lower each role's limit (see below); implementers are synchronous and cannot start while readers are pending. Each child is a separate process (about 145 MB) with its own provider requests, so large batches can reach provider rate limits. Small changes should remain direct. Plan work groups stay sequential and their original SHA-256 stays unchanged.
+`subagent_run` starts a fresh Node process and in-memory Pi session per task. It accepts up to ten `explore`/`review` readers, or up to ten `implement` writers that each own disjoint files; a batch never mixes readers and writers. A parent has at most ten pending readers across calls. The active profile can lower each role's limit (see below); implementers are synchronous and cannot start while readers are pending. Each child is a separate process (about 145 MB) with its own provider requests, so large batches can reach provider rate limits. Small changes should remain direct.
 
 ## Tool input
 
