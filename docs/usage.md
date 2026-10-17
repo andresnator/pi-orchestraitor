@@ -1,6 +1,6 @@
 # Usage and operations
 
-A personal Pi package with **59 development/workflow skills** (56 automatic, three explicit-only), a lazy native-authorized skill registry, compact tool output, temporary `/btw` side conversations, optional interactive work UI, a bundled NaN model provider, Context7, Engram, and Orchestraitor for scoped changes and sequential plan execution. It automatically loads the source harness's Colombian architect personality: direct answers, practical explanations, respectful disagreement, and occasional Colombian expressions when the conversation supports them.
+A personal Pi package with **36 development/workflow skills** (33 automatic, three explicit-only), a lazy native-authorized skill registry, compact tool output, temporary `/btw` side conversations, optional interactive work UI, a bundled NaN model provider, Context7, Engram, and Orchestraitor for scoped changes and sequential plan execution. It automatically loads the source harness's Colombian architect personality: direct answers, practical explanations, respectful disagreement, and occasional Colombian expressions when the conversation supports them.
 
 ## Install
 
@@ -16,7 +16,7 @@ pnpm run install:pi
 
 `pnpm run` puts the local Pi CLI on PATH. The installer recognizes its `.bin` shim and resolves the linked package's canonical SDK root; no `PI_TEST_PACKAGE_DIR` override is needed. The selected executable still controls host discovery, so npm-style symlink/global installations continue to work. Keep the checkout available; use `pnpm exec pi` if you want to start the local CLI.
 
-The preview lists every matching standalone skill, including multiple discovery aliases for the same source, and any blocking conflicts. Installation moves matching entries into a recoverable backup, registers this directory through native `pi install`, and verifies that all 59 skills resolve to the bundled adaptations. It also installs `@heyhuynhgiabuu/pi-pretty@0.7.0` and `pi-claude-bridge@0.9.3` through native Pi package management in the same user/project scope. Restart Pi or run `/reload` afterward.
+The preview lists every matching standalone skill, including multiple discovery aliases for the same source, and any blocking conflicts. Installation moves matching entries into a recoverable backup, registers this directory through native `pi install`, and verifies that all 36 skills resolve to the bundled adaptations. It also installs `@heyhuynhgiabuu/pi-pretty@0.7.0` and `pi-claude-bridge@0.9.3` through native Pi package management in the same user/project scope. Restart Pi or run `/reload` afterward.
 
 The installer adds `bash` to Pretty's `disableTools`, preserving other preferences, so Pi's bash keeps honoring `shellPath` and `shellCommandPrefix`. It uses `PRETTY_CONFIG_DIR` or Pretty's default `$HOME/.pi/agent/`, independently of installation scope. A nonempty `PRETTY_DISABLE_TOOLS` list must include `bash`; an incompatible override stops installation before file changes. Use `--without-pretty` to omit Pretty while still installing the harness and Claude Bridge; this leaves any existing Pretty registration and configuration intact. `--dry-run` lists companion packages and the planned configuration path/adjustment without writes or downloads.
 
@@ -74,7 +74,7 @@ Skills use **lazy discovery by default**: `skill_registry` searches native-autho
 
 The Matt Pocock adaptations include `jag-pr`, `jag-research`, `jag-agent-docs`, and the updated `jag-domain`. `jag-handoff` and `jag-teach` require explicit user commands (`/skill:jag-handoff <next task>` and `/skill:jag-teach <topic>`); automatic lookup/delegation rejects them. Generated workflow documents default to `.ai/`; teaching uses topic-scoped Markdown, not browser widgets. Existing domain documents are never migrated automatically. See [adapted workflows](skills.md#adapted-workflows).
 
-Ten former micro-review skills are consolidated into conditional references under `jag-practices`, `jag-refactor`, and `jag-patterns`; see the [replacement map](skills.md#consolidated-review-lenses). Their criteria remain available, but this package no longer supplies their standalone commands.
+Ten former micro-review skills are consolidated into conditional references under `jag-practices`, `jag-refactor`, and `jag-patterns`; see the [replacement map](skills.md#consolidated-review-lenses). Their criteria remain available, but this package no longer supplies their standalone commands. Twenty-four other names were retired or merged into `jag-jira`; see [retired skills](skills.md#retired-skills).
 
 All bundled skill names begin with `jag-` and contain at most 15 characters. Original identifiers remain in provenance; old skill commands and plan Skills fields must use the new names. Restart Pi after upgrading, and update any explicit skill paths or resource filters in your own configuration. Prompt commands such as `/plan` and `/absorb` are unchanged.
 
@@ -103,7 +103,7 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 | `extensions/status-ui.ts` | One owner for agents/tasks panels, unified questions, compact work-header/native-footer chrome and a warning before a model or thinking switch re-bills cached context. |
 | `extensions/footer.ts` | Replaces Pi's terminal footer with a project/branch line and a metrics line: context bar, compact token totals, provider, model name and effort. See [footer](interactive-ui.md#footer). |
 | `extensions/quota.ts` | `/quota` lists the plan usage each provider reported with its latest response in this Pi process. See [plan usage](interactive-ui.md#plan-usage). |
-| `skills/` | 59 unique skills and their supporting resources, with short `jag-*` names. |
+| `skills/` | 36 unique skills and their supporting resources, with short `jag-*` names. |
 | `prompts/` | `/orchestraitor`, `/plan`, `/review`, and `/absorb`, with explicit arguments. |
 | `scripts/install-pi.mjs` | Migration, native package registration, verification, and restoration. |
 

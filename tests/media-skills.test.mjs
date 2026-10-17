@@ -20,7 +20,7 @@ test("shouldDiscoverAndLoadBothAutomaticMediaSkillsWhenRegistryCapturesThem", as
 	await registry.capture(skills, ctx);
 	// Then
 	assert.deepEqual({ total: skills.length, automatic: skills.filter((s) => !s.disableModelInvocation).length, diagnostics }, {
-		total: 59, automatic: 56, diagnostics: [],
+		total: 36, automatic: 33, diagnostics: [],
 	});
 	for (const name of names) {
 		const result = await registry.search(name, 5, ctx);

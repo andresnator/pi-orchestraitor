@@ -1,6 +1,6 @@
 # pi-orchestraitor
 
-A personal [Pi](https://pi.dev) package for practical coding workflows: 59 bundled skills, compact tools, temporary `/btw` conversations, bounded subagents, a bundled NaN model provider, and optional Context7 and Engram integration.
+A personal [Pi](https://pi.dev) package for practical coding workflows: 36 bundled skills, compact tools, temporary `/btw` conversations, bounded subagents, a bundled NaN model provider, and optional Context7 and Engram integration.
 
 **Private GitHub distribution.** No npm publication or automatic releases.
 
