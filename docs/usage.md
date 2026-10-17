@@ -1,6 +1,6 @@
 # Usage and operations
 
-A personal Pi package with **37 development/workflow skills** (33 automatic, four explicit-only), a lazy native-authorized skill registry, compact tool output, temporary `/btw` side conversations, optional interactive work UI, a bundled NaN model provider, Context7, Engram, and Orchestraitor for scoped changes and sequential plan execution. It automatically loads the source harness's Colombian architect personality: direct answers, practical explanations, respectful disagreement, and occasional Colombian expressions when the conversation supports them.
+A personal Pi package with **33 development/workflow skills** (10 automatic, 23 explicit-only), a lazy native-authorized skill registry, compact tool output, temporary `/btw` side conversations, optional interactive work UI, a bundled NaN model provider, Context7, Engram, and Orchestraitor for scoped changes and sequential plan execution. It automatically loads the source harness's Colombian architect personality: direct answers, practical explanations, respectful disagreement, and occasional Colombian expressions when the conversation supports them.
 
 ## Install
 
@@ -66,17 +66,17 @@ Native `pi install /path/to/package` also discovers bundled skills, but does not
 /plan prepare change Z
 /orchestraitor execute the plan .ai/deep-planner/plans/change.md
 /review src/module.ts
-/absorb /path/to/another/harness
+/skill:jag-absorb /path/to/another/harness
 /skill:jag-debug investigate this failure
 ```
 
-Skills use **lazy discovery by default**: `skill_registry` searches native-authorized descriptions and loads only selected bodies. The index is kept in memory and is not injected into the prompt; nothing is written to the project. `/skill:<name>` remains an explicit native command. Use `/orchestraitor:skills status|refresh` to inspect/refresh, or `native` to restore native headers (`lazy` switches back).
+Skills use **lazy discovery by default**: `skill_registry` searches native-authorized descriptions and loads only selected bodies. Only the ten core skills are model-invocable; the packs run through `/skill:<name>` ([core and packs](skills.md#core-and-packs)). The index is kept in memory and is not injected into the prompt; nothing is written to the project. `/skill:<name>` remains an explicit native command. Use `/orchestraitor:skills status|refresh` to inspect/refresh, or `native` to restore native headers (`lazy` switches back).
 
-The Matt Pocock adaptations include `jag-pr`, `jag-research`, `jag-agent-docs`, and the updated `jag-domain`. `jag-handoff` and `jag-teach` require explicit user commands (`/skill:jag-handoff <next task>` and `/skill:jag-teach <topic>`); automatic lookup/delegation rejects them. Generated workflow documents default to `.ai/`; teaching uses topic-scoped Markdown, not browser widgets. Existing domain documents are never migrated automatically. See [adapted workflows](skills.md#adapted-workflows).
+The Matt Pocock adaptations include `jag-pr`, `jag-research`, `jag-agent-docs`, and the updated `jag-domain`. Pack skills such as `jag-handoff` and `jag-teach` require explicit user commands (`/skill:jag-handoff <next task>` and `/skill:jag-teach <topic>`); automatic lookup/delegation rejects them. Generated workflow documents default to `.ai/`; teaching uses topic-scoped Markdown, not browser widgets. Existing domain documents are never migrated automatically. See [adapted workflows](skills.md#adapted-workflows).
 
-Ten former micro-review skills are consolidated into conditional references under `jag-practices`, `jag-refactor`, and `jag-patterns`; see the [replacement map](skills.md#consolidated-review-lenses). Their criteria remain available, but this package no longer supplies their standalone commands. Twenty-four other names were retired or merged into `jag-jira`; see [retired skills](skills.md#retired-skills).
+Ten former micro-review skills are consolidated into conditional references under `jag-practices`, `jag-refactor`, and `jag-patterns`; see the [replacement map](skills.md#consolidated-review-lenses). Their criteria remain available, but this package no longer supplies their standalone commands. Twenty-eight other names were retired or merged into `jag-jira`, `jag-prd` or `jag-arch-map`; see [retired skills](skills.md#retired-skills).
 
-All bundled skill names begin with `jag-` and contain at most 15 characters. Original identifiers remain in provenance; old skill commands and plan Skills fields must use the new names. Restart Pi after upgrading, and update any explicit skill paths or resource filters in your own configuration. Prompt commands such as `/plan` and `/absorb` are unchanged.
+All bundled skill names begin with `jag-` and contain at most 15 characters. Original identifiers remain in provenance; old skill commands and plan Skills fields must use the new names. Restart Pi after upgrading, and update any explicit skill paths or resource filters in your own configuration. Prompt commands such as `/plan` are unchanged; `/absorb` became `/skill:jag-absorb`.
 
 New sources/names require native Pi configuration and `/reload`; edits and removals of already authorized skills are checked on the next request or lookup. Claude/OpenCode directories are not silently enabled. See the [skill registry and catalog](skills.md) for source configuration, limits and fallback.
 
@@ -103,8 +103,8 @@ The personality applies automatically through `extensions/instructions.ts`; no s
 | `extensions/status-ui.ts` | One owner for the agents panel, unified questions, native-footer status and a warning before a model or thinking switch re-bills cached context. |
 | `extensions/footer.ts` | Replaces Pi's terminal footer with a project/branch line and a metrics line: context bar, compact token totals, provider, model name and effort. See [footer](interactive-ui.md#footer). |
 | `extensions/quota.ts` | `/quota` lists the plan usage each provider reported with its latest response in this Pi process. See [plan usage](interactive-ui.md#plan-usage). |
-| `skills/` | 37 unique skills and their supporting resources, with short `jag-*` names. |
-| `prompts/` | `/orchestraitor`, `/plan`, `/review`, and `/absorb`, with explicit arguments. |
+| `skills/` | 33 unique skills (a 10-skill core plus manual packs) and their supporting resources, with short `jag-*` names. |
+| `prompts/` | `/orchestraitor`, `/plan` and `/review`, with explicit arguments. |
 | `scripts/install-pi.mjs` | Migration, native package registration, verification, and restoration. |
 
 The harness preserves personal model, theme, editor, credentials, and MCP overrides. The separately installed pretty companion supplies its own prompt-editor and activity presentation; see the [pretty integration guide](pi-pretty.md). It provides bounded subagents through `subagent_run`. It does not implement independent verification, resumable SDD, dual review, TCR, or persistent Caveman. Its scope and personality instructions are behavioral rules; they are not a filesystem sandbox.

@@ -1,6 +1,7 @@
 ---
 name: jag-skill
 description: "Create AI skills, agent instructions or reusable pattern guidance using the Agent Skills spec."
+disable-model-invocation: true
 license: Apache-2.0
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
@@ -9,7 +10,7 @@ metadata:
   author: gentleman-programming
   adapted_by: andresnator
   source: gentleman-programming/sdd-agent-team
-  version: "2.1.0"
+  version: "2.1.1"
   status: in-progress
 ---
 
@@ -60,7 +61,7 @@ Start from [assets/skill-template.md](assets/skill-template.md).
 
 ## Shared Agent-writing Guidance (Conditional)
 
-When authoring agent-consumed steps, context pointers or shared references, use `jag-agent-docs` when available through native skill discovery: search descriptions and load it with `skill_registry`. If it is unavailable, keep this skill's local guidance; do not install it or assume a newly written definition is authorized. This is a conditional reference, not a runtime dependency. Audit requests do not authorize editing.
+When authoring agent-consumed steps, context pointers or shared references, read [../jag-agent-docs/references/agent-writing.md](../jag-agent-docs/references/agent-writing.md) when it is bundled. If it is missing, keep this skill's local guidance; do not install it or assume a newly written definition is authorized. This is a conditional reference, not a runtime dependency. Audit requests do not authorize editing.
 
 ## Behavioral Evaluation (Conditional)
 

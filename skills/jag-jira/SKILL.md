@@ -1,6 +1,7 @@
 ---
 name: jag-jira
 description: "Draft/refine Jira User Stories, Tasks and Spikes in Jira Markup: product outcomes, technical/maintenance/operational work, or research and investigation, with acceptance criteria and developer/SDD readiness. Supports optional section review."
+disable-model-invocation: true
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
@@ -8,7 +9,7 @@ metadata:
   modification_notice: "Modified for Pi by pi-orchestraitor; merged the Jira User Story, Task and Spike skills and added optional section review."
   author: andresnator
   status: testing
-  version: "3.0.1"
+  version: "3.0.2"
 ---
 
 # Jira Ticket

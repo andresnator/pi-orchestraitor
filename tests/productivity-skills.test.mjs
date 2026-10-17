@@ -15,7 +15,7 @@ const WAIT_SOURCE_PATH = "skills/productivity/wait-what/SKILL.md";
 const WAIT_SOURCE_HASH = "d961bb37defd975c539427edb8f450cdbccdcdd552e213c1ece46676a7970905";
 const GRILL_SOURCE_PATH = "skills/productivity/grilling/SKILL.md";
 const GRILL_SOURCE_HASH = "befdff1e27a1dfe2a294d5871169ac1afe16d983911daa4f32627514a48c1e15";
-const EXPECTED_PROMPTS = ["absorb", "orchestraitor", "plan", "review"];
+const EXPECTED_PROMPTS = ["orchestraitor", "plan", "review"];
 const readSkill = (name) => readFile(join(packageRoot, "skills", name, "SKILL.md"), "utf8");
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 

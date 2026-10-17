@@ -1,13 +1,14 @@
 ---
 name: jag-dep-audit
 description: "Audit dependencies, CVEs and runtime support using read-only evidence."
+disable-model-invocation: true
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
   pi_adaptation: "2.0.0"
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
-  version: "2.1.2"
+  version: "2.1.3"
   status: testing
 ---
 

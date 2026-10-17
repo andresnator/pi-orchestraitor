@@ -4,10 +4,8 @@ import { join } from "node:path";
 import test from "node:test";
 import { createSkillRegistry, DEFAULT_SEARCH_LIMIT } from "../extensions/skills/registry.mjs";
 import { createWorkspace, packageRoot, pi } from "./helpers/pi-host.mjs";
+import { CORE_SKILLS, MANUAL_SKILLS, NATIVE_SKILL_COUNT } from "./helpers/skill-packs.mjs";
 
-const NATIVE_SKILL_COUNT = 37;
-const AUTOMATIC_SKILL_COUNT = 33;
-const MANUAL_ONLY_NAMES = ["jag-handoff", "jag-retro", "jag-teach", "jag-wait-what"];
 const QUALITY_REFERENCE = "references/review-lenses.md";
 const SMELL_REFERENCE = "references/smell-lenses.md";
 const BOUNDARY_REFERENCE = "references/boundary-review.md";
@@ -41,10 +39,6 @@ const ADDITIONAL_QUERIES = [
 	{ query: "small functions", skill: "jag-refactor" },
 	{ query: "temporal coupling", skill: "jag-refactor" },
 	{ query: "hidden side effects", skill: "jag-refactor" },
-	{ query: "factory", skill: "jag-patterns" },
-	{ query: "builder", skill: "jag-patterns" },
-	{ query: "decorator", skill: "jag-patterns" },
-	{ query: "observer", skill: "jag-patterns" },
 ];
 const ORIGINAL_TRIGGER_QUERIES = [
 	{ query: "overengineering", skill: "jag-practices" },
@@ -53,7 +47,6 @@ const ORIGINAL_TRIGGER_QUERIES = [
 	{ query: "oversized", skill: "jag-refactor" },
 	{ query: "extraction", skill: "jag-refactor" },
 	{ query: "collaborators", skill: "jag-refactor" },
-	{ query: "extension pressure", skill: "jag-patterns" },
 ];
 const catalog = () => pi.loadSkillsFromDir({ dir: join(packageRoot, "skills"), source: "package" });
 
@@ -104,19 +97,21 @@ test("shouldResolveConsolidatedSignalsAndRejectRetiredNamesWhenRegistryUsesCurre
 	t.after(() => registry.dispose());
 	const ctx = { cwd, isProjectTrusted: () => false };
 	await registry.capture(catalog().skills, ctx);
+	const owners = [...new Set(LENSES.map(({ skill }) => skill))];
 	// When
-	const selected = await registry.resolveNames([...new Set(LENSES.map(({ skill }) => skill))], ctx);
+	const selected = await registry.resolveNames(owners.filter((name) => CORE_SKILLS.includes(name)), ctx);
 	// Then
 	assert.deepEqual({ automatic: registry.status().available, manual: registry.status().manualOnly }, {
-		automatic: AUTOMATIC_SKILL_COUNT, manual: MANUAL_ONLY_NAMES.length,
+		automatic: CORE_SKILLS.length, manual: MANUAL_SKILLS.length,
 	});
-	for (const name of MANUAL_ONLY_NAMES) await assert.rejects(registry.resolveNames([name], ctx), /manual-only|explicit.*skill/i);
-	assert.equal(selected.length, new Set(LENSES.map(({ skill }) => skill)).size);
+	for (const name of owners.filter((owner) => MANUAL_SKILLS.includes(owner))) {
+		await assert.rejects(registry.resolveNames([name], ctx), /manual-only|explicit.*skill/i);
+	}
 	for (const lens of LENSES) {
-		const search = await registry.search(lens.query, 5, ctx);
-		assert.ok(search.matches.some(({ name }) => name === lens.skill), `${lens.query} must find ${lens.skill}`);
 		await assert.rejects(registry.resolveNames([lens.name], ctx), /unavailable/i);
-		const body = selected.find(({ skill }) => skill.name === lens.skill).body;
+		const search = await registry.search(lens.query, 5, ctx);
+		const body = selected.find(({ skill }) => skill.name === lens.skill)?.body ?? await readFile(join(packageRoot, "skills", lens.skill, "SKILL.md"), "utf8");
+		assert.equal(search.matches.some(({ name }) => name === lens.skill), CORE_SKILLS.includes(lens.skill), `${lens.query} search for ${lens.skill}`);
 		assert.ok(!body.includes(lens.criteria[0]), `${lens.skill} must not inline its full lens reference`);
 	}
 	for (const { query, skill } of ADDITIONAL_QUERIES) {

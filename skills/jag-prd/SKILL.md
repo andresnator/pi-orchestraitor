@@ -1,6 +1,7 @@
 ---
 name: jag-prd
-description: "Create rigorous PRDs/technical product specs for high-stakes, cross-team, regulated or security-sensitive work. Supports optional section review."
+description: "Create PRDs: rigorous technical specs for high-stakes, cross-team, regulated or security-sensitive work, or a light mode for MVPs, internal tools and early ideas. Supports optional section review."
+disable-model-invocation: true
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
@@ -8,7 +9,7 @@ metadata:
   modification_notice: "Modified for Pi by pi-orchestraitor; added optional section review."
   author: andresnator
   status: testing
-  version: "2.1.0"
+  version: "2.2.0"
 ---
 
 # Technical PRD
@@ -18,6 +19,8 @@ metadata:
 Use this skill to build a full technical PRD through an interactive, phase-by-phase conversation. A full PRD is appropriate when the work needs strong alignment, explicit tradeoffs, measurable outcomes, quality/security coverage, dependency mapping, risks, acceptance criteria, and traceability from goals to delivery.
 
 Always read `assets/prd-template.md` at the start of the session and use it as the final document skeleton.
+
+Use [Light Mode](#light-mode) instead when the user asks for a light PRD or the work is an MVP, internal tool, small-to-medium feature or early idea. Ask which mode only when the stakes are unclear.
 
 ## Optional Interactive Mode
 
@@ -109,6 +112,17 @@ After the draft, include a short final review request covering:
 - Remaining `TBD`, assumptions, and open questions.
 - Suggested save path or a question asking where to save the file.
 
+## Light Mode
+
+A useful, lightweight PRD for shared direction without formal review ceremony. Read `assets/prd-light-template.md` instead of the full template. Optional Interactive Mode and Conversation Format still apply; these rules replace the full-mode Hard Rules, Decision Gates, Execution Steps, Validation Rules and Output Contract.
+
+- Keep the conversation brief and practical. Work one phase at a time and ask at most one follow-up per phase unless missing information fully blocks the document.
+- Phases: (1) Context and Goals: problem, goal, scope, non-goals, success signals. (2) Users and Scenarios. (3) Requirements: priority and plain-language acceptance criteria; Given/When/Then is optional. (4) Approach and Constraints: approach, key constraints, dependencies, relevant technical notes. (5) Risks, Open Questions and Delivery: risks, assumptions, open questions, MVP or first release, next milestones.
+- Skip non-relevant details and accept `N/A` without heavy justification. When the discussion becomes ceremonial, collapse detail into bullets, record open questions and move on. Produce a useful draft fast; do not invent unknowns.
+- Validate: the problem and outcome are plain; scope names the first useful version and at least one boundary; success is observable; requirements are concrete enough to start; each must-have has acceptance criteria and connects to a goal or scenario; constraints appear only when they change delivery or design; risks and open questions are visible; the MVP or first release is identified.
+- Output a concise PRD Light from the template, then ask about anything still `TBD` or open, whether the MVP feels right, and where to save it (default `PRD-Light-{product-name}-v{version}.md`).
+
 ## References
 
 - `assets/prd-template.md` — full technical PRD template.
+- `assets/prd-light-template.md` — light PRD template.

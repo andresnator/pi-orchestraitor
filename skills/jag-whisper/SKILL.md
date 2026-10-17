@@ -1,6 +1,7 @@
 ---
 name: jag-whisper
 description: "Transcribe local audio or video with the Whisper CLI; preserve machine-generated transcript text and optionally summarize it. Use for recording transcription and media-to-text requests."
+disable-model-invocation: true
 license: MIT
 compatibility: "Pi 1.3.0; Node >=22.19 for assembly; optional local openai-whisper, ffmpeg and model weights."
 metadata:
@@ -9,7 +10,7 @@ metadata:
   source: agents-orchestrator
   upstream_name: whisper-extract
   source_revision: ea3158595b56d832e79b41c4c16175f45cd67ea2
-  version: "2.0.0"
+  version: "2.0.1"
   pi_adaptation: "2.0.0"
   status: testing
   modification_notice: "Adapted for Pi with private runs, explicit privacy boundaries and lossless artifact assembly."

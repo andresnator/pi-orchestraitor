@@ -8,7 +8,7 @@ metadata:
   modification_notice: "Modified for Pi by pi-orchestraitor; dropped the bundled technique catalog and language matrices."
   author: andresnator
   status: done
-  version: "1.5.0"
+  version: "1.5.1"
 ---
 
 # Refactoring
@@ -31,7 +31,7 @@ Read [references/smell-lenses.md](references/smell-lenses.md) only when diagnosi
 
 ## Pattern Landings
 
-Some techniques, taken to completion, land the code on a design pattern (Replace Conditional with Polymorphism on Strategy/State, Replace Constructor with Factory on Factory Method, Introduce Special Case on Null Object). Read the direction technique→pattern, never pattern→technique: if the smell evidence does not call for the technique, the pattern has no entry point. Pair with the `jag-patterns` skill for whether the pattern is worth it at all.
+Some techniques, taken to completion, land the code on a design pattern (Replace Conditional with Polymorphism on Strategy/State, Replace Constructor with Factory on Factory Method, Introduce Special Case on Null Object). Read the direction technique→pattern, never pattern→technique: if the smell evidence does not call for the technique, the pattern has no entry point. To judge whether the pattern is worth it at all, read [../jag-patterns/references/pattern-selection.md](../jag-patterns/references/pattern-selection.md).
 
 ## Key Principles
 

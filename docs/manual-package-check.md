@@ -81,8 +81,8 @@ const loader = new pi.DefaultResourceLoader({
 await loader.reload();
 assert.deepEqual(loader.getExtensions().errors, []);
 assert.deepEqual(loader.getSkills().diagnostics, []);
-assert.deepEqual(loader.getPrompts().prompts.map(({ name }) => name).sort(), ["absorb", "orchestraitor", "plan", "review"]);
-assert.equal(loader.getSkills().skills.length, 37);
+assert.deepEqual(loader.getPrompts().prompts.map(({ name }) => name).sort(), ["orchestraitor", "plan", "review"]);
+assert.equal(loader.getSkills().skills.length, 33);
 assert.ok(loader.getExtensions().extensions.every(({ path }) => path.startsWith(PACKAGE_DIR)));
 const provenance = JSON.parse(await readFile(join(PACKAGE_DIR, "docs/skills-provenance.json"), "utf8"));
 for (const skill of provenance.skills) {

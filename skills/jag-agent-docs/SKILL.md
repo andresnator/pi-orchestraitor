@@ -1,6 +1,7 @@
 ---
 name: jag-agent-docs
 description: "Audit or author agent-consumed documents: skills, agent instructions, context pointers, workflow steps and shared references."
+disable-model-invocation: true
 license: MIT
 compatibility: "Pi 1.0.4; use only available tools and native-authorized skills."
 metadata:
@@ -10,7 +11,7 @@ metadata:
   upstream_name: "writing-for-agents"
   source_path: "skills/productivity/writing-for-agents/SKILL.md"
   source_revision: "6fd947921b935b7e1e69293a200400f0fdd5c15f"
-  version: "1.1.0"
+  version: "1.1.1"
   pi_adaptation: "2.0.0"
   status: testing
   modification_notice: "Adapted writing-for-agents for Pi; added authorization, evidence and native-discovery boundaries."

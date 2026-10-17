@@ -1,6 +1,7 @@
 ---
 name: jag-adr
 description: "Create ADRs for technical decisions: context, alternatives, rationale, consequences and tradeoffs. Supports optional section review."
+disable-model-invocation: true
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
@@ -8,7 +9,7 @@ metadata:
   modification_notice: "Modified for Pi by pi-orchestraitor; added optional section review."
   author: andresnator
   status: testing
-  version: "2.1.0"
+  version: "2.1.1"
 ---
 
 # ADR Creator

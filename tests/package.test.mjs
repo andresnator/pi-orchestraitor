@@ -11,7 +11,7 @@ import {
 } from "./helpers/pi-host.mjs";
 
 const { expandPromptTemplate } = await importHost("dist/core/prompt-templates.js");
-const EXPECTED_PROMPTS = ["absorb", "orchestraitor", "plan", "review"];
+const EXPECTED_PROMPTS = ["orchestraitor", "plan", "review"];
 const PROVENANCE = JSON.parse(await readFile(join(packageRoot, "docs/skills-provenance.json"), "utf8"));
 const EXPECTED_FILES = [
 	"LICENSE", "README.md", "THIRD_PARTY_NOTICES.md", "package.json",
@@ -80,7 +80,7 @@ test("shouldLoadPromptsAndExtensionsWhenExplicitPackageBypassesDiscovery", async
 		skills: loader.getSkills().skills.length,
 	}, {
 		extensions: ["auto-compact.ts", "compact-tools.ts", "context-budget.ts", "footer.ts", "index.ts", "instructions.ts", "mcp.ts", "nan.ts", "pretty-theme.ts", "quota.ts", "skill-registry.ts", "status-ui.ts", "subagents.ts"],
-		errors: [], prompts: EXPECTED_PROMPTS, skills: 37,
+		errors: [], prompts: EXPECTED_PROMPTS, skills: 33,
 	});
 });
 
@@ -157,7 +157,7 @@ test("shouldLoadOnlyPackagedResourcesWhennpmTarballIsExtractedElsewhere", async 
 	assert.match(childResult.diagnostic, /Model unavailable/);
 	assert.match(result.systemPromptOptions.sections.pi_orchestraitor_core, /Personal harness rules/);
 	assert.match(result.systemPromptOptions.sections.pi_orchestraitor_personality, /Colombian software architect/);
-	assert.equal(PROVENANCE.skills.length, 37);
+	assert.equal(PROVENANCE.skills.length, 33);
 	for (const skill of PROVENANCE.skills) {
 		for (const resource of skill.resources) {
 			const bytes = await readFile(join(extracted, "skills", skill.name, resource.path));

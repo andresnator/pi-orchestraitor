@@ -1,6 +1,7 @@
 ---
 name: jag-summary
 description: "Synthesize/study book chapters, readings and long documents; summarize/analyze text, extract ideas, Cornell/TL;DR notes, or understand PDF/EPUB content in parts. Equivalent requests in any language apply."
+disable-model-invocation: true
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
@@ -8,7 +9,7 @@ metadata:
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
   status: testing
-  version: "1.0.3"
+  version: "1.0.4"
 ---
 
 # Book Chapter Summary

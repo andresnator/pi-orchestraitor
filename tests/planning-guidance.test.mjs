@@ -27,7 +27,7 @@ test("evidence/shouldRecordBusinessRulesAsOpenQuestionsWhenCodeOnlyShowsCurrentB
 	assert.match(section(body, "Method"), /business rules, compliance, SLAs, pricing, retention, priorities or target users found in code as open questions until the user or an authoritative product document confirms them/);
 	assert.match(userOnly, /business rules, compliance, SLAs, pricing, retention\)/);
 	assert.match(userOnly, /Code can show today's value, never whether the business requires it\./);
-	assert.equal(versionOf(body), "5.0.3");
+	assert.equal(versionOf(body), "5.0.4");
 });
 
 test("plan/shouldRequireUserSourcedRequirementsAndObservableWordingWhenSelfChecking", async () => {
@@ -46,7 +46,7 @@ test("issue/shouldRejectUnqualifiedVagueClaimsWhenValidatingAcceptanceScenarios"
 	const checklist = section(body, "Quality Checklist");
 	// Then
 	assert.match(checklist, /^- \[ \] Acceptance scenarios are observable, use Given\/When\/Then, and back any "correct", "secure", "fast" or "robust" claim with evidence or mark it as human review\.$/m);
-	assert.equal(versionOf(body), "2.1.4");
+	assert.equal(versionOf(body), "2.1.5");
 });
 
 test("provenance/shouldCreditEccConsultationAndRefreshFingerprintsWhenPlanningGuidanceChanges", async () => {

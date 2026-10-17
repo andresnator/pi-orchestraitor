@@ -98,7 +98,7 @@ test("shouldPreviewAndInstallViaPnpmWhenSdkOverrideIsAbsent", { timeout: 20_000 
 	const settings = JSON.parse(await readFile(join(cwd, ".pi/settings.json"), "utf8"));
 	// Then
 	assert.match(help, /^Usage: pnpm run install:pi \[--local\]/);
-	assert.deepEqual({ verified: receipt.verifiedSkills, companions: receipt.companionPackages }, { verified: 37, companions: ["npm:pi-claude-bridge@0.9.3"] });
+	assert.deepEqual({ verified: receipt.verifiedSkills, companions: receipt.companionPackages }, { verified: 33, companions: ["npm:pi-claude-bridge@0.9.3"] });
 	assert.ok(settings.packages.some((entry) => resolve(cwd, ".pi", typeof entry === "string" ? entry : entry.source) === resolve(packageRoot)));
 	assert.equal(preview.prettyConfig.path, join(agent, "pi-pretty.json"));
 	assert.deepEqual((await readFile(npmLog, "utf8")).trim().split("\n").map((line) => JSON.parse(line)),

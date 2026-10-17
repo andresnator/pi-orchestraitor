@@ -21,7 +21,7 @@ flowchart TD
   X -->|all required checks: E| V
 ```
 
-Node/edge evidence: **A** [instructions/core.md](../../instructions/core.md); **B** [prompts/plan.md](../../prompts/plan.md); **C** [jag-evidence:16–37](../../skills/jag-evidence/SKILL.md); **D** [jag-arch-ideas:16–29](../../skills/jag-arch-ideas/SKILL.md); **E** [prompts/orchestraitor.md](../../prompts/orchestraitor.md). These are instructed routes, not automatic dispatch code.
+Node/edge evidence: **A** [instructions/core.md](../../instructions/core.md); **B** [prompts/plan.md](../../prompts/plan.md); **C** [jag-evidence:17–38](../../skills/jag-evidence/SKILL.md); **D** [jag-arch-ideas:17–30](../../skills/jag-arch-ideas/SKILL.md); **E** [prompts/orchestraitor.md](../../prompts/orchestraitor.md). These are instructed routes, not automatic dispatch code. Deep Plan, Wayfinder and architecture routes start with an explicit `/skill:` command because `jag-evidence` and `jag-arch-ideas` are manual-only packs.
 
 ## 1. Direct work: skip the plan when it adds no value
 
@@ -69,7 +69,7 @@ Example:
 3. It writes one `.ai/deep-planner/plans/<slug>.md`, not a roadmap plus phase files.
 4. After you inspect the returned path, explicitly request `/orchestraitor execute the plan <returned-path>`.
 
-Difference from `/plan`: the **investigation method**, not a new planner process or execution engine. Contract: [jag-evidence:16–37](../../skills/jag-evidence/SKILL.md).
+Difference from `/plan`: the **investigation method**, not a new planner process or execution engine. Contract: [jag-evidence:17–38](../../skills/jag-evidence/SKILL.md).
 
 ## 4. Wayfinder: discover the destination before planning
 
@@ -81,7 +81,7 @@ Example:
 3. You resolve the open questions, then ask: `Convert that discovery into a Deep Plan for the agreed scope`.
 4. A separate request produces one plan; another explicit request authorizes execution.
 
-Discovery → plan is a **user-directed handoff**, not an automatic phase transition. Contract: [jag-evidence:20–37](../../skills/jag-evidence/SKILL.md).
+Discovery → plan is a **user-directed handoff**, not an automatic phase transition. Contract: [jag-evidence:21–38](../../skills/jag-evidence/SKILL.md).
 
 ## 5. Architecture change: decide boundaries, then plan migration
 
@@ -93,7 +93,7 @@ Example:
 3. It writes `.ai/architect/plans/<slug>.md`; step 1 adds architecture guardrails and later steps migrate incrementally.
 4. You review the ADR and plan, then request `/orchestraitor execute the plan <returned-path>`.
 
-The ADR explains **why**; the plan specifies **how to change safely**. Both remain documentation until execution is authorized. Contract: [jag-arch-ideas:16–29](../../skills/jag-arch-ideas/SKILL.md).
+The ADR explains **why**; the plan specifies **how to change safely**. Both remain documentation until execution is authorized. Contract: [jag-arch-ideas:17–30](../../skills/jag-arch-ideas/SKILL.md).
 
 ## Optional UI follows the chosen route
 

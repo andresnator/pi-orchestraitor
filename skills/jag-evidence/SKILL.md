@@ -1,6 +1,7 @@
 ---
 name: jag-evidence
 description: "Discover repository evidence and decisions for deep, evidence-first planning."
+disable-model-invocation: true
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
@@ -8,7 +9,7 @@ metadata:
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
   status: in-progress
-  version: "5.0.3"
+  version: "5.0.4"
 ---
 
 ## Contract

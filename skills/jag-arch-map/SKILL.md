@@ -1,17 +1,26 @@
 ---
 name: jag-arch-map
-description: "Create evidence-backed C4-lite maps, flows and architecture docs; check architectural drift."
+description: "Map architecture from code evidence: C4-lite maps, flows and drift checks, a verified state snapshot, or one service's inputs and outputs."
+disable-model-invocation: true
 license: MIT
 compatibility: "Pi 1.0.0; use available tools and declare optional external prerequisites."
 metadata:
   pi_adaptation: "2.0.0"
   modification_notice: "Modified for Pi by pi-orchestraitor."
   author: andresnator
-  version: "2.0.1"
+  version: "2.1.0"
   status: testing
 ---
 
 # Architecture Map
+
+## Modes
+
+- **Map** (default): follow the sections below.
+- **State:** record verified languages, toolchain, frameworks, modules, style and tests/CI for downstream work. Follow [references/state.md](references/state.md).
+- **Boundaries:** map one backend service's inputs and outputs with evidence and confidence. Follow [references/boundaries.md](references/boundaries.md).
+
+Choose the mode from the request; ask only when it is unclear.
 
 ## Contract
 

@@ -14,7 +14,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "05e03cd63b03adbd7fcd93dc4bc9a40526c762c865d7fdf366f1927c8c3374fb"
+          "sha256": "0e9308814a1e80a8172bddcfe9b711046cbe7c295532ee3f1e50a073d1c0f391"
         }
       ],
       "adaptations": [
@@ -34,7 +34,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "a2fc5db9906ccb85ec1d5d1623993f7263d64d4aab4b1975125463927c2f9504"
+          "sha256": "8315f60469d942e9ccdbdb4993b239abac12a195cfcbd158e6629e2d77a040a5"
         },
         {
           "path": "assets/template-markdown.md",
@@ -57,7 +57,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "f3a15e195227e73ea71ef9fcec73a208eac5f217e17b14aa5c48f96d5010e42d"
+          "sha256": "792732bdef3c468b3718751c9fd1576fee11447c5c7f02544b6c03e89ccc04e8"
         },
         {
           "path": "references/candidate-survey.md",
@@ -94,34 +94,29 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "91dafdad9860166d0ab4f4252228aaece83500dc32578b5adafb2c637c3aecbe"
+          "sha256": "00bac747dd17e0b02bfcd7b6e4fe8561e0afe45aa0f658074bd9b3b4a12cd636"
         },
         {
           "path": "assets/architecture-doc-set.md",
           "sha256": "90f1c9a0e3d15351b621d692a60c62d2f9c9c96cc09820f20070d022fa3901f9"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-arch-state",
-      "upstreamName": "architecture-state",
-      "upstreamPaths": [
-        "domains/architecture/skills/architecture-state/SKILL.md"
-      ],
-      "upstreamVersion": "2.0.1",
-      "license": "MIT",
-      "upstreamSha256": "da8aa27917f2d4b71dda2c84e4d8863f2b73afcc983604e4eae9dbd605450301",
-      "resources": [
+        },
         {
-          "path": "SKILL.md",
-          "sha256": "b9115584186ae604e7400328ac63272684f1d301cea7e93038b08377a0a5499e"
+          "path": "references/boundaries.md",
+          "sha256": "a1094364e7adfd89a16a4b8f772714588022df905b3af7c8b3a73c866a6b8895"
+        },
+        {
+          "path": "references/state.md",
+          "sha256": "0c7e91247b0d296794d376c6fb9953b2437356cfa8cdadf0976e0fc235504f86"
         }
       ],
       "adaptations": [
-        "SKILL.md"
+        "SKILL.md",
+        "references/boundaries.md",
+        "references/state.md"
+      ],
+      "mergedFrom": [
+        "jag-arch-state",
+        "jag-boundaries"
       ]
     },
     {
@@ -136,7 +131,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "4864d2990c9c8f4623ecbeedc5022e9de358325dd80061da3290479acd79bcd8"
+          "sha256": "3697766872bb3be3bcace91f997859892f7353fcdceb904fb494117a7b56f218"
         }
       ],
       "adaptations": [
@@ -221,7 +216,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "ce9192ad33b6b37360ef1edeec31613253bfb3bfa897cb328ba6d6e682a9a32f"
+          "sha256": "74b8071fc13eee46495e348735407445f1febb710dd7def84ead961c50b7991f"
         },
         {
           "path": "references/ecosystem-commands.md",
@@ -246,7 +241,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "bac603b23d27c4c24b5ea9fe46eebc5abcf981903639eb7e1a5f9b1c811d086f"
+          "sha256": "70b5f97c02aa4f95a0eceeacc74d57b8e786b65915f4e67bc303c4c663150ab1"
         },
         {
           "path": "references/pattern-forces.md",
@@ -279,7 +274,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "a4942cb7832b9d3d4bec95bb5daf14a19073b5f71d19411a6294b545b4f366e2"
+          "sha256": "1c768603e107ad4026c18b052f2e09483f9f010753cd48bb8e397883a62d9337"
         },
         {
           "path": "assets/ADR-FORMAT.md",
@@ -329,7 +324,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "8bf1359d2600eca6d38e681685c45d44b952d84830e1fe89cb7c32ccf90249f6"
+          "sha256": "7cf7c2fbf4776b5344ccc2e3de6d173c22c92cb57152cd5723809bc62881faf8"
         },
         {
           "path": "assets/discovery-template.md",
@@ -449,28 +444,6 @@
       ]
     },
     {
-      "name": "jag-routing",
-      "upstreamName": "implementation-skill-routing",
-      "upstreamPaths": [
-        "domains/architecture/skills/implementation-skill-routing/SKILL.md",
-        "domains/common/skills/implementation-skill-routing/SKILL.md",
-        "domains/orchestration/skills/implementation-skill-routing/SKILL.md",
-        "domains/plan/skills/implementation-skill-routing/SKILL.md"
-      ],
-      "upstreamVersion": "3.0.0",
-      "license": "MIT",
-      "upstreamSha256": "4c4d1871fd26d667e71d12bd039a62721d2824499a3b0fa8b80d77cf47ac35a4",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "88c452aff11b07c0239d6eaff1ecb0fc7f677fa16b435635de1129424e12c2d6"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
       "name": "jag-java-test",
       "upstreamName": "java-testing",
       "upstreamPaths": [
@@ -536,7 +509,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "d3232ad202a5d41b430d1455701a7a8a8dbd9eb16a2b64e6b6082240187d537f"
+          "sha256": "4148fa00a98ad2fb160006012f3cb174822e71be332760b37e99bbff3152e355"
         },
         {
           "path": "assets/quick.md",
@@ -577,7 +550,11 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "ea7afebc3a78f612b153dde3ee70337a48182e5715ad7574511c32133dcde91b"
+          "sha256": "88b413fb8c041c17179316d6a26f7cd42fc597decf6ee5b781c138e01c55aefd"
+        },
+        {
+          "path": "assets/prd-light-template.md",
+          "sha256": "8a9e72119c4cf803155c37ee2c7ed4f14a7f44d7e3c5f1a6ab0993750ae81002"
         },
         {
           "path": "assets/prd-template.md",
@@ -586,29 +563,9 @@
       ],
       "adaptations": [
         "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-prd-lite",
-      "upstreamName": "prd-light",
-      "upstreamPaths": [
-        "domains/docs/skills/prd-light/SKILL.md"
       ],
-      "upstreamVersion": "2.0.0",
-      "license": "MIT",
-      "upstreamSha256": "ff1bfaf96d41f270f98a31d6b1e1ac563cbd5dafafd06f462c8a6c3b6595a024",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "74464a4e3157693305d4cdca4f7547adf8848dcf00675d7d87ecc53ea6564504"
-        },
-        {
-          "path": "assets/prd-light-template.md",
-          "sha256": "8a9e72119c4cf803155c37ee2c7ed4f14a7f44d7e3c5f1a6ab0993750ae81002"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
+      "mergedFrom": [
+        "jag-prd-lite"
       ]
     },
     {
@@ -652,7 +609,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "7f5be8e58f52574e597e11b2dfa402226a262f202aa014022ae69aea758c8c36"
+          "sha256": "9761342f37ecec02c4ad1af2ced41d47d7a9a3d60bb062c70fab3d289c4597c1"
         },
         {
           "path": "references/java-notes.md",
@@ -685,7 +642,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "3fd0db4daaca5378a1ab3947711946ed1f721f1b06b9501ee603724325fe3ade"
+          "sha256": "de96990185e5e96f0e5e26ae1b6c6aab21c9e50a0db8d29d2c2b52c6b2ca1be4"
         },
         {
           "path": "references/fitness-functions.md",
@@ -708,30 +665,11 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "a3e97106eb00e29f1b2d89237962c1d4dca91faf1ff337a0cbf169460e51d930"
+          "sha256": "0e8a14907409a19c0bed5e1bace74c2f5d9f1a540b859a566cfd0b7d438e7cc7"
         },
         {
           "path": "assets/template.md",
           "sha256": "ce7faad1c3e43c7379c5b6e61dc283ee998947c09237bd36095df1b2edd5c4cd"
-        }
-      ],
-      "adaptations": [
-        "SKILL.md"
-      ]
-    },
-    {
-      "name": "jag-boundaries",
-      "upstreamName": "service-boundary-analysis",
-      "upstreamPaths": [
-        "domains/architecture/skills/service-boundary-analysis/SKILL.md"
-      ],
-      "upstreamVersion": "2.0.0",
-      "license": "MIT",
-      "upstreamSha256": "702f49358c75fe00e1f2f89f58606ae4588cb4444a1d44a8f291273fa6bf53f7",
-      "resources": [
-        {
-          "path": "SKILL.md",
-          "sha256": "e5cde85100e6c11eee816042ecdfb351b9bec69ec9a714ed1165053b25c7f10e"
         }
       ],
       "adaptations": [
@@ -750,7 +688,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "a6dcd6adaa6eb602f45efccbbd7251d07041f41a156430a9fb30a85dddeece63"
+          "sha256": "872909536e4621dbc9687dc19fe632b9bc365f83b66260641bdce8fcc38f2146"
         },
         {
           "path": "assets/skill-template.md",
@@ -779,7 +717,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "d47efbff9e139b2dc649067c45e29f9ed42ea7882b2b14edbb373883247c4b70"
+          "sha256": "ef2b4dedc36c979933a67a3192921e617b422084ddaf113019bbf2ee6b9e0427"
         },
         {
           "path": "assets/chapter-summary-template.md",
@@ -830,7 +768,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "223acf3c677427841cb761ecc7f4fa8f31e299f8dc0cd924a5f6412b9673cacf"
+          "sha256": "6280044b887f8fb2119f066fea0dec34888fe1bf7126b01a7ee25fd815018f9a"
         },
         {
           "path": "assets/usm-template.md",
@@ -867,7 +805,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "780e1294d8183d0eb4e2cd738675be12f0046b70457adb5cb43b7e6393c773a3"
+          "sha256": "483e055f72ac372f2fb5c18cb83eee87653359f7875e49e4f25a26ae77e2f1ec"
         },
         {
           "path": "assets/audit-template.md",
@@ -1212,7 +1150,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "3f26d29820e025443e72684f515a9ce4543d2d5d391eec4d4c93c36de8317ed7"
+          "sha256": "b754b6da69a46ec135251b86e46d089c4d8da92c4fbac5ed4f67e209b33c32de"
         },
         {
           "path": "assets/global-bottom.vue",
@@ -1312,7 +1250,7 @@
       "resources": [
         {
           "path": "SKILL.md",
-          "sha256": "97f5304994904ce64b52d2d908a0c783a462e872eb968a8924bdb1d0b14e2425"
+          "sha256": "b11c8f9436fc23d46868c3c03cbf456cbd0c759b21d8c9d4767c6c0f72c54532"
         },
         {
           "path": "assets/transcript-template.md",
@@ -1955,6 +1893,77 @@
       "previousInstructionSha256": "205c1bd7547a94f401c30ce01ed1badbc1f1948379a09556c4e8beeb348c0f38",
       "reason": "redundant",
       "replacement": null
+    },
+    {
+      "name": "jag-routing",
+      "upstreamName": "implementation-skill-routing",
+      "upstreamPaths": [
+        "domains/architecture/skills/implementation-skill-routing/SKILL.md",
+        "domains/common/skills/implementation-skill-routing/SKILL.md",
+        "domains/orchestration/skills/implementation-skill-routing/SKILL.md",
+        "domains/plan/skills/implementation-skill-routing/SKILL.md"
+      ],
+      "upstreamVersion": "3.0.0",
+      "license": "MIT",
+      "upstreamSha256": "4c4d1871fd26d667e71d12bd039a62721d2824499a3b0fa8b80d77cf47ac35a4",
+      "author": "andresnator",
+      "previousInstructionSha256": "88c452aff11b07c0239d6eaff1ecb0fc7f677fa16b435635de1129424e12c2d6",
+      "reason": "redundant",
+      "replacement": null
+    },
+    {
+      "name": "jag-prd-lite",
+      "upstreamName": "prd-light",
+      "upstreamPaths": [
+        "domains/docs/skills/prd-light/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.0",
+      "license": "MIT",
+      "upstreamSha256": "ff1bfaf96d41f270f98a31d6b1e1ac563cbd5dafafd06f462c8a6c3b6595a024",
+      "author": "andresnator",
+      "previousInstructionSha256": "74464a4e3157693305d4cdca4f7547adf8848dcf00675d7d87ecc53ea6564504",
+      "reason": "merged",
+      "replacement": {
+        "skill": "jag-prd",
+        "path": "SKILL.md",
+        "section": "light-mode"
+      }
+    },
+    {
+      "name": "jag-arch-state",
+      "upstreamName": "architecture-state",
+      "upstreamPaths": [
+        "domains/architecture/skills/architecture-state/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.1",
+      "license": "MIT",
+      "upstreamSha256": "da8aa27917f2d4b71dda2c84e4d8863f2b73afcc983604e4eae9dbd605450301",
+      "author": "andresnator",
+      "previousInstructionSha256": "b9115584186ae604e7400328ac63272684f1d301cea7e93038b08377a0a5499e",
+      "reason": "merged",
+      "replacement": {
+        "skill": "jag-arch-map",
+        "path": "references/state.md",
+        "section": "architecture-state"
+      }
+    },
+    {
+      "name": "jag-boundaries",
+      "upstreamName": "service-boundary-analysis",
+      "upstreamPaths": [
+        "domains/architecture/skills/service-boundary-analysis/SKILL.md"
+      ],
+      "upstreamVersion": "2.0.0",
+      "license": "MIT",
+      "upstreamSha256": "702f49358c75fe00e1f2f89f58606ae4588cb4444a1d44a8f291273fa6bf53f7",
+      "author": "andresnator",
+      "previousInstructionSha256": "e5cde85100e6c11eee816042ecdfb351b9bec69ec9a714ed1165053b25c7f10e",
+      "reason": "merged",
+      "replacement": {
+        "skill": "jag-arch-map",
+        "path": "references/boundaries.md",
+        "section": "service-boundaries"
+      }
     }
   ]
 }
